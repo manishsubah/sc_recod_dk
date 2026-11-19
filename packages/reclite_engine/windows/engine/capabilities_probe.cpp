@@ -1,5 +1,7 @@
 #include "capabilities_probe.h"
 
+#include "../capture/screen_capture.h"
+
 // clang-format off
 #include <windows.h>
 #include <mfapi.h>
@@ -75,9 +77,10 @@ EngineCapabilities QueryCapabilities() {
 
   return EngineCapabilities(
       HostPlatform::kWindows, os_version, kMinimumOsVersion, meets_minimum,
-      /*supports_recording=*/false,
+      /*supports_recording=*/meets_minimum && ScreenCapture::IsSupported(),
       /*supports_system_audio=*/meets_minimum,  // WASAPI loopback
-      /*supports_microphone_via_screen_capture=*/false,
+      // The mic is captured with WASAPI on the same QPC clock as the screen.
+      /*supports_microphone_via_screen_capture=*/meets_minimum,
       HasHardwareEncoder(MFVideoFormat_H264),
       HasHardwareEncoder(MFVideoFormat_HEVC), kEngineVersion);
 }

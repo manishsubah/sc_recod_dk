@@ -4,22 +4,6 @@
 
 namespace reclite_engine {
 
-std::wstring Utf8ToWide(const std::string& utf8) {
-  if (utf8.empty()) {
-    return std::wstring();
-  }
-  const int length = ::MultiByteToWideChar(
-      CP_UTF8, MB_ERR_INVALID_CHARS, utf8.data(),
-      static_cast<int>(utf8.size()), nullptr, 0);
-  if (length <= 0) {
-    return std::wstring();
-  }
-  std::wstring wide(static_cast<size_t>(length), L'\0');
-  ::MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, utf8.data(),
-                        static_cast<int>(utf8.size()), wide.data(), length);
-  return wide;
-}
-
 ErrorOr<DiskSpace> QueryDiskSpace(const std::string& utf8_path) {
   const std::wstring path = Utf8ToWide(utf8_path);
   if (path.empty() ||

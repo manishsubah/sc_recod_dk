@@ -876,17 +876,21 @@ void setupDI() {
 
 **Still to verify:** the 1-hour memory soak test (Phase 4). The real disk-full stop has only been checked through its policy code.
 
-### Phase 2 — Windows recording engine (≈ 3 weeks)
+### Phase 2 — Windows recording engine 🔶 Written, awaiting first Windows build (2026-11-19)
 
-- [ ] Windows dev environment (PC or VM, Visual Studio 2022, Windows SDK).
-- [ ] List monitors/windows; WGC capture with bounded frame pool.
-- [ ] D3D11 BGRA → NV12 conversion.
-- [ ] Media Foundation Sink Writer (hardware, fragmented MP4) + software fallback.
-- [ ] WASAPI loopback with **silence insertion**; device-change handling.
-- [ ] WASAPI microphone; mixer; level meter.
-- [ ] Same segment logic, manifest and events as macOS (same Pigeon API).
+Same features as macOS Phase 1, written in C++ in `packages/reclite_engine/windows/`:
 
-**Done when:** Same 1-hour test passes on Windows 10 and 11.
+- [x] Monitors with friendly names; Windows Graphics Capture (cursor on, no yellow border on Windows 11, own windows excluded).
+- [x] GPU BGRA → NV12 with crop (area) + scale via the D3D11 video processor; bounded frames in flight.
+- [x] Media Foundation Sink Writer: hardware H.264 + AAC, fragmented MP4, `.part` → `.mp4` on finish.
+- [x] WASAPI system-sound loopback + microphone (48 kHz float via AUTOCONVERTPCM), follows default-device changes; mixer + level meters (ported from macOS).
+- [x] SegmentedRecorder port: 15-min parts, exact boundary, pause/resume, background finalise.
+- [x] `session.json` (same format as macOS), crash recovery on launch, disk guard, keep PC awake.
+- [x] Area overlay + red outline (excluded from capture).
+- [x] CI: portable C++ unit tests (mixer, timeline, manifest) + Windows release build uploaded as `RecLite-windows-x64`.
+
+**Verified so far:** portable C++ tests pass on macOS (clang) — 14 audio + 12 storage, also with exceptions disabled; the same tests read a real macOS `session.json`.
+**Not verified yet:** the Windows build itself (first compile is in CI) and real recording on a Windows PC.
 
 ### Phase 3 — Product features (≈ 2 weeks)
 

@@ -70,7 +70,8 @@ class EngineDisplay {
   bool isMain;
 }
 
-/// A rectangle on one display, in points, origin at the display's top-left.
+/// A rectangle on one display, origin at its top-left: points on macOS,
+/// physical pixels on Windows (what each platform's area overlay returns).
 class EngineCaptureArea {
   EngineCaptureArea({
     required this.x,

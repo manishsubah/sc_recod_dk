@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -37,6 +38,14 @@ jobs:
             | xargs -0 dart format --output=none --set-exit-if-changed
       - run: flutter analyze
       - run: flutter test
+      # The Windows engine's mixer, timeline and session.json code is portable C++.
+      - name: Windows engine unit tests (portable C++)
+        working-directory: packages/reclite_engine/windows
+        run: |
+          g++ -std=c++17 -fno-exceptions -Wall -I. test/audio_mixer_test.cpp audio/audio_mixer.cpp audio/audio_pipeline.cpp -o /tmp/audio_test
+          /tmp/audio_test
+          g++ -std=c++17 -fno-exceptions -Wall test/storage_test.cpp storage/session_manifest.cpp storage/disk_guard.cpp -o /tmp/storage_test
+          /tmp/storage_test
 
   build-macos:
     name: Build macOS
@@ -62,4 +71,11 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      - run: flutter build windows --debug
+      - run: flutter build windows --release
+      # Download from the run's "Artifacts" section, unzip, run RecLite.exe.
+      - name: Upload Windows app
+        uses: actions/upload-artifact@v4
+        with:
+          name: RecLite-windows-x64
+          path: build/windows/x64/runner/Release/
+          retention-days: 14

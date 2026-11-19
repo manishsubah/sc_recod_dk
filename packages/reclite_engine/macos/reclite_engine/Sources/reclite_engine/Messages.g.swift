@@ -378,7 +378,8 @@ struct EngineDisplay: Hashable, CustomStringConvertible {
   }
 }
 
-/// A rectangle on one display, in points, origin at the display's top-left.
+/// A rectangle on one display, origin at its top-left: points on macOS,
+/// physical pixels on Windows (what each platform's area overlay returns).
 ///
 /// Generated class from Pigeon that represents data sent in messages.
 struct EngineCaptureArea: Hashable, CustomStringConvertible {
