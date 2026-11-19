@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.47.1"
+
+jobs:
+  analyze-test:
+    name: Analyze & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Pigeon output is up to date
+        working-directory: packages/reclite_engine
+        run: |
+          flutter pub get
+          dart run pigeon --input pigeons/engine_api.dart
+          git diff --exit-code -- lib/src macos windows
+      - run: dart format --output=none --set-exit-if-changed lib test packages/reclite_engine/lib
+      - run: flutter analyze
+      - run: flutter test
+
+  build-macos:
+    name: Build macOS
+    needs: analyze-test
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter build macos --debug
+
+  build-windows:
+    name: Build Windows
+    needs: analyze-test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter build windows --debug

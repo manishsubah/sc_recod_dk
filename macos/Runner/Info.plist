@@ -28,5 +28,9 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>RecLite records your microphone when you turn it on, so your voice is included in the recording.</string>
+	<key>NSScreenCaptureUsageDescription</key>
+	<string>RecLite needs screen recording access to capture your screen and system audio.</string>
 </dict>
 </plist>
