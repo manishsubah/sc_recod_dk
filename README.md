@@ -4,6 +4,7 @@ Lightweight desktop screen recorder for **macOS 13+** and **Windows 10 (2004)+**
 Flutter UI, native recording engine (ScreenCaptureKit / Windows Graphics Capture + Media Foundation), MP4 output split into 15-minute parts.
 
 Full design and roadmap: [docs/PLAN.md](docs/PLAN.md).
+**Continuing on Windows?** Start with [docs/CONTINUE_ON_WINDOWS.md](docs/CONTINUE_ON_WINDOWS.md).
 
 ## Layout
 

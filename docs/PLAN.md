@@ -5,6 +5,14 @@
 
 This document explains **what** we are building, **how** it works, and **in what order** we will build it. Each section starts with a plain-language explanation, followed by the technical details.
 
+> **Status (2026-11-19) — development moves to a Windows PC.**
+> - ✅ **Phase 0** done.
+> - ✅ **Phase 1** done and tested on macOS.
+> - 🔶 **Phase 2** (the Windows engine) is written but **not yet built or run on Windows**.
+> - ⏳ **Phases 3 and 4** not started.
+>
+> **Continue here:** [CONTINUE_ON_WINDOWS.md](CONTINUE_ON_WINDOWS.md). It covers setup, the first build, the Windows test checklist, where problems are most likely, and the next steps.
+
 ---
 
 ## Table of Contents
@@ -893,6 +901,8 @@ Same features as macOS Phase 1, written in C++ in `packages/reclite_engine/windo
 **Not verified yet:** the Windows build itself (first compile is in CI) and real recording on a Windows PC.
 
 ### Phase 3 — Product features (≈ 2 weeks)
+
+> Start only after the Windows test checklist passes ([CONTINUE_ON_WINDOWS.md §3](CONTINUE_ON_WINDOWS.md#3-test-checklist-on-windows)). Build each feature for **both** platforms. Windows is the main target, so test there first.
 
 - [ ] Source picker UI (displays/windows, later thumbnails).
 - [ ] Storage: folder picker, remember folder, free-space display, disk monitor, safe stop.
