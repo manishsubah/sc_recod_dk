@@ -1,22 +1,12 @@
 import 'package:flutter/material.dart';
 
-/// RecLite design tokens on top of Material 3.
-///
-/// Kept deliberately simple: no custom fonts, no heavy effects, minimal
-/// animation — the UI should cost as little as possible while recording.
+import 'package:reclite/app/theme/app_tokens.dart';
+
 abstract final class AppTheme {
-  /// Brand blue from the RecLite mockup.
-  static const Color brand = Color(0xFF1F5EFF);
+  static const Color brand = AppColors.brand;
+  static const Color recording = AppColors.recording;
 
-  /// Recording red (REC dot, stop button).
-  static const Color recording = Color(0xFFE5383B);
-
-  static const double radius = 14;
-
-  // NOTE: scaffold backgrounds (#FAF8FF light, #121318 dark) are mirrored in
-  // macos/Runner/MainFlutterWindow.swift to avoid a black flash at launch.
-  // Update it if the seed colour changes. (Windows needs nothing: its runner
-  // only shows the window after Flutter's first frame.)
+  // Keep macos/Runner/MainFlutterWindow.swift scaffold color in sync to avoid launch flash.
 
   static ThemeData light() => _build(Brightness.light);
 
@@ -28,10 +18,10 @@ abstract final class AppTheme {
       brightness: brightness,
     );
     final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(radius),
+      borderRadius: BorderRadius.circular(AppRadius.lg),
     );
 
-    return ThemeData(
+    final base = ThemeData(
       colorScheme: scheme,
       visualDensity: VisualDensity.standard,
       scaffoldBackgroundColor: scheme.surface,
@@ -41,20 +31,26 @@ abstract final class AppTheme {
         color: scheme.surfaceContainerLow,
         shape: shape.copyWith(side: BorderSide(color: scheme.outlineVariant)),
       ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          minimumSize: const Size(220, 52),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(radius),
-          ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-      ),
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: scheme.surfaceContainer,
         labelType: NavigationRailLabelType.all,
       ),
-      dividerTheme: DividerThemeData(color: scheme.outlineVariant, space: 1),
+      dividerTheme: DividerThemeData(
+        color: scheme.outlineVariant,
+        space: AppSize.hairline,
+      ),
+    );
+
+    return base.copyWith(
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(AppSize.buttonMinWidth, AppSize.buttonHeight),
+          shape: shape,
+          textStyle: base.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
     );
   }
 }

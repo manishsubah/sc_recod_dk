@@ -1,0 +1,26 @@
+---
+description: Use AppSpacing/AppSize tokens instead of magic numbers
+globs: lib/**/*.dart
+alwaysApply: false
+---
+
+# Design system
+
+- Raw pixel values live only in `lib/app/theme/app_tokens.dart` (`AppSpacing`, `AppSize`, `AppRadius`, `AppColors`, `AppLayout`).
+- Widgets use tokens, not literals, for padding, gaps, icon size, corner radius, and brand/status colors.
+- Typography and Material colors: `Theme.of(context).textTheme` and `colorScheme`, not ad-hoc `TextStyle(fontSize: 16)`.
+- Theme assembly: `AppTheme` in `app_theme.dart`; do not duplicate token values in feature code.
+
+```dart
+// BAD
+Container(width: 40, height: 40)
+padding: EdgeInsets.all(16)
+Icon(Icons.error, size: 40)
+
+// GOOD — app_shell.dart, home_page.dart
+width: AppSize.logo, height: AppSize.logo
+padding: EdgeInsets.all(AppSpacing.md)
+Icon(Icons.error_outline, size: AppSize.iconXxl)
+```
+
+- Product constants (segment minutes, byte estimates): `core/constants/`, not `AppSpacing`.

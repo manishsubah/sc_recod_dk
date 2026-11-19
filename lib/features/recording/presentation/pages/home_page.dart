@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../app/theme/app_theme.dart';
-import '../../../../core/constants/recording_defaults.dart';
-import '../../../../core/utils/formatters.dart';
-import '../../../../core/widgets/page_scaffold.dart';
-import '../bloc/readiness_cubit.dart';
-import '../widgets/info_row.dart';
-import '../widgets/readiness_header.dart';
+import 'package:reclite/app/theme/app_tokens.dart';
+import 'package:reclite/core/constants/recording_defaults.dart';
+import 'package:reclite/core/utils/formatters.dart';
+import 'package:reclite/core/widgets/page_scaffold.dart';
+import 'package:reclite/features/recording/presentation/bloc/readiness_cubit.dart';
+import 'package:reclite/features/recording/presentation/widgets/info_row.dart';
+import 'package:reclite/features/recording/presentation/widgets/readiness_header.dart';
 
-/// Home / recording dashboard (docs/PLAN.md §21.1).
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -20,7 +19,7 @@ class HomePage extends StatelessWidget {
       child: BlocBuilder<ReadinessCubit, ReadinessState>(
         builder: (context, state) => switch (state) {
           ReadinessLoading() => const Padding(
-            padding: EdgeInsets.all(48),
+            padding: EdgeInsets.all(AppSpacing.huge),
             child: Center(child: CircularProgressIndicator()),
           ),
           ReadinessFailed(:final message) => _FailedView(message: message),
@@ -49,10 +48,13 @@ class _LoadedView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ReadinessHeader(canRecord: state.canRecord, issues: state.issues),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.md),
         Card(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.xs,
+            ),
             child: Column(
               children: [
                 InfoRow(
@@ -97,19 +99,18 @@ class _LoadedView extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: AppSpacing.xxl),
         Center(
           child: FilledButton.icon(
-            // Enabled in Phase 1, when the recording pipeline lands.
             onPressed: null,
             icon: const Icon(
               Icons.fiber_manual_record,
-              color: AppTheme.recording,
+              color: AppColors.recording,
             ),
             label: const Text('Start Recording'),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.xs),
         Text(
           'Recording engine arrives in the next build. '
           'Engine ${engine.engineVersion}',
@@ -132,13 +133,17 @@ class _FailedView extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           children: [
-            Icon(Icons.error_outline, size: 40, color: scheme.error),
-            const SizedBox(height: 12),
+            Icon(
+              Icons.error_outline,
+              size: AppSize.iconXxl,
+              color: scheme.error,
+            ),
+            const SizedBox(height: AppSpacing.sm),
             Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             OutlinedButton(
               onPressed: () => context.read<ReadinessCubit>().load(),
               child: const Text('Try again'),

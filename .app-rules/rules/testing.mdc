@@ -1,0 +1,29 @@
+---
+description: bloc_test and mocktail patterns for RecLite tests
+globs: test/**/*.dart
+alwaysApply: false
+---
+
+# Testing
+
+- Cubits: `bloc_test` — `build`, `act`, `expect` for each transition (`Loading` → `Loaded` / `Failed`).
+- Repositories: mock the **interface** with `mocktail` (`MockEngineRepository`), not `EngineRepositoryImpl`.
+- Widget tests: pump with `BlocProvider` and a fake/mock cubit when testing presentation in isolation.
+- Keep fixtures in `test/fixtures.dart`; import relatively within `test/` or same-folder `import 'fixtures.dart'`.
+
+```dart
+// BAD
+final repo = EngineRepositoryImpl(RecliteEngine());
+
+// GOOD
+class MockEngineRepository extends Mock implements EngineRepository {}
+
+blocTest<ReadinessCubit, ReadinessState>(
+  'emits Loaded when engine and storage succeed',
+  build: () => ReadinessCubit(mockRepo),
+  act: (c) => c.load(),
+  expect: () => [isA<ReadinessLoading>(), isA<ReadinessLoaded>()],
+);
+```
+
+- Test error mapping: stub repo to throw `Failure` or `PlatformException`, assert `ReadinessFailed` message is user-safe.

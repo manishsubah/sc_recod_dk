@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../bloc/readiness_cubit.dart';
+import 'package:reclite/app/theme/app_tokens.dart';
+import 'package:reclite/features/recording/presentation/bloc/readiness_cubit.dart';
 
-/// "Ready to Record" status card with any blocking issues or warnings.
 class ReadinessHeader extends StatelessWidget {
   const ReadinessHeader({
     super.key,
@@ -17,11 +17,9 @@ class ReadinessHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final ok = Colors.green.shade600;
-
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -29,10 +27,10 @@ class ReadinessHeader extends StatelessWidget {
               children: [
                 Icon(
                   canRecord ? Icons.check_circle : Icons.error,
-                  color: canRecord ? ok : scheme.error,
-                  size: 32,
+                  color: canRecord ? AppColors.success : scheme.error,
+                  size: AppSize.iconXl,
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,7 +39,7 @@ class ReadinessHeader extends StatelessWidget {
                         canRecord ? 'Ready to Record' : 'Not ready to record',
                         style: theme.textTheme.titleLarge,
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: AppSpacing.xxs),
                       Text(
                         canRecord
                             ? 'Record your screen with just one click.'
@@ -56,7 +54,7 @@ class ReadinessHeader extends StatelessWidget {
               ],
             ),
             for (final issue in issues) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sm),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -64,10 +62,10 @@ class ReadinessHeader extends StatelessWidget {
                     issue.isBlocking
                         ? Icons.block
                         : Icons.warning_amber_rounded,
-                    size: 20,
-                    color: issue.isBlocking ? scheme.error : Colors.orange,
+                    size: AppSize.iconMd,
+                    color: issue.isBlocking ? scheme.error : AppColors.warning,
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(child: Text(issue.message)),
                 ],
               ),

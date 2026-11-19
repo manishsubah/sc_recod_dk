@@ -1,0 +1,26 @@
+---
+description: Cubit/Bloc and sealed UI state patterns
+globs: lib/**/*state.dart,lib/**/*cubit.dart,lib/**/*bloc.dart
+alwaysApply: false
+---
+
+# State management
+
+- UI state: `sealed class XState extends Equatable` with variants `Loading`, `Loaded`, `Failed` (pattern: `readiness_state.dart`).
+- Use `part 'x_state.dart';` on the cubit when state is colocated.
+- Emit immutable state; put derived flags on `Loaded` (e.g. `canRecord`), not parallel boolean fields on the cubit.
+- Map errors to user-safe messages via `Failure` (`core/errors/failures.dart`), then `emit(ReadinessFailed(message))`.
+- No platform channels or `RecliteEngine` inside cubits — only repositories.
+- Local UI only (tab index, animation): `StatefulWidget` + `setState` is fine; feature data belongs in a cubit.
+
+```dart
+// BAD — missing exhaustiveness, magic string error
+if (state is ReadinessLoaded) { ... }
+
+// GOOD — home_page.dart
+switch (state) {
+  ReadinessLoading() => ...,
+  ReadinessFailed(:final message) => _FailedView(message: message),
+  final ReadinessLoaded loaded => _LoadedView(state: loaded),
+}
+```

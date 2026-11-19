@@ -1,5 +1,3 @@
-/// Human-readable byte size, e.g. `1.5 GB`. Uses 1000-based units like
-/// Finder and Explorer's "free space" display.
 String formatBytes(int bytes) {
   if (bytes < 1000) return '$bytes B';
   const units = ['KB', 'MB', 'GB', 'TB', 'PB'];
@@ -13,7 +11,6 @@ String formatBytes(int bytes) {
   return '${value.toStringAsFixed(digits)} ${units[unit]}';
 }
 
-/// Rough recording time that fits in [freeBytes], e.g. `about 40 h`.
 String formatRecordingTimeLeft(
   int freeBytes, {
   required int estimatedBytesPerHour,

@@ -1,0 +1,25 @@
+---
+description: Recorder-friendly performance rules for UI and Dart
+alwaysApply: true
+---
+
+# Performance (UI)
+
+Full engine rules are in `docs/PLAN.md` §20. In Flutter:
+
+- Dart is control plane only — no frame buffers, no audio samples in Dart.
+- Scope `BlocBuilder` / `BlocSelector` to the smallest subtree that must rebuild.
+- Do not wrap the whole `AppShell` in a builder that ticks every second; isolate timers to the recording indicator widget.
+- Prefer `const` constructors for static subtrees; avoid rebuilding hidden tabs (shell already builds only the visible section).
+- Heavy work: `compute()` or native side; never block `build()`.
+
+```dart
+// BAD — entire page rebuilds on every readiness poll
+BlocBuilder<ReadinessCubit, ReadinessState>(
+  builder: (context, state) => Scaffold(body: HugeTree(state: state)),
+)
+
+// GOOD — builder only around the part that changes (see home_page PageScaffold child)
+```
+
+When adding recording UI, assume recording is active: minimize animations, avoid large image decode on the main isolate.

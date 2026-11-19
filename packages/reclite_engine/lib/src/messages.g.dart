@@ -10,9 +10,9 @@ import 'package:flutter/services.dart';
 import 'package:meta/meta.dart' show immutable, protected, visibleForTesting;
 
 Object? _extractReplyValueOrThrow(
-    List<Object?>? replyList,
-    String channelName, {
-    required bool isNullValid,
+  List<Object?>? replyList,
+  String channelName, {
+  required bool isNullValid,
 }) {
   if (replyList == null) {
     throw PlatformException(
@@ -46,8 +46,9 @@ bool _deepEquals(Object? a, Object? b) {
   }
   if (a is List && b is List) {
     return a.length == b.length &&
-        a.indexed
-            .every(((int, dynamic) item) => _deepEquals(item.$2, b[item.$1]));
+        a.indexed.every(
+          ((int, dynamic) item) => _deepEquals(item.$2, b[item.$1]),
+        );
   }
   if (a is Map && b is Map) {
     if (a.length != b.length) {
@@ -96,11 +97,7 @@ int _deepHash(Object? value) {
   return value.hashCode;
 }
 
-
-enum HostPlatform {
-  macos,
-  windows;
-}
+enum HostPlatform { macos, windows }
 
 /// What this machine and OS can do. Queried once at startup.
 class EngineCapabilities {
@@ -154,7 +151,8 @@ class EngineCapabilities {
   }
 
   Object encode() {
-    return _toList();  }
+    return _toList();
+  }
 
   static EngineCapabilities decode(Object result) {
     result as List<Object?>;
@@ -180,7 +178,18 @@ class EngineCapabilities {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(platform, other.platform) && _deepEquals(osVersion, other.osVersion) && _deepEquals(minimumOsVersion, other.minimumOsVersion) && _deepEquals(meetsMinimumOs, other.meetsMinimumOs) && _deepEquals(supportsSystemAudio, other.supportsSystemAudio) && _deepEquals(supportsMicrophoneViaScreenCapture, other.supportsMicrophoneViaScreenCapture) && _deepEquals(hasHardwareH264Encoder, other.hasHardwareH264Encoder) && _deepEquals(hasHardwareHevcEncoder, other.hasHardwareHevcEncoder) && _deepEquals(engineVersion, other.engineVersion);
+    return _deepEquals(platform, other.platform) &&
+        _deepEquals(osVersion, other.osVersion) &&
+        _deepEquals(minimumOsVersion, other.minimumOsVersion) &&
+        _deepEquals(meetsMinimumOs, other.meetsMinimumOs) &&
+        _deepEquals(supportsSystemAudio, other.supportsSystemAudio) &&
+        _deepEquals(
+          supportsMicrophoneViaScreenCapture,
+          other.supportsMicrophoneViaScreenCapture,
+        ) &&
+        _deepEquals(hasHardwareH264Encoder, other.hasHardwareH264Encoder) &&
+        _deepEquals(hasHardwareHevcEncoder, other.hasHardwareHevcEncoder) &&
+        _deepEquals(engineVersion, other.engineVersion);
   }
 
   @override
@@ -194,10 +203,7 @@ class EngineCapabilities {
 }
 
 class DiskSpace {
-  DiskSpace({
-    required this.freeBytes,
-    required this.totalBytes,
-  });
+  DiskSpace({required this.freeBytes, required this.totalBytes});
 
   /// Bytes available for new files on the volume containing the path.
   int freeBytes;
@@ -205,14 +211,12 @@ class DiskSpace {
   int totalBytes;
 
   List<Object?> _toList() {
-    return <Object?>[
-      freeBytes,
-      totalBytes,
-    ];
+    return <Object?>[freeBytes, totalBytes];
   }
 
   Object encode() {
-    return _toList();  }
+    return _toList();
+  }
 
   static DiskSpace decode(Object result) {
     result as List<Object?>;
@@ -231,7 +235,8 @@ class DiskSpace {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(freeBytes, other.freeBytes) && _deepEquals(totalBytes, other.totalBytes);
+    return _deepEquals(freeBytes, other.freeBytes) &&
+        _deepEquals(totalBytes, other.totalBytes);
   }
 
   @override
@@ -244,7 +249,6 @@ class DiskSpace {
   }
 }
 
-
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
   @override
@@ -252,13 +256,13 @@ class _PigeonCodec extends StandardMessageCodec {
     if (value is int) {
       buffer.putUint8(4);
       buffer.putInt64(value);
-    }    else if (value is HostPlatform) {
+    } else if (value is HostPlatform) {
       buffer.putUint8(129);
       writeValue(buffer, value.index);
-    }    else if (value is EngineCapabilities) {
+    } else if (value is EngineCapabilities) {
       buffer.putUint8(130);
       writeValue(buffer, value.encode());
-    }    else if (value is DiskSpace) {
+    } else if (value is DiskSpace) {
       buffer.putUint8(131);
       writeValue(buffer, value.encode());
     } else {
@@ -287,20 +291,21 @@ class EngineHostApi {
   /// available for dependency injection. If it is left null, the default
   /// BinaryMessenger will be used which routes to the host platform.
   EngineHostApi({
-      BinaryMessenger? binaryMessenger, 
-      String messageChannelSuffix = '', 
-      })
-      : pigeonVar_binaryMessenger = binaryMessenger,
-        pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
+    BinaryMessenger? binaryMessenger,
+    String messageChannelSuffix = '',
+  }) : pigeonVar_binaryMessenger = binaryMessenger,
+       pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty
+           ? '.$messageChannelSuffix'
+           : '';
 
   final BinaryMessenger? pigeonVar_binaryMessenger;
   static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
 
   final String pigeonVar_messageChannelSuffix;
 
-
   Future<EngineCapabilities> getCapabilities() async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.getCapabilities$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.reclite_engine.EngineHostApi.getCapabilities$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -309,31 +314,32 @@ class EngineHostApi {
     final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as EngineCapabilities;
   }
 
   /// Free/total space of the volume holding [path].
   /// Throws a PlatformException with code "invalid_path" if it does not exist.
   Future<DiskSpace> getDiskSpace(String path) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.getDiskSpace$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.reclite_engine.EngineHostApi.getDiskSpace$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[path]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[path],
+    );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
     return pigeonVar_replyValue! as DiskSpace;
   }
 }

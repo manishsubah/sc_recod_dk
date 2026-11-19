@@ -7,7 +7,6 @@ class StorageInfo extends Equatable {
     required this.totalBytes,
   });
 
-  /// Folder recordings will be saved to.
   final String path;
   final int freeBytes;
   final int totalBytes;

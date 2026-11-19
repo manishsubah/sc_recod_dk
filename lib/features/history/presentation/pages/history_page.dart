@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/widgets/coming_soon.dart';
-import '../../../../core/widgets/page_scaffold.dart';
+import 'package:reclite/core/widgets/coming_soon.dart';
+import 'package:reclite/core/widgets/page_scaffold.dart';
 
-/// Recording history (docs/PLAN.md §17). Built in Phase 3.
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});
 

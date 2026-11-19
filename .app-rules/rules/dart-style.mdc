@@ -1,0 +1,26 @@
+---
+description: Dart style, SOLID, and composition for RecLite
+globs: "**/*.dart"
+alwaysApply: false
+---
+
+# Dart style
+
+- Prefer `final` locals and `const` widgets where values are fixed at compile time.
+- Contracts: `abstract interface class XRepository` (not a concrete base class to extend).
+- Prefer composition (inject dependencies, small widgets) over deep inheritance.
+- One reason to change per type; split files when presentation and domain mix.
+- Comments: follow `comments.mdc` (minimal; no narrating the obvious).
+
+```dart
+// BAD
+class EngineRepositoryImpl extends EngineRepository { ... }
+
+// GOOD — see lib/features/recording/domain/repositories/engine_repository.dart
+abstract interface class EngineRepository {
+  Future<EngineInfo> getEngineInfo();
+}
+```
+
+- Follow `analysis_options.yaml` (strict casts, `prefer_single_quotes`, no `print`).
+- Generated files (`*.g.dart`): do not hand-edit.

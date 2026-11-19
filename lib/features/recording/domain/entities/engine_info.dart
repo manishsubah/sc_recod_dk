@@ -1,9 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-/// What the native engine reports about this machine.
-///
-/// Pure Dart mirror of the plugin's `EngineCapabilities`, so the domain and
-/// presentation layers never depend on generated platform types.
 class EngineInfo extends Equatable {
   const EngineInfo({
     required this.platformName,
@@ -17,7 +13,6 @@ class EngineInfo extends Equatable {
     required this.engineVersion,
   });
 
-  /// "macOS" or "Windows".
   final String platformName;
   final String osVersion;
   final String minimumOsVersion;

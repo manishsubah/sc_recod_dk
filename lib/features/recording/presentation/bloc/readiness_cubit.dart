@@ -3,16 +3,14 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/constants/recording_defaults.dart';
-import '../../../../core/errors/failures.dart';
-import '../../domain/entities/engine_info.dart';
-import '../../domain/entities/storage_info.dart';
-import '../../domain/repositories/engine_repository.dart';
+import 'package:reclite/core/constants/recording_defaults.dart';
+import 'package:reclite/core/errors/failures.dart';
+import 'package:reclite/features/recording/domain/entities/engine_info.dart';
+import 'package:reclite/features/recording/domain/entities/storage_info.dart';
+import 'package:reclite/features/recording/domain/repositories/engine_repository.dart';
 
 part 'readiness_state.dart';
 
-/// Checks whether this machine can record: OS version, hardware encoder,
-/// free disk space. Drives the "Ready to Record" card on the home screen.
 class ReadinessCubit extends Cubit<ReadinessState> {
   ReadinessCubit(this._engine, {String? outputFolder})
     : _outputFolder = outputFolder ?? RecordingDefaults.outputFolder(),
@@ -42,7 +40,6 @@ class ReadinessCubit extends Cubit<ReadinessState> {
       final error = e.errors.$1?.error ?? e.errors.$2?.error;
       emit(ReadinessFailed(_messageFor(error)));
     } on Object catch (error) {
-      // A repository that throws synchronously, before any future exists.
       emit(ReadinessFailed(_messageFor(error)));
     }
   }

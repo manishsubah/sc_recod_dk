@@ -1,0 +1,30 @@
+---
+description: RecLite layer boundaries and feature folder layout
+alwaysApply: true
+---
+
+# Architecture
+
+- One feature per folder: `lib/features/<name>/{presentation,domain,data}`.
+- **Domain**: entities + `abstract interface class` repositories. Pure Dart only — no `flutter/`, no plugins.
+- **Data**: `*RepositoryImpl`, native/plugin calls. Implements domain interfaces.
+- **Presentation**: pages, widgets, cubits/blocs. Depends on domain + `core/`, not on other features' data/presentation.
+- Wire implementations in `lib/app/di.dart` only (`get_it`). Cubits take interfaces via constructor injection.
+
+```dart
+// BAD — cubit depends on concrete impl or engine
+class ReadinessCubit extends Cubit<ReadinessState> {
+  ReadinessCubit() : super(const ReadinessLoading());
+  Future<void> load() => RecliteEngine().getEngineInfo();
+}
+
+// GOOD — interface injected in di.dart
+class ReadinessCubit extends Cubit<ReadinessState> {
+  ReadinessCubit(this._engine) : super(const ReadinessLoading());
+  final EngineRepository _engine;
+}
+```
+
+- Imports: `package:reclite/...`, not relative `../../`.
+- State: `flutter_bloc` + `get_it` only. No Riverpod.
+- Skip use-case classes that only forward one repository call; call the repository from the cubit.

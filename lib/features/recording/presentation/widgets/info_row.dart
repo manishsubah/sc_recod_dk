@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// One "label: value" line in a details card.
+import 'package:reclite/app/theme/app_tokens.dart';
+
 class InfoRow extends StatelessWidget {
   const InfoRow({
     super.key,
@@ -21,13 +22,17 @@ class InfoRow extends StatelessWidget {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
           child: Row(
             children: [
-              Icon(icon, size: 20, color: theme.colorScheme.onSurfaceVariant),
-              const SizedBox(width: 12),
+              Icon(
+                icon,
+                size: AppSize.iconMd,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: AppSpacing.sm),
               SizedBox(
-                width: 150,
+                width: AppLayout.labelColumnWidth,
                 child: Text(label, style: theme.textTheme.bodyMedium),
               ),
               Expanded(

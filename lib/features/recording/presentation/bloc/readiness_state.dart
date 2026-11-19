@@ -22,7 +22,6 @@ final class ReadinessLoaded extends ReadinessState {
   final StorageInfo storage;
   final List<ReadinessIssue> issues;
 
-  /// True when nothing blocks recording (warnings are allowed).
   bool get canRecord => issues.every((i) => !i.isBlocking);
 
   @override

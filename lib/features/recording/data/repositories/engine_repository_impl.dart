@@ -1,12 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:reclite/core/errors/failures.dart';
+import 'package:reclite/features/recording/domain/entities/engine_info.dart';
+import 'package:reclite/features/recording/domain/entities/storage_info.dart';
+import 'package:reclite/features/recording/domain/repositories/engine_repository.dart';
 import 'package:reclite_engine/reclite_engine.dart';
-
-import '../../../../core/errors/failures.dart';
-import '../../domain/entities/engine_info.dart';
-import '../../domain/entities/storage_info.dart';
-import '../../domain/repositories/engine_repository.dart';
 
 class EngineRepositoryImpl implements EngineRepository {
   EngineRepositoryImpl(this._engine);
@@ -51,12 +50,11 @@ class EngineRepositoryImpl implements EngineRepository {
     }
   }
 
-  /// Walks up from [folder] until it finds a directory that exists.
   static String _nearestExisting(String folder) {
     var dir = Directory(folder);
     while (!dir.existsSync()) {
       final parent = dir.parent;
-      if (parent.path == dir.path) break; // reached the root
+      if (parent.path == dir.path) break;
       dir = parent;
     }
     return dir.path;

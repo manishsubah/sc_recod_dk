@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../features/history/presentation/pages/history_page.dart';
-import '../../features/recording/presentation/bloc/readiness_cubit.dart';
-import '../../features/recording/presentation/pages/home_page.dart';
-import '../../features/settings/presentation/pages/settings_page.dart';
-import '../di.dart';
+import 'package:reclite/app/di.dart';
+import 'package:reclite/app/theme/app_tokens.dart';
+import 'package:reclite/features/history/presentation/pages/history_page.dart';
+import 'package:reclite/features/recording/presentation/bloc/readiness_cubit.dart';
+import 'package:reclite/features/recording/presentation/pages/home_page.dart';
+import 'package:reclite/features/settings/presentation/pages/settings_page.dart';
 
-/// Top-level sections of the app.
 enum AppSection {
   record(
     'Record',
@@ -24,10 +24,6 @@ enum AppSection {
   final IconData selectedIcon;
 }
 
-/// Desktop shell: navigation rail on the left, current section on the right.
-///
-/// Only the visible page is built (no IndexedStack), so hidden pages cost
-/// nothing.
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
 
@@ -50,7 +46,7 @@ class _AppShellState extends State<AppShell> {
               onDestinationSelected: (i) =>
                   setState(() => _section = AppSection.values[i]),
               leading: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
                 child: _Logo(),
               ),
               destinations: [
@@ -62,7 +58,7 @@ class _AppShellState extends State<AppShell> {
                   ),
               ],
             ),
-            const VerticalDivider(width: 1),
+            const VerticalDivider(width: AppSize.hairline),
             Expanded(
               child: switch (_section) {
                 AppSection.record => const HomePage(),
@@ -86,11 +82,11 @@ class _Logo extends StatelessWidget {
     return Semantics(
       label: 'RecLite',
       child: Container(
-        width: 40,
-        height: 40,
+        width: AppSize.logo,
+        height: AppSize.logo,
         decoration: BoxDecoration(
           color: scheme.primary,
-          borderRadius: BorderRadius.circular(11),
+          borderRadius: BorderRadius.circular(AppRadius.md),
         ),
         child: Icon(Icons.videocam_rounded, color: scheme.onPrimary),
       ),

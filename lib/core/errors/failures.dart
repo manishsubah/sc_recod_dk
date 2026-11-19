@@ -1,9 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/services.dart';
 
-/// App-level error with a message that is safe to show to the user.
-///
-/// Native error codes (from the engine) are mapped here, in one place.
 sealed class Failure extends Equatable implements Exception {
   const Failure(this.message);
 

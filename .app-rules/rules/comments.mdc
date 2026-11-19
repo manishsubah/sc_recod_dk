@@ -1,0 +1,29 @@
+---
+description: Minimal comments — only where the code cannot speak for itself
+alwaysApply: true
+---
+
+# Comments
+
+- Default: **no comment**. Clear names, small functions, and types replace narration.
+- **Do** comment when:
+  - Platform or product constraint that is not obvious from code (e.g. native runner must match theme color).
+  - Non-obvious algorithm, workaround, or `// ignore:` with a one-line why.
+  - Public API (`///`) when behavior or preconditions are not obvious from the signature.
+- **Do not** comment:
+  - What the next line obviously does (`// increment counter`, `// return widget`).
+  - Boilerplate section banners or long file headers.
+  - Commented-out code — delete it (git keeps history).
+  - Large blocks explaining architecture that belongs in `docs/` or `.cursor/rules/`.
+
+```dart
+// BAD
+// This widget is the root of your application.
+@override
+Widget build(BuildContext context) { ... }
+
+// GOOD — only when something non-obvious
+// macos/Runner/MainFlutterWindow.swift must mirror scaffoldBackgroundColor to avoid a black flash at launch.
+```
+
+Same for Kotlin, Swift, YAML, and XML: one short line beats a paragraph.
