@@ -28,6 +28,8 @@ void main() {
     when(() => repo.interruptions).thenAnswer((_) => interruptions.stream);
     when(() => repo.start(any())).thenAnswer((_) async {});
     when(() => repo.stop()).thenAnswer((_) async => testResult);
+    when(() => repo.pause()).thenAnswer((_) async {});
+    when(() => repo.resume()).thenAnswer((_) async {});
   });
 
   tearDown(() async {
@@ -113,5 +115,66 @@ void main() {
     seed: () => const RecordingFinished(testResult),
     act: (b) => b.add(const RecordingDismissed()),
     expect: () => [const RecordingIdle()],
+  );
+
+  group('pause / resume', () {
+    blocTest<RecordingBloc, RecordingState>(
+      'pause flips to paused right away and tells the engine',
+      build: build,
+      seed: () => RecordingActive(testStatus(30)),
+      act: (b) => b.add(const RecordingPauseRequested()),
+      expect: () => [
+        RecordingActive(testStatus(30, phase: RecordingPhase.paused)),
+      ],
+      verify: (_) => verify(() => repo.pause()).called(1),
+    );
+
+    blocTest<RecordingBloc, RecordingState>(
+      'resume goes back to recording',
+      build: build,
+      seed: () => RecordingActive(testStatus(30, phase: RecordingPhase.paused)),
+      act: (b) => b.add(const RecordingResumeRequested()),
+      expect: () => [RecordingActive(testStatus(30))],
+      verify: (_) => verify(() => repo.resume()).called(1),
+    );
+
+    blocTest<RecordingBloc, RecordingState>(
+      'paused engine ticks keep the session active',
+      build: build,
+      seed: () => RecordingActive(testStatus(30)),
+      act: (_) => status.add(testStatus(30, phase: RecordingPhase.paused)),
+      expect: () => [
+        RecordingActive(testStatus(30, phase: RecordingPhase.paused)),
+      ],
+    );
+
+    blocTest<RecordingBloc, RecordingState>(
+      'stop works while paused',
+      build: build,
+      seed: () => RecordingActive(testStatus(30, phase: RecordingPhase.paused)),
+      act: (b) => b.add(const RecordingStopRequested()),
+      expect: () => [
+        RecordingStopping(testStatus(30, phase: RecordingPhase.paused)),
+        const RecordingFinished(testResult),
+      ],
+    );
+  });
+
+  blocTest<RecordingBloc, RecordingState>(
+    'a non-fatal warning is shown without ending the recording',
+    build: build,
+    seed: () => RecordingActive(testStatus(10)),
+    act: (_) => interruptions.add(
+      const RecordingInterruption(message: 'Low disk space.', isFatal: false),
+    ),
+    expect: () => [RecordingActive(testStatus(10), warning: 'Low disk space.')],
+  );
+
+  blocTest<RecordingBloc, RecordingState>(
+    'the warning survives later ticks',
+    build: build,
+    seed: () => RecordingActive(testStatus(10), warning: 'Low disk space.'),
+    act: (_) => status.add(testStatus(11)),
+    expect: () => [RecordingActive(testStatus(11), warning: 'Low disk space.')],
   );
 }

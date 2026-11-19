@@ -60,8 +60,20 @@ public final class RecliteEnginePlugin: NSObject, FlutterPlugin, EngineHostApi {
     try await engine.start(request)
   }
 
+  func pauseRecording() throws {
+    try MainActor.assumeIsolated { try engine.pause() }
+  }
+
+  func resumeRecording() throws {
+    try MainActor.assumeIsolated { try engine.resume() }
+  }
+
   func stopRecording() async throws -> EngineRecordingResult {
     try await engine.stop()
+  }
+
+  func recoverSessions(outputDirectory: String) async throws -> [EngineRecoveredSession] {
+    await engine.recoverSessions(in: outputDirectory)
   }
 
   func selectArea(displayId: Int64) async throws -> EngineCaptureArea? {

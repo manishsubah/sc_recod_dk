@@ -35,6 +35,11 @@ class RecliteEnginePlugin : public flutter::Plugin, public EngineHostApi {
   void StartRecording(
       const EngineRecordingRequest& request,
       std::function<void(ErrorOr<EngineRecordingSession> reply)> result) override;
+  std::optional<FlutterError> PauseRecording() override;
+  std::optional<FlutterError> ResumeRecording() override;
+  void RecoverSessions(
+      const std::string& output_directory,
+      std::function<void(ErrorOr<flutter::EncodableList> reply)> result) override;
   void StopRecording(
       std::function<void(ErrorOr<EngineRecordingResult> reply)> result) override;
   std::optional<FlutterError> RevealInFileManager(const std::string& path) override;

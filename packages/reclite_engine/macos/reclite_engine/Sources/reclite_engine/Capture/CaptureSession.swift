@@ -6,44 +6,51 @@ enum AudioSource {
   case microphone
 }
 
-/// One SCStream feeding one SegmentWriter. Frames, audio and the writer stay on `queue`.
+/// Feeds one SCStream into a SegmentedRecorder. Frames, audio and writers stay on `queue`.
 final class CaptureSession: NSObject, SCStreamOutput, SCStreamDelegate {
   struct Stats {
-    let bytesOnDisk: Int64
+    let elapsed: CMTime
+    let partIndex: Int
+    let bytesWritten: Int64
     let droppedFrames: Int
-    let writerFailure: Error?
+    let failure: Error?
   }
 
-  private static let pumpInterval: DispatchTimeInterval = .milliseconds(100)
+  private static let tickInterval: DispatchTimeInterval = .milliseconds(100)
 
   private let queue = DispatchQueue(label: "app.reclite.capture", qos: .userInteractive)
   private let filter: SCContentFilter
   private let configuration: SCStreamConfiguration
-  private let writer: SegmentWriter
   private let audioSources: [AudioSource]
-  private let audio: AudioPipeline?
-  private var pumpTimer: DispatchSourceTimer?
+  private let recorder: SegmentedRecorder
+  private var ticker: DispatchSourceTimer?
   private var stream: SCStream?
   private var isFinishing = false
 
-  /// Called on the main thread when macOS ends the stream (e.g. the user stops sharing).
+  /// Main thread: macOS ended the stream (e.g. the user stopped sharing from the menu bar).
   var onStreamStopped: ((Error) -> Void)?
 
+  /// Main thread: a part was closed and renamed to `.mp4`.
+  var onPartFinished: ((SegmentedRecorder.Part) -> Void)?
+
+  /// Main thread: writing failed (disk full, encoder error); the recording must stop.
+  var onWriteFailure: ((Error) -> Void)?
+
   init(
-    filter: SCContentFilter, configuration: SCStreamConfiguration, writer: SegmentWriter,
-    audioSources: [AudioSource]
-  ) {
+    filter: SCContentFilter, configuration: SCStreamConfiguration,
+    settings: SegmentedRecorder.Settings, audioSources: [AudioSource]
+  ) throws {
     self.filter = filter
     self.configuration = configuration
-    self.writer = writer
     self.audioSources = audioSources
-    audio =
-      audioSources.isEmpty
-      ? nil
-      : AudioPipeline(sourceCount: audioSources.count) { [writer] buffer in
-        writer.appendAudio(buffer)
-      }
+    recorder = try SegmentedRecorder(settings: settings, queue: queue)
     super.init()
+    recorder.onPartFinished = { [weak self] part in
+      DispatchQueue.main.async { self?.onPartFinished?(part) }
+    }
+    recorder.onFailure = { [weak self] error in
+      DispatchQueue.main.async { self?.onWriteFailure?(error) }
+    }
   }
 
   func start() async throws {
@@ -57,44 +64,47 @@ final class CaptureSession: NSObject, SCStreamOutput, SCStreamDelegate {
     }
     try await stream.startCapture()
     self.stream = stream
-    startPumping()
+    startTicking()
   }
 
   func stats() -> Stats {
     queue.sync {
       Stats(
-        bytesOnDisk: writer.bytesOnDisk,
-        droppedFrames: writer.droppedFrames,
-        writerFailure: writer.hasFailed ? writer.failure : nil)
+        elapsed: recorder.elapsed(hostNow: Self.hostNow),
+        partIndex: recorder.partIndex,
+        bytesWritten: recorder.bytesWritten,
+        droppedFrames: recorder.droppedFrames,
+        failure: recorder.failure)
     }
   }
 
+  func pause() { queue.async { self.recorder.pause(hostNow: Self.hostNow) } }
+
+  func resume() { queue.async { self.recorder.resume(hostNow: Self.hostNow) } }
+
   /// Peak levels since the last call, 0…1. Nil source = not being recorded.
   func audioLevels() -> (system: Double?, microphone: Double?) {
-    guard let audio else { return (nil, nil) }
-    let levels = audio.meter.takeLevels()
+    guard let meter = recorder.audio?.meter else { return (nil, nil) }
+    let levels = meter.takeLevels()
     let level = { (source: AudioSource) in
       self.audioSources.firstIndex(of: source).map { levels[$0] }
     }
     return (level(.system), level(.microphone))
   }
 
-  /// Stops capture and finalizes the MP4. Returns the file and its media duration.
-  func stop(streamAlreadyStopped: Bool = false) async throws -> (url: URL, duration: CMTime) {
+  /// Stops capture and closes every part. Returns all finished parts in order.
+  func stop(streamAlreadyStopped: Bool = false) async -> (parts: [SegmentedRecorder.Part], error: Error?) {
     if !streamAlreadyStopped {
       try? await stream?.stopCapture()
     }
     stream = nil
-    return try await withCheckedThrowingContinuation { continuation in
-      queue.async { [writer, audio] in
+    return await withCheckedContinuation { continuation in
+      queue.async {
         self.isFinishing = true
-        self.pumpTimer?.cancel()
-        self.pumpTimer = nil
-        let end = CMClockGetTime(CMClockGetHostTimeClock())
-        audio?.flush(until: end)
-        let duration = writer.duration(until: end)
-        writer.finish(at: end) { result in
-          continuation.resume(with: result.map { ($0, duration) })
+        self.ticker?.cancel()
+        self.ticker = nil
+        self.recorder.stop(hostNow: Self.hostNow) { parts, error in
+          continuation.resume(returning: (parts, error))
         }
       }
     }
@@ -107,14 +117,12 @@ final class CaptureSession: NSObject, SCStreamOutput, SCStreamDelegate {
     guard !isFinishing, sampleBuffer.isValid else { return }
     switch type {
     case .screen:
-      guard Self.isCompleteFrame(sampleBuffer) else { return }
-      writer.appendVideo(sampleBuffer)
-      if let start = writer.sessionStart { audio?.start(at: start) }
+      if Self.isCompleteFrame(sampleBuffer) { recorder.appendVideo(sampleBuffer) }
     case .audio:
-      push(.system, sampleBuffer)
+      appendAudio(.system, sampleBuffer)
     default:
       if #available(macOS 15.0, *), type == .microphone {
-        push(.microphone, sampleBuffer)
+        appendAudio(.microphone, sampleBuffer)
       }
     }
   }
@@ -123,24 +131,23 @@ final class CaptureSession: NSObject, SCStreamOutput, SCStreamDelegate {
     DispatchQueue.main.async { self.onStreamStopped?(error) }
   }
 
-  private func push(_ source: AudioSource, _ buffer: CMSampleBuffer) {
-    guard let audio, let index = audioSources.firstIndex(of: source) else { return }
-    audio.push(source: index, buffer)
-    audio.pump(now: CMClockGetTime(CMClockGetHostTimeClock()))
+  private func appendAudio(_ source: AudioSource, _ buffer: CMSampleBuffer) {
+    guard let index = audioSources.firstIndex(of: source) else { return }
+    recorder.appendAudio(source: index, buffer, hostNow: Self.hostNow)
   }
 
-  /// Keeps audio flowing (as silence) when every source is quiet, e.g. nothing is playing.
-  private func startPumping() {
-    guard let audio else { return }
+  private func startTicking() {
     let timer = DispatchSource.makeTimerSource(queue: queue)
-    timer.schedule(deadline: .now() + Self.pumpInterval, repeating: Self.pumpInterval)
+    timer.schedule(deadline: .now() + Self.tickInterval, repeating: Self.tickInterval)
     timer.setEventHandler { [weak self] in
       guard let self, !self.isFinishing else { return }
-      audio.pump(now: CMClockGetTime(CMClockGetHostTimeClock()))
+      self.recorder.tick(hostNow: Self.hostNow)
     }
     timer.resume()
-    queue.async { self.pumpTimer = timer }
+    queue.async { self.ticker = timer }
   }
+
+  private static var hostNow: CMTime { CMClockGetTime(CMClockGetHostTimeClock()) }
 
   /// SCK also delivers idle/blank frames when nothing changed; only complete frames carry pixels.
   private static func isCompleteFrame(_ buffer: CMSampleBuffer) -> Bool {

@@ -10,6 +10,7 @@ class RecordingConfig extends Equatable {
     this.area,
     this.captureSystemAudio = true,
     this.captureMicrophone = false,
+    this.segmentDuration = const Duration(minutes: 15),
   });
 
   final int displayId;
@@ -23,6 +24,9 @@ class RecordingConfig extends Equatable {
   final bool captureSystemAudio;
   final bool captureMicrophone;
 
+  /// Recorded time per MP4 part; pauses don't count.
+  final Duration segmentDuration;
+
   @override
   List<Object?> get props => [
     displayId,
@@ -32,5 +36,6 @@ class RecordingConfig extends Equatable {
     area,
     captureSystemAudio,
     captureMicrophone,
+    segmentDuration,
   ];
 }

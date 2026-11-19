@@ -7,6 +7,7 @@ import 'package:reclite/features/recording/domain/entities/recording_config.dart
 import 'package:reclite/features/recording/domain/entities/recording_interruption.dart';
 import 'package:reclite/features/recording/domain/entities/recording_result.dart';
 import 'package:reclite/features/recording/domain/entities/recording_status.dart';
+import 'package:reclite/features/recording/domain/entities/recovered_recording.dart';
 import 'package:reclite/features/recording/domain/repositories/recorder_repository.dart';
 import 'package:reclite_engine/reclite_engine.dart';
 
@@ -77,6 +78,7 @@ class RecorderRepositoryImpl implements RecorderRepository {
         maxHeight: config.maxHeight,
         captureSystemAudio: config.captureSystemAudio,
         captureMicrophone: config.captureMicrophone,
+        segmentSeconds: config.segmentDuration.inSeconds,
         area: switch (config.area) {
           final a? => EngineCaptureArea(
             x: a.x,
@@ -89,6 +91,25 @@ class RecorderRepositoryImpl implements RecorderRepository {
       ),
     ),
   );
+
+  @override
+  Future<void> pause() => _guard(_engine.pauseRecording);
+
+  @override
+  Future<void> resume() => _guard(_engine.resumeRecording);
+
+  @override
+  Future<List<RecoveredRecording>> recover(String folder) => _guard(() async {
+    final sessions = await _engine.recoverSessions(folder);
+    return [
+      for (final s in sessions)
+        RecoveredRecording(
+          sessionDirectory: s.sessionDirectory,
+          files: s.files,
+          duration: Duration(milliseconds: s.durationMs),
+        ),
+    ];
+  });
 
   @override
   Future<RecordingResult> stop() => _guard(() async {
@@ -126,6 +147,7 @@ class RecorderRepositoryImpl implements RecorderRepository {
       EngineRecordingPhase.idle => RecordingPhase.idle,
       EngineRecordingPhase.starting => RecordingPhase.starting,
       EngineRecordingPhase.recording => RecordingPhase.recording,
+      EngineRecordingPhase.paused => RecordingPhase.paused,
       EngineRecordingPhase.stopping => RecordingPhase.stopping,
     },
     elapsed: Duration(milliseconds: s.elapsedMs),

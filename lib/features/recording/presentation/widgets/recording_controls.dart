@@ -80,6 +80,7 @@ class _StartButton extends StatelessWidget {
                     area: source.area,
                     captureSystemAudio: audio.systemAudio,
                     captureMicrophone: audio.microphone,
+                    segmentDuration: RecordingDefaults.segmentDuration,
                     outputFolder: outputFolder,
                     framesPerSecond: RecordingDefaults.framesPerSecond,
                     maxHeight: RecordingDefaults.maxOutputHeight,
@@ -117,56 +118,103 @@ class _BusyButton extends StatelessWidget {
 class _RecordingIndicator extends StatelessWidget {
   const _RecordingIndicator();
 
+  static const _compact = Size(
+    AppSize.compactButtonWidth,
+    AppSize.buttonHeight,
+  );
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final stopping = context.select<RecordingBloc, bool>(
-      (b) => b.state is RecordingStopping,
-    );
+    final bloc = context.read<RecordingBloc>();
+    final (stopping, paused, warning) = context
+        .select<RecordingBloc, (bool, bool, String?)>(
+          (b) => switch (b.state) {
+            RecordingStopping() => (true, false, null),
+            final RecordingActive a => (false, a.isPaused, a.warning),
+            _ => (false, false, null),
+          },
+        );
+    final accent = paused ? theme.colorScheme.outline : AppColors.recording;
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              width: AppSize.recordDot,
-              height: AppSize.recordDot,
-              decoration: const BoxDecoration(
-                color: AppColors.recording,
-                shape: BoxShape.circle,
-              ),
+            Row(
+              children: [
+                Container(
+                  width: AppSize.recordDot,
+                  height: AppSize.recordDot,
+                  decoration: BoxDecoration(
+                    color: accent,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  paused ? 'PAUSED' : 'REC',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: accent,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                const Expanded(child: _LiveStatus()),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(minimumSize: _compact),
+                  onPressed: stopping
+                      ? null
+                      : () => bloc.add(
+                          paused
+                              ? const RecordingResumeRequested()
+                              : const RecordingPauseRequested(),
+                        ),
+                  icon: Icon(
+                    paused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                  ),
+                  label: Text(paused ? 'Resume' : 'Pause'),
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    minimumSize: _compact,
+                    backgroundColor: AppColors.recording,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: stopping
+                      ? null
+                      : () => bloc.add(const RecordingStopRequested()),
+                  icon: stopping
+                      ? const SizedBox.square(
+                          dimension: AppSize.inlineProgress,
+                          child: CircularProgressIndicator(
+                            strokeWidth: AppSize.progressStroke,
+                          ),
+                        )
+                      : const Icon(Icons.stop_rounded),
+                  label: Text(stopping ? 'Saving…' : 'Stop'),
+                ),
+              ],
             ),
-            const SizedBox(width: AppSpacing.sm),
-            Text(
-              'REC',
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: AppColors.recording,
-                fontWeight: FontWeight.w700,
+            if (warning != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    size: AppSize.iconMd,
+                    color: AppColors.warning,
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Text(warning, style: theme.textTheme.bodySmall),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(width: AppSpacing.lg),
-            const Expanded(child: _LiveStatus()),
-            FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.recording,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: stopping
-                  ? null
-                  : () => context.read<RecordingBloc>().add(
-                      const RecordingStopRequested(),
-                    ),
-              icon: stopping
-                  ? const SizedBox.square(
-                      dimension: AppSize.inlineProgress,
-                      child: CircularProgressIndicator(
-                        strokeWidth: AppSize.progressStroke,
-                      ),
-                    )
-                  : const Icon(Icons.stop_rounded),
-              label: Text(stopping ? 'Saving…' : 'Stop'),
-            ),
+            ],
           ],
         ),
       ),
@@ -218,7 +266,9 @@ class _SavedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bloc = context.read<RecordingBloc>();
+    final parts = result.files.length;
     final file = result.files.isEmpty ? null : result.files.first;
+    final revealTarget = parts > 1 ? result.sessionDirectory : file;
     final revealLabel = Platform.isMacOS
         ? 'Show in Finder'
         : 'Show in Explorer';
@@ -237,14 +287,20 @@ class _SavedCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.xs),
-            if (file != null)
+            if (parts > 1)
+              SelectableText(
+                result.sessionDirectory.split(Platform.pathSeparator).last,
+                style: theme.textTheme.bodyMedium,
+              )
+            else if (file != null)
               SelectableText(
                 file.split(Platform.pathSeparator).last,
                 style: theme.textTheme.bodyMedium,
               ),
             Text(
               '${formatElapsed(result.duration)} · '
-              '${formatBytes(result.bytesWritten)}',
+              '${formatBytes(result.bytesWritten)}'
+              '${parts > 1 ? ' · $parts parts' : ''}',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -254,9 +310,10 @@ class _SavedCard extends StatelessWidget {
               spacing: AppSpacing.xs,
               runSpacing: AppSpacing.xs,
               children: [
-                if (file != null)
+                if (revealTarget != null)
                   OutlinedButton.icon(
-                    onPressed: () => bloc.add(RecordingRevealRequested(file)),
+                    onPressed: () =>
+                        bloc.add(RecordingRevealRequested(revealTarget)),
                     icon: const Icon(Icons.folder_open_outlined),
                     label: Text(revealLabel),
                   ),

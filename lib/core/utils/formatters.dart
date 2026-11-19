@@ -29,3 +29,9 @@ String formatElapsed(Duration d) {
   final seconds = two(d.inSeconds.remainder(60));
   return hours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
 }
+
+/// `15 minutes`, or `20 seconds` for short (debug) parts.
+String formatSegmentLength(Duration d) =>
+    d.inMinutes >= 1 && d.inSeconds % 60 == 0
+    ? '${d.inMinutes} minutes'
+    : '${d.inSeconds} seconds';

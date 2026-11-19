@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-enum RecordingPhase { idle, starting, recording, stopping }
+enum RecordingPhase { idle, starting, recording, paused, stopping }
 
 class RecordingStatus extends Equatable {
   const RecordingStatus({
@@ -24,6 +24,14 @@ class RecordingStatus extends Equatable {
   final int segmentIndex;
   final int bytesWritten;
   final int droppedFrames;
+
+  RecordingStatus withPhase(RecordingPhase phase) => RecordingStatus(
+    phase: phase,
+    elapsed: elapsed,
+    segmentIndex: segmentIndex,
+    bytesWritten: bytesWritten,
+    droppedFrames: droppedFrames,
+  );
 
   @override
   List<Object?> get props => [

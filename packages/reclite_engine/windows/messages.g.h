@@ -67,7 +67,8 @@ enum class EngineRecordingPhase {
   kIdle = 0,
   kStarting = 1,
   kRecording = 2,
-  kStopping = 3
+  kPaused = 3,
+  kStopping = 4
 };
 
 
@@ -273,6 +274,7 @@ class EngineRecordingRequest {
     int64_t display_id,
     bool capture_system_audio,
     bool capture_microphone,
+    int64_t segment_seconds,
     const std::string& output_directory,
     int64_t frames_per_second,
     int64_t max_height);
@@ -282,6 +284,7 @@ class EngineRecordingRequest {
     int64_t display_id,
     bool capture_system_audio,
     bool capture_microphone,
+    int64_t segment_seconds,
     const EngineCaptureArea* area,
     const std::string& output_directory,
     int64_t frames_per_second,
@@ -302,6 +305,10 @@ class EngineRecordingRequest {
   // Default input device, mixed with system audio into one AAC track.
   bool capture_microphone() const;
   void set_capture_microphone(bool value_arg);
+
+  // Recorded time (pauses excluded) per MP4 part, e.g. 900 for 15 minutes.
+  int64_t segment_seconds() const;
+  void set_segment_seconds(int64_t value_arg);
 
   // Null records the whole display.
   const EngineCaptureArea* area() const;
@@ -334,6 +341,7 @@ class EngineRecordingRequest {
   int64_t display_id_;
   bool capture_system_audio_;
   bool capture_microphone_;
+  int64_t segment_seconds_;
   std::unique_ptr<EngineCaptureArea> area_;
   std::string output_directory_;
   int64_t frames_per_second_;
@@ -374,6 +382,44 @@ class EngineRecordingSession {
   std::string session_directory_;
   int64_t width_;
   int64_t height_;
+};
+
+
+// A recording that was interrupted (crash, power loss) and repaired on launch.
+//
+// Generated class from Pigeon that represents data sent in messages.
+class EngineRecoveredSession {
+ public:
+  // Constructs an object setting all fields.
+  explicit EngineRecoveredSession(
+    const std::string& session_directory,
+    const ::flutter::EncodableList& files,
+    int64_t duration_ms);
+
+  const std::string& session_directory() const;
+  void set_session_directory(std::string_view value_arg);
+
+  const ::flutter::EncodableList& files() const;
+  void set_files(const ::flutter::EncodableList& value_arg);
+
+  int64_t duration_ms() const;
+  void set_duration_ms(int64_t value_arg);
+
+  bool operator==(const EngineRecoveredSession& other) const;
+  bool operator!=(const EngineRecoveredSession& other) const;
+  /// Returns a hash code value for the object. This method is supported for the benefit of hash tables.
+  size_t Hash() const;
+  /// Stream output operator for formatted string representation.
+  friend std::ostream& operator<<(std::ostream& os, const EngineRecoveredSession& obj);
+ private:
+  static EngineRecoveredSession FromEncodableList(const ::flutter::EncodableList& list);
+  ::flutter::EncodableList ToEncodableList() const;
+  friend class EngineHostApi;
+  friend class EngineEventsApi;
+  friend class PigeonInternalCodecSerializer;
+  std::string session_directory_;
+  ::flutter::EncodableList files_;
+  int64_t duration_ms_;
 };
 
 
@@ -576,7 +622,15 @@ class EngineHostApi {
   virtual void StartRecording(
     const EngineRecordingRequest& request,
     std::function<void(ErrorOr<EngineRecordingSession> reply)> result) = 0;
+  // Keeps capturing but stops writing; paused time is not part of the video.
+  virtual std::optional<FlutterError> PauseRecording() = 0;
+  virtual std::optional<FlutterError> ResumeRecording() = 0;
   virtual void StopRecording(std::function<void(ErrorOr<EngineRecordingResult> reply)> result) = 0;
+  // Finds unfinished recordings in [outputDirectory], keeps every playable
+  // part and marks the session as recovered. Skips the active recording.
+  virtual void RecoverSessions(
+    const std::string& output_directory,
+    std::function<void(ErrorOr<::flutter::EncodableList> reply)> result) = 0;
   virtual std::optional<FlutterError> RevealInFileManager(const std::string& path) = 0;
   // Shows a drag-to-select overlay on the display. Null when the user cancels.
   virtual void SelectArea(

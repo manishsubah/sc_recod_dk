@@ -2,11 +2,12 @@ import AVFoundation
 
 /// Encodes one MP4 part. Not thread-safe: use from a single serial queue.
 ///
-/// Writes to `<name>.mp4.part` with movie fragments every few seconds, so a crash
+/// Writes to `<name>.mp4.part` with a movie fragment every 2 s of recording, so a crash
 /// leaves a file playable up to the last fragment; renamed to `<name>.mp4` when finished.
 final class SegmentWriter {
-  static let fragmentInterval = CMTime(seconds: 5, preferredTimescale: 600)
+  static let fragmentInterval = CMTime(seconds: 2, preferredTimescale: 600)
 
+  let index: Int
   let finalURL: URL
   let partURL: URL
   private let writer: AVAssetWriter
@@ -19,9 +20,12 @@ final class SegmentWriter {
   private(set) var droppedAudioBuffers = 0
 
   /// Kept so the final frame can be repeated at the stop time (one buffer, not a queue).
-  private var lastBuffer: CMSampleBuffer?
+  private(set) var lastBuffer: CMSampleBuffer?
 
-  init(url: URL, width: Int, height: Int, framesPerSecond: Int, withAudio: Bool) throws {
+  init(index: Int, url: URL, width: Int, height: Int, framesPerSecond: Int, withAudio: Bool)
+    throws
+  {
+    self.index = index
     finalURL = url
     partURL = url.appendingPathExtension("part")
 
@@ -52,18 +56,36 @@ final class SegmentWriter {
   var hasFailed: Bool { writer.status == .failed }
   var failure: Error? { writer.error }
 
+  /// Media time where this part begins; audio and video before it are dropped.
+  var sessionStart: CMTime? { firstPTS.isValid ? firstPTS : nil }
+
   var bytesOnDisk: Int64 {
     let size = try? FileManager.default.attributesOfItem(atPath: partURL.path)[.size] as? NSNumber
     return size?.int64Value ?? 0
+  }
+
+  /// Later parts start at the exact boundary rather than at their first frame.
+  func startSession(at time: CMTime) {
+    guard !firstPTS.isValid else { return }
+    writer.startSession(atSourceTime: time)
+    firstPTS = time
+  }
+
+  /// Shows `buffer`'s picture from `time`, so a part never opens on a blank screen.
+  func seed(with buffer: CMSampleBuffer, at time: CMTime) {
+    guard let copy = Self.retimed(buffer, to: time) else { return }
+    appendVideo(copy)
   }
 
   /// Back-pressure: if the encoder is busy the frame is dropped, never queued.
   func appendVideo(_ buffer: CMSampleBuffer) {
     let pts = CMSampleBufferGetPresentationTimeStamp(buffer)
     if !firstPTS.isValid {
-      writer.startSession(atSourceTime: pts)
-      firstPTS = pts
+      startSession(at: pts)
     }
+    guard CMTimeCompare(pts, firstPTS) >= 0,
+      !lastPTS.isValid || CMTimeCompare(pts, lastPTS) > 0
+    else { return }
     guard videoInput.isReadyForMoreMediaData, videoInput.append(buffer) else {
       droppedFrames += 1
       return
@@ -72,8 +94,16 @@ final class SegmentWriter {
     lastBuffer = buffer
   }
 
+  func appendAudio(_ buffer: CMSampleBuffer) {
+    guard let audioInput, firstPTS.isValid else { return }
+    guard audioInput.isReadyForMoreMediaData, audioInput.append(buffer) else {
+      droppedAudioBuffers += 1
+      return
+    }
+  }
+
   func finish(at end: CMTime, completion: @escaping (Result<URL, Error>) -> Void) {
-    guard firstPTS.isValid else {
+    guard firstPTS.isValid, lastPTS.isValid else {
       writer.cancelWriting()
       try? FileManager.default.removeItem(at: partURL)
       completion(.failure(EngineErrors.make("writer_failed", "No video frames were captured.")))
@@ -99,43 +129,41 @@ final class SegmentWriter {
     }
   }
 
-  /// Session time of the first video frame; audio is placed relative to it.
-  var sessionStart: CMTime? { firstPTS.isValid ? firstPTS : nil }
+  /// Discards a part that never received frames (e.g. a pre-created next part at Stop).
+  func cancel() {
+    writer.cancelWriting()
+    try? FileManager.default.removeItem(at: partURL)
+  }
 
-  /// Only valid after the first video frame (the session starts with video).
-  func appendAudio(_ buffer: CMSampleBuffer) {
-    guard let audioInput, firstPTS.isValid else { return }
-    guard audioInput.isReadyForMoreMediaData, audioInput.append(buffer) else {
-      droppedAudioBuffers += 1
-      return
-    }
+  func duration(until end: CMTime) -> CMTime {
+    guard firstPTS.isValid else { return .zero }
+    return CMTimeSubtract(CMTimeMaximum(end, lastPTS), firstPTS)
+  }
+
+  static func retimed(_ buffer: CMSampleBuffer, to time: CMTime) -> CMSampleBuffer? {
+    var timing = CMSampleTimingInfo(
+      duration: .invalid, presentationTimeStamp: time, decodeTimeStamp: .invalid)
+    var copy: CMSampleBuffer?
+    guard
+      CMSampleBufferCreateCopyWithNewTiming(
+        allocator: kCFAllocatorDefault, sampleBuffer: buffer, sampleTimingEntryCount: 1,
+        sampleTimingArray: &timing, sampleBufferOut: &copy) == noErr
+    else { return nil }
+    return copy
   }
 
   /// endSession(atSourceTime:) does not stretch the last frame: a screen that stayed
   /// still before Stop would be cut off. Re-appending the last frame at `end` keeps it.
   private func repeatLastFrame(at end: CMTime) {
-    guard let lastBuffer, CMTimeCompare(end, lastPTS) > 0 else { return }
-    var timing = CMSampleTimingInfo(
-      duration: .invalid, presentationTimeStamp: end, decodeTimeStamp: .invalid)
-    var copy: CMSampleBuffer?
-    guard
-      CMSampleBufferCreateCopyWithNewTiming(
-        allocator: kCFAllocatorDefault, sampleBuffer: lastBuffer, sampleTimingEntryCount: 1,
-        sampleTimingArray: &timing, sampleBufferOut: &copy) == noErr,
-      let copy
+    guard let lastBuffer, CMTimeCompare(end, lastPTS) > 0,
+      let copy = Self.retimed(lastBuffer, to: end)
     else { return }
-
     for _ in 0..<50 where !videoInput.isReadyForMoreMediaData {
       usleep(2_000)
     }
     if videoInput.isReadyForMoreMediaData, videoInput.append(copy) {
       lastPTS = end
     }
-  }
-
-  func duration(until end: CMTime) -> CMTime {
-    guard firstPTS.isValid else { return .zero }
-    return CMTimeSubtract(CMTimeMaximum(end, lastPTS), firstPTS)
   }
 
   private static func videoSettings(width: Int, height: Int, fps: Int) -> [String: Any] {

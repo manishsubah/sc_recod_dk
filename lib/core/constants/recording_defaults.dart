@@ -1,7 +1,21 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
 abstract final class RecordingDefaults {
-  static const Duration segmentDuration = Duration(minutes: 15);
+  static const Duration standardSegmentDuration = Duration(minutes: 15);
+
+  /// Debug builds accept `RECLITE_SEGMENT_SECONDS` so part switching can be tested
+  /// without waiting 15 minutes. Release builds always use 15 minutes.
+  static Duration get segmentDuration {
+    if (kDebugMode) {
+      final seconds = int.tryParse(
+        Platform.environment['RECLITE_SEGMENT_SECONDS'] ?? '',
+      );
+      if (seconds != null && seconds >= 5) return Duration(seconds: seconds);
+    }
+    return standardSegmentDuration;
+  }
 
   static const int framesPerSecond = 30;
   static const int maxOutputHeight = 1440;

@@ -17,6 +17,7 @@ export 'src/messages.g.dart'
         EngineRecordingResult,
         EngineRecordingSession,
         EngineRecordingStatus,
+        EngineRecoveredSession,
         HostPlatform;
 
 /// Single entry point to the native engine. Create one per app.
@@ -62,7 +63,16 @@ class RecliteEngine {
     EngineRecordingRequest request,
   ) => _api.startRecording(request);
 
+  Future<void> pauseRecording() => _api.pauseRecording();
+
+  Future<void> resumeRecording() => _api.resumeRecording();
+
   Future<EngineRecordingResult> stopRecording() => _api.stopRecording();
+
+  /// Repairs recordings interrupted by a crash or power loss in [outputDirectory].
+  Future<List<EngineRecoveredSession>> recoverSessions(
+    String outputDirectory,
+  ) => _api.recoverSessions(outputDirectory);
 
   Future<void> revealInFileManager(String path) =>
       _api.revealInFileManager(path);

@@ -33,6 +33,7 @@ abstract final class AppSize {
 
   static const double buttonHeight = 52;
   static const double buttonMinWidth = 220;
+  static const double compactButtonWidth = 112;
 }
 
 abstract final class AppRadius {

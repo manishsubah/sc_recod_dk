@@ -54,4 +54,21 @@ void main() {
       ),
     );
   });
+
+  group('formatSegmentLength', () {
+    test(
+      'minutes',
+      () => expect(
+        formatSegmentLength(const Duration(minutes: 15)),
+        '15 minutes',
+      ),
+    );
+    test(
+      'seconds',
+      () => expect(
+        formatSegmentLength(const Duration(seconds: 20)),
+        '20 seconds',
+      ),
+    );
+  });
 }

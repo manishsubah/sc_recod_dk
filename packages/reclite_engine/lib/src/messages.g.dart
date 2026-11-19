@@ -116,6 +116,7 @@ enum EngineRecordingPhase {
   idle,
   starting,
   recording,
+  paused,
   stopping;
 }
 
@@ -392,6 +393,7 @@ class EngineRecordingRequest {
     required this.displayId,
     required this.captureSystemAudio,
     required this.captureMicrophone,
+    required this.segmentSeconds,
     this.area,
     required this.outputDirectory,
     required this.framesPerSecond,
@@ -405,6 +407,9 @@ class EngineRecordingRequest {
 
   /// Default input device, mixed with system audio into one AAC track.
   bool captureMicrophone;
+
+  /// Recorded time (pauses excluded) per MP4 part, e.g. 900 for 15 minutes.
+  int segmentSeconds;
 
   /// Null records the whole display.
   EngineCaptureArea? area;
@@ -422,6 +427,7 @@ class EngineRecordingRequest {
       displayId,
       captureSystemAudio,
       captureMicrophone,
+      segmentSeconds,
       area,
       outputDirectory,
       framesPerSecond,
@@ -438,10 +444,11 @@ class EngineRecordingRequest {
       displayId: result[0]! as int,
       captureSystemAudio: result[1]! as bool,
       captureMicrophone: result[2]! as bool,
-      area: result[3] as EngineCaptureArea?,
-      outputDirectory: result[4]! as String,
-      framesPerSecond: result[5]! as int,
-      maxHeight: result[6]! as int,
+      segmentSeconds: result[3]! as int,
+      area: result[4] as EngineCaptureArea?,
+      outputDirectory: result[5]! as String,
+      framesPerSecond: result[6]! as int,
+      maxHeight: result[7]! as int,
     );
   }
 
@@ -454,7 +461,7 @@ class EngineRecordingRequest {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(displayId, other.displayId) && _deepEquals(captureSystemAudio, other.captureSystemAudio) && _deepEquals(captureMicrophone, other.captureMicrophone) && _deepEquals(area, other.area) && _deepEquals(outputDirectory, other.outputDirectory) && _deepEquals(framesPerSecond, other.framesPerSecond) && _deepEquals(maxHeight, other.maxHeight);
+    return _deepEquals(displayId, other.displayId) && _deepEquals(captureSystemAudio, other.captureSystemAudio) && _deepEquals(captureMicrophone, other.captureMicrophone) && _deepEquals(segmentSeconds, other.segmentSeconds) && _deepEquals(area, other.area) && _deepEquals(outputDirectory, other.outputDirectory) && _deepEquals(framesPerSecond, other.framesPerSecond) && _deepEquals(maxHeight, other.maxHeight);
   }
 
   @override
@@ -463,7 +470,7 @@ class EngineRecordingRequest {
 
   @override
   String toString() {
-    return 'EngineRecordingRequest(displayId: $displayId, captureSystemAudio: $captureSystemAudio, captureMicrophone: $captureMicrophone, area: $area, outputDirectory: $outputDirectory, framesPerSecond: $framesPerSecond, maxHeight: $maxHeight)';
+    return 'EngineRecordingRequest(displayId: $displayId, captureSystemAudio: $captureSystemAudio, captureMicrophone: $captureMicrophone, segmentSeconds: $segmentSeconds, area: $area, outputDirectory: $outputDirectory, framesPerSecond: $framesPerSecond, maxHeight: $maxHeight)';
   }
 }
 
@@ -519,6 +526,62 @@ class EngineRecordingSession {
   @override
   String toString() {
     return 'EngineRecordingSession(sessionDirectory: $sessionDirectory, width: $width, height: $height)';
+  }
+}
+
+/// A recording that was interrupted (crash, power loss) and repaired on launch.
+class EngineRecoveredSession {
+  EngineRecoveredSession({
+    required this.sessionDirectory,
+    required this.files,
+    required this.durationMs,
+  });
+
+  String sessionDirectory;
+
+  List<String> files;
+
+  int durationMs;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      sessionDirectory,
+      files,
+      durationMs,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static EngineRecoveredSession decode(Object result) {
+    result as List<Object?>;
+    return EngineRecoveredSession(
+      sessionDirectory: result[0]! as String,
+      files: (result[1]! as List<Object?>).cast<String>(),
+      durationMs: result[2]! as int,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! EngineRecoveredSession || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(sessionDirectory, other.sessionDirectory) && _deepEquals(files, other.files) && _deepEquals(durationMs, other.durationMs);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'EngineRecoveredSession(sessionDirectory: $sessionDirectory, files: $files, durationMs: $durationMs)';
   }
 }
 
@@ -787,17 +850,20 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is EngineRecordingSession) {
       buffer.putUint8(136);
       writeValue(buffer, value.encode());
-    }    else if (value is EngineRecordingStatus) {
+    }    else if (value is EngineRecoveredSession) {
       buffer.putUint8(137);
       writeValue(buffer, value.encode());
-    }    else if (value is EngineRecordingResult) {
+    }    else if (value is EngineRecordingStatus) {
       buffer.putUint8(138);
       writeValue(buffer, value.encode());
-    }    else if (value is EngineAudioLevels) {
+    }    else if (value is EngineRecordingResult) {
       buffer.putUint8(139);
       writeValue(buffer, value.encode());
-    }    else if (value is EngineError) {
+    }    else if (value is EngineAudioLevels) {
       buffer.putUint8(140);
+      writeValue(buffer, value.encode());
+    }    else if (value is EngineError) {
+      buffer.putUint8(141);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -826,12 +892,14 @@ class _PigeonCodec extends StandardMessageCodec {
       case 136:
         return EngineRecordingSession.decode(readValue(buffer)!);
       case 137:
-        return EngineRecordingStatus.decode(readValue(buffer)!);
+        return EngineRecoveredSession.decode(readValue(buffer)!);
       case 138:
-        return EngineRecordingResult.decode(readValue(buffer)!);
+        return EngineRecordingStatus.decode(readValue(buffer)!);
       case 139:
-        return EngineAudioLevels.decode(readValue(buffer)!);
+        return EngineRecordingResult.decode(readValue(buffer)!);
       case 140:
+        return EngineAudioLevels.decode(readValue(buffer)!);
+      case 141:
         return EngineError.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
@@ -1039,6 +1107,41 @@ class EngineHostApi {
     return pigeonVar_replyValue! as EngineRecordingSession;
   }
 
+  /// Keeps capturing but stops writing; paused time is not part of the video.
+  Future<void> pauseRecording() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.pauseRecording$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  Future<void> resumeRecording() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.resumeRecording$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
   Future<EngineRecordingResult> stopRecording() async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.stopRecording$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -1055,6 +1158,26 @@ class EngineHostApi {
     )
     ;
     return pigeonVar_replyValue! as EngineRecordingResult;
+  }
+
+  /// Finds unfinished recordings in [outputDirectory], keeps every playable
+  /// part and marks the session as recovered. Skips the active recording.
+  Future<List<EngineRecoveredSession>> recoverSessions(String outputDirectory) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.recoverSessions$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[outputDirectory]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return (pigeonVar_replyValue! as List<Object?>).cast<EngineRecoveredSession>();
   }
 
   Future<void> revealInFileManager(String path) async {

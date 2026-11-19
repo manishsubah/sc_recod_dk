@@ -4,12 +4,14 @@ import 'package:reclite/app/app.dart';
 import 'package:reclite/app/di.dart';
 import 'package:reclite/features/recording/domain/entities/audio_levels.dart';
 import 'package:reclite/features/recording/domain/entities/engine_info.dart';
+import 'package:reclite/features/recording/domain/entities/recording_status.dart';
 import 'package:reclite/features/recording/domain/entities/storage_info.dart';
 import 'package:reclite/features/recording/domain/repositories/engine_repository.dart';
 import 'package:reclite/features/recording/presentation/bloc/audio_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/audio_levels_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/readiness_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/recording_bloc.dart';
+import 'package:reclite/features/recording/presentation/bloc/recovery_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/sources_cubit.dart';
 
 import 'fixtures.dart';
@@ -35,7 +37,10 @@ void main() {
       ..registerFactory<SourcesCubit>(() => SourcesCubit(recorder))
       ..registerFactory<AudioCubit>(() => AudioCubit(recorder))
       ..registerFactory<AudioLevelsCubit>(() => AudioLevelsCubit(recorder))
-      ..registerFactory<RecordingBloc>(() => RecordingBloc(recorder));
+      ..registerFactory<RecordingBloc>(() => RecordingBloc(recorder))
+      ..registerFactory<RecoveryCubit>(
+        () => RecoveryCubit(recorder, outputFolder: '/rec'),
+      );
   });
 
   tearDown(() async {
@@ -186,5 +191,60 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.widget<Switch>(find.byType(Switch).last).value, isFalse);
     expect(find.text('Microphone access is off.'), findsOneWidget);
+  });
+
+  testWidgets('pause, resume and a multi-part result', (tester) async {
+    recorder.stopResult = testMultiPartResult;
+    await pumpApp(tester);
+
+    await tester.tap(find.text('Start Recording'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pause'));
+    await tester.pumpAndSettle();
+    expect(recorder.pauseCalls, 1);
+    expect(find.text('PAUSED'), findsOneWidget);
+    expect(find.text('Resume'), findsOneWidget);
+
+    recorder.emitStatus(testStatus(42, phase: RecordingPhase.paused));
+    await tester.pumpAndSettle();
+    expect(find.text('00:42'), findsOneWidget);
+    expect(find.text('PAUSED'), findsOneWidget);
+
+    await tester.tap(find.text('Resume'));
+    await tester.pumpAndSettle();
+    expect(recorder.resumeCalls, 1);
+    expect(find.text('REC'), findsOneWidget);
+
+    await tester.tap(find.text('Stop'));
+    await tester.pumpAndSettle();
+    expect(find.text('20:00 · 900 MB · 2 parts'), findsOneWidget);
+    expect(find.text('RecLite_2026-11-19_10-00-00'), findsOneWidget);
+  });
+
+  testWidgets('shows the recovery banner after an interrupted recording', (
+    tester,
+  ) async {
+    recorder.recoverable = const [testRecovered];
+    await pumpApp(tester);
+
+    expect(find.text('RecLite recovered a recording'), findsOneWidget);
+    await tester.tap(find.byTooltip('Dismiss'));
+    await tester.pumpAndSettle();
+    expect(find.text('RecLite recovered a recording'), findsNothing);
+  });
+
+  testWidgets('recording bar fits the minimum window size', (tester) async {
+    tester.view.physicalSize = const Size(760, 560);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(const RecLiteApp());
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Start Recording'));
+    await tester.tap(find.text('Start Recording'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Pause'));
+    expect(find.text('Pause'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

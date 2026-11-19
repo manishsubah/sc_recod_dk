@@ -74,6 +74,21 @@ void RecliteEnginePlugin::StartRecording(
   result(Unsupported());
 }
 
+std::optional<FlutterError> RecliteEnginePlugin::PauseRecording() {
+  return FlutterError("not_recording", "No recording is running.");
+}
+
+std::optional<FlutterError> RecliteEnginePlugin::ResumeRecording() {
+  return FlutterError("not_recording", "No recording is running.");
+}
+
+// Nothing to recover until Windows can record (Phase 2).
+void RecliteEnginePlugin::RecoverSessions(
+    const std::string& output_directory,
+    std::function<void(ErrorOr<flutter::EncodableList> reply)> result) {
+  result(flutter::EncodableList());
+}
+
 void RecliteEnginePlugin::StopRecording(
     std::function<void(ErrorOr<EngineRecordingResult> reply)> result) {
   result(FlutterError("not_recording", "No recording is running."));

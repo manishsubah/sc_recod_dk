@@ -43,6 +43,7 @@ void main() {
         maxHeight: 1080,
         captureSystemAudio: true,
         captureMicrophone: false,
+        segmentSeconds: 900,
       ),
     );
     expect(session.height, lessThanOrEqualTo(1080));

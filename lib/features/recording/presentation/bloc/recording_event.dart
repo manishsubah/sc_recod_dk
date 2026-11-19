@@ -20,6 +20,14 @@ final class RecordingStopRequested extends RecordingEvent {
   const RecordingStopRequested();
 }
 
+final class RecordingPauseRequested extends RecordingEvent {
+  const RecordingPauseRequested();
+}
+
+final class RecordingResumeRequested extends RecordingEvent {
+  const RecordingResumeRequested();
+}
+
 final class RecordingDismissed extends RecordingEvent {
   const RecordingDismissed();
 }

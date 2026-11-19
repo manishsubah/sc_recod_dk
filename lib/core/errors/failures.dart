@@ -19,6 +19,9 @@ sealed class Failure extends Equatable implements Exception {
           'RecLite needs microphone permission. Turn it on in System Settings, '
           'or record without the microphone.',
         ),
+        'disk_full' => const StorageFailure(
+          'The disk is almost full. Free some space or choose another folder.',
+        ),
         'display_not_found' => const EngineFailure(
           'The selected display is no longer connected. Pick another one.',
         ),

@@ -5,11 +5,26 @@ import ScreenCaptureKit
 /// Owns the recording lifecycle. All state lives on the main actor; frames never do.
 @MainActor
 final class RecordingEngine {
-  private struct ActiveSession {
+  private final class ActiveSession {
     let capture: CaptureSession
     let directory: URL
-    let startedAt: Date
+    var manifest: SessionManifest
+    let sleepGuard: NSObjectProtocol
+    var lowSpaceWarned = false
+    var ticks = 0
+
+    init(
+      capture: CaptureSession, directory: URL, manifest: SessionManifest,
+      sleepGuard: NSObjectProtocol
+    ) {
+      self.capture = capture
+      self.directory = directory
+      self.manifest = manifest
+      self.sleepGuard = sleepGuard
+    }
   }
+
+  static let minimumSegmentSeconds: Int64 = 5
 
   private let events: EngineEventsApi
   private var phase: EngineRecordingPhase = .idle
@@ -56,27 +71,55 @@ final class RecordingEngine {
       let size = OutputSize.fit(
         width: sourcePixels.0, height: sourcePixels.1, maxHeight: Int(request.maxHeight))
       let fps = Int(request.framesPerSecond)
+      let segmentSeconds = max(request.segmentSeconds, Self.minimumSegmentSeconds)
 
       let startedAt = Date()
       let sessionDirectory = try SessionNaming.createSessionDirectory(
         in: URL(fileURLWithPath: request.outputDirectory, isDirectory: true), startedAt: startedAt)
       directory = sessionDirectory
 
-      let writer = try SegmentWriter(
-        url: sessionDirectory.appendingPathComponent(
-          SessionNaming.segmentFileName(startedAt: startedAt, index: 1)),
+      let settings = SegmentedRecorder.Settings(
+        segmentDuration: CMTime(value: segmentSeconds, timescale: 1),
         width: size.width, height: size.height, framesPerSecond: fps,
-        withAudio: !audioSources.isEmpty)
-
-      let capture = CaptureSession(
+        audioSourceCount: audioSources.count,
+        makeURL: { index, date in
+          sessionDirectory.appendingPathComponent(
+            SessionNaming.segmentFileName(startedAt: index == 1 ? startedAt : date, index: index))
+        })
+      let capture = try CaptureSession(
         filter: Self.filter(for: display, in: content),
         configuration: Self.configuration(
           width: size.width, height: size.height, fps: fps, sourceRect: area,
           audio: audioSources),
-        writer: writer,
+        settings: settings,
         audioSources: audioSources)
-      capture.onStreamStopped = { [weak self] error in
-        Task { await self?.handleStreamStopped(error) }
+
+      let manifest = SessionManifest(
+        sessionId: SessionNaming.stamp(startedAt),
+        startedAt: startedAt,
+        status: .recording,
+        source: .init(
+          type: area == nil ? "display" : "area",
+          name: DisplayCatalog.screen(for: display.displayID)?.localizedName
+            ?? "Display \(display.displayID)",
+          area: area.map { [$0.minX, $0.minY, $0.width, $0.height] }),
+        audio: .init(
+          system: audioSources.contains(.system), microphone: audioSources.contains(.microphone)),
+        video: .init(codec: "h264", width: size.width, height: size.height, fps: fps),
+        segmentSeconds: Int(segmentSeconds),
+        segments: [])
+      try manifest.write(to: sessionDirectory)
+
+      capture.onStreamStopped = { [weak self] error in self?.handleStreamStopped(error) }
+      capture.onPartFinished = { [weak self] part in self?.record(part) }
+      capture.onWriteFailure = { [weak self] error in
+        self?.endAfterFailure(
+          EngineError(
+            code: "writer_failed",
+            message:
+              "Recording stopped: the video could not be written (\(error.localizedDescription)). "
+              + "Finished parts were saved.",
+            isFatal: true))
       }
       try await capture.start()
 
@@ -84,7 +127,11 @@ final class RecordingEngine {
         highlight.show(area, on: screen)
       }
 
-      session = ActiveSession(capture: capture, directory: sessionDirectory, startedAt: startedAt)
+      session = ActiveSession(
+        capture: capture, directory: sessionDirectory, manifest: manifest,
+        sleepGuard: ProcessInfo.processInfo.beginActivity(
+          options: [.userInitiated, .idleSystemSleepDisabled],
+          reason: "RecLite is recording the screen"))
       setPhase(.recording)
       startTicker()
       if !audioSources.isEmpty { startLevelTicker() }
@@ -92,16 +139,42 @@ final class RecordingEngine {
         sessionDirectory: sessionDirectory.path, width: Int64(size.width),
         height: Int64(size.height))
     } catch {
-      if let directory { Self.removeIfEmpty(directory) }
+      if let directory { Self.removeIfUnused(directory) }
       setPhase(.idle)
       throw error is PigeonError ? error : EngineErrors.captureFailed(error)
     }
   }
 
-  func stop() async throws -> EngineRecordingResult {
+  func pause() throws {
     guard phase == .recording, let session else { throw EngineErrors.notRecording }
+    session.capture.pause()
+    setPhase(.paused)
+  }
+
+  func resume() throws {
+    guard phase == .paused, let session else { throw EngineErrors.notRecording }
+    session.capture.resume()
+    setPhase(.recording)
+  }
+
+  func stop() async throws -> EngineRecordingResult {
+    guard phase == .recording || phase == .paused, let session else {
+      throw EngineErrors.notRecording
+    }
     return try await finish(session, streamAlreadyStopped: false)
   }
+
+  func recoverSessions(in outputDirectory: String) async -> [EngineRecoveredSession] {
+    let recovered = await SessionRecovery.recover(
+      in: URL(fileURLWithPath: outputDirectory, isDirectory: true), skipping: session?.directory)
+    return recovered.map {
+      EngineRecoveredSession(
+        sessionDirectory: $0.directory.path, files: $0.files.map(\.path),
+        durationMs: $0.durationMs)
+    }
+  }
+
+  private var isActive: Bool { phase == .recording || phase == .paused }
 
   private func finish(_ active: ActiveSession, streamAlreadyStopped: Bool) async throws
     -> EngineRecordingResult
@@ -110,33 +183,65 @@ final class RecordingEngine {
     stopTicker()
     stopLevelTicker()
     highlight.hide()
+    ProcessInfo.processInfo.endActivity(active.sleepGuard)
     defer {
       session = nil
       setPhase(.idle)
     }
 
-    let (url, duration) = try await active.capture.stop(streamAlreadyStopped: streamAlreadyStopped)
-    let bytes =
-      (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?
-      .int64Value ?? 0
+    let (parts, error) = await active.capture.stop(streamAlreadyStopped: streamAlreadyStopped)
+    for part in parts { record(part, in: active) }
+    active.manifest.status = parts.isEmpty ? .failed : .completed
+    active.manifest.endedAt = Date()
+    try? active.manifest.write(to: active.directory)
+
+    guard !parts.isEmpty else {
+      throw error.map { $0 is PigeonError ? $0 : EngineErrors.writerFailed($0) }
+        ?? EngineErrors.writerFailed(nil)
+    }
     return EngineRecordingResult(
       sessionDirectory: active.directory.path,
-      files: [url.path],
-      durationMs: Int64(CMTimeGetSeconds(duration) * 1000),
-      bytesWritten: bytes)
+      files: parts.map(\.url.path),
+      durationMs: parts.reduce(0) { $0 + Int64(CMTimeGetSeconds($1.duration) * 1000) },
+      bytesWritten: parts.reduce(0) { $0 + $1.bytes })
   }
 
-  private func handleStreamStopped(_ error: Error) async {
-    guard phase == .recording, let session else { return }
+  /// Ends the recording on the engine's own initiative, keeping every finished part.
+  private func endAfterFailure(_ error: EngineError, streamAlreadyStopped: Bool = false) {
+    guard isActive, let session else { return }
+    Task {
+      _ = try? await finish(session, streamAlreadyStopped: streamAlreadyStopped)
+      send(error)
+    }
+  }
+
+  private func handleStreamStopped(_ error: Error) {
     let userStopped = (error as NSError).code == SCStreamError.userStopped.rawValue
-    _ = try? await finish(session, streamAlreadyStopped: true)
-    send(
+    endAfterFailure(
       EngineError(
         code: userStopped ? "capture_stopped_by_user" : "capture_failed",
         message: userStopped
           ? "Recording was stopped from the macOS menu bar. The video was saved."
           : "Screen capture stopped: \(error.localizedDescription). The video was saved.",
-        isFatal: true))
+        isFatal: true),
+      streamAlreadyStopped: true)
+  }
+
+  private func record(_ part: SegmentedRecorder.Part) {
+    guard let session else { return }
+    record(part, in: session)
+  }
+
+  /// Adds a finished part to session.json (once) and saves it, so a crash loses nothing listed.
+  private func record(_ part: SegmentedRecorder.Part, in active: ActiveSession) {
+    guard !active.manifest.segments.contains(where: { $0.index == part.index }) else { return }
+    active.manifest.segments.append(
+      .init(
+        index: part.index, file: part.url.lastPathComponent,
+        durationMs: Int64(CMTimeGetSeconds(part.duration) * 1000), bytes: part.bytes,
+        status: "complete"))
+    active.manifest.segments.sort { $0.index < $1.index }
+    try? active.manifest.write(to: active.directory)
   }
 
   private func startTicker() {
@@ -163,38 +268,60 @@ final class RecordingEngine {
   }
 
   private func sendLevels() {
-    guard phase == .recording, let session else { return }
+    guard isActive, let session else { return }
     let levels = session.capture.audioLevels()
     let event = EngineAudioLevels(system: levels.system ?? 0, microphone: levels.microphone ?? 0)
     Task { try? await events.onAudioLevels(levels: event) }
   }
 
   private func tick() {
-    guard phase == .recording, let session else { return }
+    guard isActive, let session else { return }
     let stats = session.capture.stats()
-    if let failure = stats.writerFailure {
-      Task {
-        _ = try? await finish(session, streamAlreadyStopped: false)
-        send(EngineError(code: "writer_failed", message: failure.localizedDescription, isFatal: true))
-      }
-      return
+    sendStatus(stats)
+    session.ticks += 1
+    if session.ticks % DiskGuard.checkEverySeconds == 0 {
+      checkDiskSpace(session, stats: stats)
     }
-    sendStatus(bytes: stats.bytesOnDisk, dropped: stats.droppedFrames)
+  }
+
+  private func checkDiskSpace(_ active: ActiveSession, stats: CaptureSession.Stats) {
+    guard let space = try? DiskSpaceProbe.query(path: active.directory.path) else { return }
+    let seconds = CMTimeGetSeconds(stats.elapsed)
+    let bytesPerSecond = seconds > 1 ? Double(stats.bytesWritten) / seconds : 0
+
+    switch DiskGuard.verdict(freeBytes: space.freeBytes) {
+    case .ok:
+      active.lowSpaceWarned = false
+    case .low:
+      guard !active.lowSpaceWarned else { return }
+      active.lowSpaceWarned = true
+      send(
+        EngineError(
+          code: "low_disk_space",
+          message: DiskGuard.lowSpaceMessage(
+            freeBytes: space.freeBytes, bytesPerSecond: bytesPerSecond),
+          isFatal: false))
+    case .critical:
+      endAfterFailure(
+        EngineError(
+          code: "disk_full",
+          message: "Recording stopped: the disk is almost full. Your recording was saved.",
+          isFatal: true))
+    }
   }
 
   private func setPhase(_ newPhase: EngineRecordingPhase) {
     phase = newPhase
-    sendStatus(bytes: 0, dropped: 0)
+    sendStatus(session?.capture.stats())
   }
 
-  private func sendStatus(bytes: Int64, dropped: Int) {
-    let elapsed = session.map { Date().timeIntervalSince($0.startedAt) } ?? 0
+  private func sendStatus(_ stats: CaptureSession.Stats?) {
     let status = EngineRecordingStatus(
       phase: phase,
-      elapsedMs: Int64(elapsed * 1000),
-      segmentIndex: 1,
-      bytesWritten: bytes,
-      droppedFrames: Int64(dropped))
+      elapsedMs: Int64(CMTimeGetSeconds(stats?.elapsed ?? .zero) * 1000),
+      segmentIndex: Int64(stats?.partIndex ?? 1),
+      bytesWritten: stats?.bytesWritten ?? 0,
+      droppedFrames: Int64(stats?.droppedFrames ?? 0))
     Task { try? await events.onStatus(status: status) }
   }
 
@@ -219,7 +346,8 @@ final class RecordingEngine {
     guard !rect.isNull, rect.width >= AreaSelector.minimumSize,
       rect.height >= AreaSelector.minimumSize
     else {
-      throw EngineErrors.make("invalid_area", "The selected area is outside the screen or too small.")
+      throw EngineErrors.make(
+        "invalid_area", "The selected area is outside the screen or too small.")
     }
     return rect
   }
@@ -264,9 +392,12 @@ final class RecordingEngine {
     return config
   }
 
-  private static func removeIfEmpty(_ directory: URL) {
+  /// Removes a session folder that holds nothing but its (just created) manifest.
+  private static func removeIfUnused(_ directory: URL) {
     let contents = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
-    if contents.isEmpty { try? FileManager.default.removeItem(at: directory) }
+    if contents.allSatisfy({ $0 == SessionManifest.fileName }) {
+      try? FileManager.default.removeItem(at: directory)
+    }
   }
 }
 

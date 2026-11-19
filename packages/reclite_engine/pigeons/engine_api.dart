@@ -93,6 +93,7 @@ class EngineRecordingRequest {
     required this.maxHeight,
     required this.captureSystemAudio,
     required this.captureMicrophone,
+    required this.segmentSeconds,
     this.area,
   });
 
@@ -103,6 +104,9 @@ class EngineRecordingRequest {
 
   /// Default input device, mixed with system audio into one AAC track.
   bool captureMicrophone;
+
+  /// Recorded time (pauses excluded) per MP4 part, e.g. 900 for 15 minutes.
+  int segmentSeconds;
 
   /// Null records the whole display.
   EngineCaptureArea? area;
@@ -127,7 +131,20 @@ class EngineRecordingSession {
   int height;
 }
 
-enum EngineRecordingPhase { idle, starting, recording, stopping }
+enum EngineRecordingPhase { idle, starting, recording, paused, stopping }
+
+/// A recording that was interrupted (crash, power loss) and repaired on launch.
+class EngineRecoveredSession {
+  EngineRecoveredSession({
+    required this.sessionDirectory,
+    required this.files,
+    required this.durationMs,
+  });
+
+  String sessionDirectory;
+  List<String> files;
+  int durationMs;
+}
 
 class EngineRecordingStatus {
   EngineRecordingStatus({
@@ -213,8 +230,18 @@ abstract class EngineHostApi {
   @async
   EngineRecordingSession startRecording(EngineRecordingRequest request);
 
+  /// Keeps capturing but stops writing; paused time is not part of the video.
+  void pauseRecording();
+
+  void resumeRecording();
+
   @async
   EngineRecordingResult stopRecording();
+
+  /// Finds unfinished recordings in [outputDirectory], keeps every playable
+  /// part and marks the session as recovered. Skips the active recording.
+  @async
+  List<EngineRecoveredSession> recoverSessions(String outputDirectory);
 
   void revealInFileManager(String path);
 

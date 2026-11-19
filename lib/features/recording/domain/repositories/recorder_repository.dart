@@ -5,6 +5,7 @@ import 'package:reclite/features/recording/domain/entities/recording_config.dart
 import 'package:reclite/features/recording/domain/entities/recording_interruption.dart';
 import 'package:reclite/features/recording/domain/entities/recording_result.dart';
 import 'package:reclite/features/recording/domain/entities/recording_status.dart';
+import 'package:reclite/features/recording/domain/entities/recovered_recording.dart';
 
 /// Implementations throw a `Failure` (see `core/errors/failures.dart`).
 abstract interface class RecorderRepository {
@@ -33,7 +34,14 @@ abstract interface class RecorderRepository {
 
   Future<void> start(RecordingConfig config);
 
+  Future<void> pause();
+
+  Future<void> resume();
+
   Future<RecordingResult> stop();
+
+  /// Repairs recordings in [folder] that were interrupted by a crash or power loss.
+  Future<List<RecoveredRecording>> recover(String folder);
 
   Future<void> reveal(String path);
 

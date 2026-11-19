@@ -8,6 +8,7 @@ import 'package:reclite/features/recording/presentation/bloc/audio_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/audio_levels_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/readiness_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/recording_bloc.dart';
+import 'package:reclite/features/recording/presentation/bloc/recovery_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/sources_cubit.dart';
 import 'package:reclite/features/recording/presentation/pages/home_page.dart';
 import 'package:reclite/features/settings/presentation/pages/settings_page.dart';
@@ -53,6 +54,10 @@ class _AppShellState extends State<AppShell> {
           create: (_) => getIt<AudioLevelsCubit>(),
         ),
         BlocProvider<RecordingBloc>(create: (_) => getIt<RecordingBloc>()),
+        BlocProvider<RecoveryCubit>(
+          create: (_) => getIt<RecoveryCubit>()..check(),
+          lazy: false,
+        ),
       ],
       child: Scaffold(
         body: Row(

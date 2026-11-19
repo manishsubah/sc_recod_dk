@@ -197,7 +197,8 @@ enum EngineRecordingPhase: Int, CaseIterable {
   case idle = 0
   case starting = 1
   case recording = 2
-  case stopping = 3
+  case paused = 3
+  case stopping = 4
 }
 
 /// Generated class from Pigeon that represents data sent in messages.
@@ -436,6 +437,8 @@ struct EngineRecordingRequest: Hashable, CustomStringConvertible {
   var captureSystemAudio: Bool
   /// Default input device, mixed with system audio into one AAC track.
   var captureMicrophone: Bool
+  /// Recorded time (pauses excluded) per MP4 part, e.g. 900 for 15 minutes.
+  var segmentSeconds: Int64
   /// Null records the whole display.
   var area: EngineCaptureArea? = nil
   /// Parent folder; the engine creates a per-session folder inside it.
@@ -450,15 +453,17 @@ struct EngineRecordingRequest: Hashable, CustomStringConvertible {
     let displayId = pigeonVar_list[0] as! Int64
     let captureSystemAudio = pigeonVar_list[1] as! Bool
     let captureMicrophone = pigeonVar_list[2] as! Bool
-    let area: EngineCaptureArea? = nilOrValue(pigeonVar_list[3])
-    let outputDirectory = pigeonVar_list[4] as! String
-    let framesPerSecond = pigeonVar_list[5] as! Int64
-    let maxHeight = pigeonVar_list[6] as! Int64
+    let segmentSeconds = pigeonVar_list[3] as! Int64
+    let area: EngineCaptureArea? = nilOrValue(pigeonVar_list[4])
+    let outputDirectory = pigeonVar_list[5] as! String
+    let framesPerSecond = pigeonVar_list[6] as! Int64
+    let maxHeight = pigeonVar_list[7] as! Int64
 
     return EngineRecordingRequest(
       displayId: displayId,
       captureSystemAudio: captureSystemAudio,
       captureMicrophone: captureMicrophone,
+      segmentSeconds: segmentSeconds,
       area: area,
       outputDirectory: outputDirectory,
       framesPerSecond: framesPerSecond,
@@ -470,6 +475,7 @@ struct EngineRecordingRequest: Hashable, CustomStringConvertible {
       displayId,
       captureSystemAudio,
       captureMicrophone,
+      segmentSeconds,
       area,
       outputDirectory,
       framesPerSecond,
@@ -480,7 +486,7 @@ struct EngineRecordingRequest: Hashable, CustomStringConvertible {
     if Swift.type(of: lhs) != Swift.type(of: rhs) {
       return false
     }
-    return MessagesPigeonInternal.deepEquals(lhs.displayId, rhs.displayId) && MessagesPigeonInternal.deepEquals(lhs.captureSystemAudio, rhs.captureSystemAudio) && MessagesPigeonInternal.deepEquals(lhs.captureMicrophone, rhs.captureMicrophone) && MessagesPigeonInternal.deepEquals(lhs.area, rhs.area) && MessagesPigeonInternal.deepEquals(lhs.outputDirectory, rhs.outputDirectory) && MessagesPigeonInternal.deepEquals(lhs.framesPerSecond, rhs.framesPerSecond) && MessagesPigeonInternal.deepEquals(lhs.maxHeight, rhs.maxHeight)
+    return MessagesPigeonInternal.deepEquals(lhs.displayId, rhs.displayId) && MessagesPigeonInternal.deepEquals(lhs.captureSystemAudio, rhs.captureSystemAudio) && MessagesPigeonInternal.deepEquals(lhs.captureMicrophone, rhs.captureMicrophone) && MessagesPigeonInternal.deepEquals(lhs.segmentSeconds, rhs.segmentSeconds) && MessagesPigeonInternal.deepEquals(lhs.area, rhs.area) && MessagesPigeonInternal.deepEquals(lhs.outputDirectory, rhs.outputDirectory) && MessagesPigeonInternal.deepEquals(lhs.framesPerSecond, rhs.framesPerSecond) && MessagesPigeonInternal.deepEquals(lhs.maxHeight, rhs.maxHeight)
   }
 
   func hash(into hasher: inout Hasher) {
@@ -488,6 +494,7 @@ struct EngineRecordingRequest: Hashable, CustomStringConvertible {
     MessagesPigeonInternal.deepHash(value: displayId, hasher: &hasher)
     MessagesPigeonInternal.deepHash(value: captureSystemAudio, hasher: &hasher)
     MessagesPigeonInternal.deepHash(value: captureMicrophone, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: segmentSeconds, hasher: &hasher)
     MessagesPigeonInternal.deepHash(value: area, hasher: &hasher)
     MessagesPigeonInternal.deepHash(value: outputDirectory, hasher: &hasher)
     MessagesPigeonInternal.deepHash(value: framesPerSecond, hasher: &hasher)
@@ -495,7 +502,7 @@ struct EngineRecordingRequest: Hashable, CustomStringConvertible {
   }
 
   public var description: String {
-    return "EngineRecordingRequest(displayId: \(String(describing: displayId)), captureSystemAudio: \(String(describing: captureSystemAudio)), captureMicrophone: \(String(describing: captureMicrophone)), area: \(String(describing: area)), outputDirectory: \(String(describing: outputDirectory)), framesPerSecond: \(String(describing: framesPerSecond)), maxHeight: \(String(describing: maxHeight)))"
+    return "EngineRecordingRequest(displayId: \(String(describing: displayId)), captureSystemAudio: \(String(describing: captureSystemAudio)), captureMicrophone: \(String(describing: captureMicrophone)), segmentSeconds: \(String(describing: segmentSeconds)), area: \(String(describing: area)), outputDirectory: \(String(describing: outputDirectory)), framesPerSecond: \(String(describing: framesPerSecond)), maxHeight: \(String(describing: maxHeight)))"
   }
 }
 
@@ -541,6 +548,53 @@ struct EngineRecordingSession: Hashable, CustomStringConvertible {
 
   public var description: String {
     return "EngineRecordingSession(sessionDirectory: \(String(describing: sessionDirectory)), width: \(String(describing: width)), height: \(String(describing: height)))"
+  }
+}
+
+/// A recording that was interrupted (crash, power loss) and repaired on launch.
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct EngineRecoveredSession: Hashable, CustomStringConvertible {
+  var sessionDirectory: String
+  var files: [String]
+  var durationMs: Int64
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> EngineRecoveredSession? {
+    let sessionDirectory = pigeonVar_list[0] as! String
+    let files = pigeonVar_list[1] as! [String]
+    let durationMs = pigeonVar_list[2] as! Int64
+
+    return EngineRecoveredSession(
+      sessionDirectory: sessionDirectory,
+      files: files,
+      durationMs: durationMs
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      sessionDirectory,
+      files,
+      durationMs,
+    ]
+  }
+  static func == (lhs: EngineRecoveredSession, rhs: EngineRecoveredSession) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return MessagesPigeonInternal.deepEquals(lhs.sessionDirectory, rhs.sessionDirectory) && MessagesPigeonInternal.deepEquals(lhs.files, rhs.files) && MessagesPigeonInternal.deepEquals(lhs.durationMs, rhs.durationMs)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("EngineRecoveredSession")
+    MessagesPigeonInternal.deepHash(value: sessionDirectory, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: files, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: durationMs, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "EngineRecoveredSession(sessionDirectory: \(String(describing: sessionDirectory)), files: \(String(describing: files)), durationMs: \(String(describing: durationMs)))"
   }
 }
 
@@ -766,12 +820,14 @@ private class MessagesPigeonCodecReader: FlutterStandardReader {
     case 136:
       return EngineRecordingSession.fromList(self.readValue() as! [Any?])
     case 137:
-      return EngineRecordingStatus.fromList(self.readValue() as! [Any?])
+      return EngineRecoveredSession.fromList(self.readValue() as! [Any?])
     case 138:
-      return EngineRecordingResult.fromList(self.readValue() as! [Any?])
+      return EngineRecordingStatus.fromList(self.readValue() as! [Any?])
     case 139:
-      return EngineAudioLevels.fromList(self.readValue() as! [Any?])
+      return EngineRecordingResult.fromList(self.readValue() as! [Any?])
     case 140:
+      return EngineAudioLevels.fromList(self.readValue() as! [Any?])
+    case 141:
       return EngineError.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
@@ -805,17 +861,20 @@ private class MessagesPigeonCodecWriter: FlutterStandardWriter {
     } else if let value = value as? EngineRecordingSession {
       super.writeByte(136)
       super.writeValue(value.toList())
-    } else if let value = value as? EngineRecordingStatus {
+    } else if let value = value as? EngineRecoveredSession {
       super.writeByte(137)
       super.writeValue(value.toList())
-    } else if let value = value as? EngineRecordingResult {
+    } else if let value = value as? EngineRecordingStatus {
       super.writeByte(138)
       super.writeValue(value.toList())
-    } else if let value = value as? EngineAudioLevels {
+    } else if let value = value as? EngineRecordingResult {
       super.writeByte(139)
       super.writeValue(value.toList())
-    } else if let value = value as? EngineError {
+    } else if let value = value as? EngineAudioLevels {
       super.writeByte(140)
+      super.writeValue(value.toList())
+    } else if let value = value as? EngineError {
+      super.writeByte(141)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -856,7 +915,13 @@ protocol EngineHostApi {
   func openMicrophoneSettings() throws
   func listDisplays() async throws -> [EngineDisplay]
   func startRecording(request: EngineRecordingRequest) async throws -> EngineRecordingSession
+  /// Keeps capturing but stops writing; paused time is not part of the video.
+  func pauseRecording() throws
+  func resumeRecording() throws
   func stopRecording() async throws -> EngineRecordingResult
+  /// Finds unfinished recordings in [outputDirectory], keeps every playable
+  /// part and marks the session as recovered. Skips the active recording.
+  func recoverSessions(outputDirectory: String) async throws -> [EngineRecoveredSession]
   func revealInFileManager(path: String) throws
   /// Shows a drag-to-select overlay on the display. Null when the user cancels.
   func selectArea(displayId: Int64) async throws -> EngineCaptureArea?
@@ -1010,6 +1075,33 @@ class EngineHostApiSetup {
     } else {
       startRecordingChannel.setMessageHandler(nil)
     }
+    /// Keeps capturing but stops writing; paused time is not part of the video.
+    let pauseRecordingChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.pauseRecording\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      pauseRecordingChannel.setMessageHandler { _, reply in
+        do {
+          try api.pauseRecording()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      pauseRecordingChannel.setMessageHandler(nil)
+    }
+    let resumeRecordingChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.resumeRecording\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      resumeRecordingChannel.setMessageHandler { _, reply in
+        do {
+          try api.resumeRecording()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      resumeRecordingChannel.setMessageHandler(nil)
+    }
     let stopRecordingChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.stopRecording\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       stopRecordingChannel.setMessageHandler { _, reply in
@@ -1024,6 +1116,25 @@ class EngineHostApiSetup {
       }
     } else {
       stopRecordingChannel.setMessageHandler(nil)
+    }
+    /// Finds unfinished recordings in [outputDirectory], keeps every playable
+    /// part and marks the session as recovered. Skips the active recording.
+    let recoverSessionsChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.recoverSessions\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      recoverSessionsChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let outputDirectoryArg = args[0] as! String
+        Task { @MainActor in
+          do {
+            let result = try await api.recoverSessions(outputDirectory: outputDirectoryArg)
+            reply(wrapResult(result))
+          } catch {
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      recoverSessionsChannel.setMessageHandler(nil)
     }
     let revealInFileManagerChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.revealInFileManager\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {

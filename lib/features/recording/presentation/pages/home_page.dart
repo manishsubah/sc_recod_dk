@@ -11,6 +11,7 @@ import 'package:reclite/features/recording/presentation/widgets/audio_card.dart'
 import 'package:reclite/features/recording/presentation/widgets/info_row.dart';
 import 'package:reclite/features/recording/presentation/widgets/readiness_header.dart';
 import 'package:reclite/features/recording/presentation/widgets/recording_controls.dart';
+import 'package:reclite/features/recording/presentation/widgets/recovery_banner.dart';
 import 'package:reclite/features/recording/presentation/widgets/source_card.dart';
 
 class HomePage extends StatelessWidget {
@@ -51,6 +52,7 @@ class _LoadedView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        const RecoveryBanner(),
         ReadinessHeader(canRecord: state.canRecord, issues: state.issues),
         const SizedBox(height: AppSpacing.md),
         if (engine.supportsRecording) ...[
@@ -112,8 +114,7 @@ class _LoadedView extends StatelessWidget {
                 InfoRow(
                   icon: Icons.content_cut_outlined,
                   label: 'Split every',
-                  value:
-                      '${RecordingDefaults.segmentDuration.inMinutes} minutes',
+                  value: formatSegmentLength(RecordingDefaults.segmentDuration),
                   showDivider: false,
                 ),
               ],

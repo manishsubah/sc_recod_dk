@@ -8,6 +8,7 @@ import 'package:reclite/features/recording/domain/entities/recording_config.dart
 import 'package:reclite/features/recording/domain/entities/recording_interruption.dart';
 import 'package:reclite/features/recording/domain/entities/recording_result.dart';
 import 'package:reclite/features/recording/domain/entities/recording_status.dart';
+import 'package:reclite/features/recording/domain/entities/recovered_recording.dart';
 import 'package:reclite/features/recording/domain/repositories/recorder_repository.dart';
 
 const testEngineInfo = EngineInfo(
@@ -75,12 +76,33 @@ const testResult = RecordingResult(
   bytesWritten: 42000000,
 );
 
-RecordingStatus testStatus(int seconds) => RecordingStatus(
-  phase: RecordingPhase.recording,
+RecordingStatus testStatus(
+  int seconds, {
+  RecordingPhase phase = RecordingPhase.recording,
+}) => RecordingStatus(
+  phase: phase,
   elapsed: Duration(seconds: seconds),
   segmentIndex: 1,
   bytesWritten: seconds * 1000000,
   droppedFrames: 0,
+);
+
+const testMultiPartResult = RecordingResult(
+  sessionDirectory: '/rec/RecLite_2026-11-19_10-00-00',
+  files: [
+    '/rec/RecLite_2026-11-19_10-00-00/RecLite_2026-11-19_10-00-00_Part01.mp4',
+    '/rec/RecLite_2026-11-19_10-00-00/RecLite_2026-11-19_10-15-00_Part02.mp4',
+  ],
+  duration: Duration(minutes: 20),
+  bytesWritten: 900000000,
+);
+
+const testRecovered = RecoveredRecording(
+  sessionDirectory: '/rec/RecLite_2026-11-19_09-00-00',
+  files: [
+    '/rec/RecLite_2026-11-19_09-00-00/RecLite_2026-11-19_09-00-00_Part01.mp4',
+  ],
+  duration: Duration(minutes: 3, seconds: 12),
 );
 
 /// In-memory recorder for widget tests; push engine events with [emitStatus].
@@ -89,6 +111,10 @@ class FakeRecorderRepository implements RecorderRepository {
 
   bool permission;
   bool microphonePermission = true;
+  int pauseCalls = 0;
+  int resumeCalls = 0;
+  RecordingResult stopResult = testResult;
+  List<RecoveredRecording> recoverable = const [];
 
   /// What the drag-to-select overlay returns; null simulates Esc.
   CaptureArea? areaToSelect = testArea;
@@ -141,7 +167,16 @@ class FakeRecorderRepository implements RecorderRepository {
   Future<void> start(RecordingConfig config) async => startCalls.add(config);
 
   @override
-  Future<RecordingResult> stop() async => testResult;
+  Future<RecordingResult> stop() async => stopResult;
+
+  @override
+  Future<void> pause() async => pauseCalls++;
+
+  @override
+  Future<void> resume() async => resumeCalls++;
+
+  @override
+  Future<List<RecoveredRecording>> recover(String folder) async => recoverable;
 
   @override
   Future<void> reveal(String path) async {}

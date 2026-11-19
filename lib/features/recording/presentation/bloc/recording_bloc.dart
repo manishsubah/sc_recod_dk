@@ -19,6 +19,8 @@ class RecordingBloc extends Bloc<RecordingEvent, RecordingState> {
   RecordingBloc(this._recorder) : super(const RecordingIdle()) {
     on<RecordingStartRequested>(_onStart);
     on<RecordingStopRequested>(_onStop);
+    on<RecordingPauseRequested>(_onPause);
+    on<RecordingResumeRequested>(_onResume);
     on<RecordingDismissed>((_, emit) => emit(const RecordingIdle()));
     on<RecordingRevealRequested>(_onReveal);
     on<_StatusReceived>(_onStatus);
@@ -63,6 +65,40 @@ class RecordingBloc extends Bloc<RecordingEvent, RecordingState> {
     }
   }
 
+  Future<void> _onPause(
+    RecordingPauseRequested event,
+    Emitter<RecordingState> emit,
+  ) async {
+    final current = state;
+    if (current is! RecordingActive || current.isPaused) return;
+    emit(
+      current.copyWith(status: current.status.withPhase(RecordingPhase.paused)),
+    );
+    try {
+      await _recorder.pause();
+    } on Failure catch (f) {
+      emit(current.copyWith(warning: f.message));
+    }
+  }
+
+  Future<void> _onResume(
+    RecordingResumeRequested event,
+    Emitter<RecordingState> emit,
+  ) async {
+    final current = state;
+    if (current is! RecordingActive || !current.isPaused) return;
+    emit(
+      current.copyWith(
+        status: current.status.withPhase(RecordingPhase.recording),
+      ),
+    );
+    try {
+      await _recorder.resume();
+    } on Failure catch (f) {
+      emit(current.copyWith(warning: f.message));
+    }
+  }
+
   Future<void> _onReveal(
     RecordingRevealRequested event,
     Emitter<RecordingState> emit,
@@ -76,15 +112,26 @@ class RecordingBloc extends Bloc<RecordingEvent, RecordingState> {
 
   void _onStatus(_StatusReceived event, Emitter<RecordingState> emit) {
     final status = event.status;
-    final isLive = state is RecordingStarting || state is RecordingActive;
-    if (isLive && status.phase == RecordingPhase.recording) {
-      emit(RecordingActive(status));
+    final live =
+        status.phase == RecordingPhase.recording ||
+        status.phase == RecordingPhase.paused;
+    switch (state) {
+      case RecordingStarting() when live:
+        emit(RecordingActive(status));
+      case final RecordingActive active when live:
+        emit(active.copyWith(status: status));
+      default:
+        break;
     }
   }
 
   void _onInterrupted(_Interrupted event, Emitter<RecordingState> emit) {
-    if (event.interruption.isFatal) {
-      emit(RecordingFailed(event.interruption.message));
+    final interruption = event.interruption;
+    final current = state;
+    if (interruption.isFatal) {
+      emit(RecordingFailed(interruption.message));
+    } else if (current is RecordingActive) {
+      emit(current.copyWith(warning: interruption.message));
     }
   }
 

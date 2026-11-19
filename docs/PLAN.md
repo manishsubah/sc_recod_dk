@@ -854,21 +854,27 @@ void setupDI() {
 
 **Done when:** App runs on macOS; calling `getCapabilities()` returns real data from Swift. ✅ Verified by `flutter test integration_test -d macos`. Windows C++ is compile-checked only in CI (no Windows machine yet).
 
-### Phase 1 — macOS recording engine (≈ 2–3 weeks)
+### Phase 1 — macOS recording engine ✅ Built (2026-11-19)
 
-- [ ] List displays/windows (SCShareableContent).
-- [ ] Screen capture (SCStream, NV12, scaled, bounded queue).
-- [ ] System audio via SCK.
-- [ ] AVAssetWriter H.264 + AAC, fragmented MP4.
-- [ ] SegmentManager: pre-warm, timestamp routing, audio split, background finalise, `.part` rename.
-- [ ] Pause / resume with timestamp offset.
-- [ ] Microphone (AVAudioEngine / SCK on 15+), mixer, level meter.
-- [ ] `session.json` manifest.
-- [ ] Events to Flutter (state, tick, levels, segment, errors).
-- [ ] Basic Home screen wired to `RecordingBloc`.
-- [ ] Permission checks.
+- [x] List displays (SCShareableContent). Window capture moved to Phase 3; **area capture** added instead (drag-to-select overlay, red outline not recorded).
+- [x] Screen capture (SCStream, NV12, GPU-scaled to ≤1440p, bounded queue, own windows excluded).
+- [x] System audio via SCK.
+- [x] AVAssetWriter H.264 + AAC, fragmented MP4 (fragment every **2 s**: a crash loses at most ~2 s).
+- [x] SegmentedRecorder: pre-warm, exact boundary for video and audio, part seeded with last frame, background finalise, `.part` rename.
+- [x] Pause / resume with timestamp offset (paused time not recorded, not counted toward a part).
+- [x] Microphone via SCK (macOS 15+), mixer, level meters. macOS 13–14 mic support is still open.
+- [x] `session.json` manifest, kept current as each part closes; crash recovery on launch.
+- [x] Events to Flutter (status, levels, errors incl. non-fatal warnings).
+- [x] Home screen: screen/area picker, audio card, REC bar with Pause/Resume/Stop, saved card, recovery banner.
+- [x] Permission checks (screen, microphone).
+- [x] Disk guard (warn < 2 GB, safe stop < 500 MB) and sleep prevention.
 
-**Done when:** 1-hour recording on Mac produces 4 playable MP4 parts with good sync and flat memory.
+**Verified:**
+- Real 3-part recording with a pause: parts were 20.000 / 20.000 / 7.347 s, with audio equal to video.
+- Real SIGKILL test: 5 parts intact and part 6 recovered (16.1 s).
+- Simulated recorder tests and 63 unit/widget tests pass.
+
+**Still to verify:** the 1-hour memory soak test (Phase 4). The real disk-full stop has only been checked through its policy code.
 
 ### Phase 2 — Windows recording engine (≈ 3 weeks)
 
