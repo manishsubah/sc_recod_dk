@@ -10,9 +10,9 @@ import 'package:flutter/services.dart';
 import 'package:meta/meta.dart' show immutable, protected, visibleForTesting;
 
 Object? _extractReplyValueOrThrow(
-  List<Object?>? replyList,
-  String channelName, {
-  required bool isNullValid,
+    List<Object?>? replyList,
+    String channelName, {
+    required bool isNullValid,
 }) {
   if (replyList == null) {
     throw PlatformException(
@@ -34,6 +34,16 @@ Object? _extractReplyValueOrThrow(
   return replyList.firstOrNull;
 }
 
+
+List<Object?> wrapResponse({Object? result, PlatformException? error, bool empty = false}) {
+  if (empty) {
+    return <Object?>[];
+  }
+  if (error == null) {
+    return <Object?>[result];
+  }
+  return <Object?>[error.code, error.message, error.details];
+}
 bool _deepEquals(Object? a, Object? b) {
   if (identical(a, b)) {
     return true;
@@ -46,9 +56,8 @@ bool _deepEquals(Object? a, Object? b) {
   }
   if (a is List && b is List) {
     return a.length == b.length &&
-        a.indexed.every(
-          ((int, dynamic) item) => _deepEquals(item.$2, b[item.$1]),
-        );
+        a.indexed
+            .every(((int, dynamic) item) => _deepEquals(item.$2, b[item.$1]));
   }
   if (a is Map && b is Map) {
     if (a.length != b.length) {
@@ -97,15 +106,26 @@ int _deepHash(Object? value) {
   return value.hashCode;
 }
 
-enum HostPlatform { macos, windows }
 
-/// What this machine and OS can do. Queried once at startup.
+enum HostPlatform {
+  macos,
+  windows;
+}
+
+enum EngineRecordingPhase {
+  idle,
+  starting,
+  recording,
+  stopping;
+}
+
 class EngineCapabilities {
   EngineCapabilities({
     required this.platform,
     required this.osVersion,
     required this.minimumOsVersion,
     required this.meetsMinimumOs,
+    required this.supportsRecording,
     required this.supportsSystemAudio,
     required this.supportsMicrophoneViaScreenCapture,
     required this.hasHardwareH264Encoder,
@@ -115,19 +135,17 @@ class EngineCapabilities {
 
   HostPlatform platform;
 
-  /// Human-readable OS version, e.g. "14.5.0" or "10.0.22631".
   String osVersion;
 
-  /// Lowest OS version RecLite supports on this platform.
   String minimumOsVersion;
 
   bool meetsMinimumOs;
 
-  /// System ("internal") audio capture is available.
+  /// False while this platform's recording pipeline is not implemented yet.
+  bool supportsRecording;
+
   bool supportsSystemAudio;
 
-  /// macOS 15+: microphone can be captured by ScreenCaptureKit on the same
-  /// clock as the screen. Otherwise a separate mic pipeline is used.
   bool supportsMicrophoneViaScreenCapture;
 
   bool hasHardwareH264Encoder;
@@ -142,6 +160,7 @@ class EngineCapabilities {
       osVersion,
       minimumOsVersion,
       meetsMinimumOs,
+      supportsRecording,
       supportsSystemAudio,
       supportsMicrophoneViaScreenCapture,
       hasHardwareH264Encoder,
@@ -151,8 +170,7 @@ class EngineCapabilities {
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static EngineCapabilities decode(Object result) {
     result as List<Object?>;
@@ -161,11 +179,12 @@ class EngineCapabilities {
       osVersion: result[1]! as String,
       minimumOsVersion: result[2]! as String,
       meetsMinimumOs: result[3]! as bool,
-      supportsSystemAudio: result[4]! as bool,
-      supportsMicrophoneViaScreenCapture: result[5]! as bool,
-      hasHardwareH264Encoder: result[6]! as bool,
-      hasHardwareHevcEncoder: result[7]! as bool,
-      engineVersion: result[8]! as String,
+      supportsRecording: result[4]! as bool,
+      supportsSystemAudio: result[5]! as bool,
+      supportsMicrophoneViaScreenCapture: result[6]! as bool,
+      hasHardwareH264Encoder: result[7]! as bool,
+      hasHardwareHevcEncoder: result[8]! as bool,
+      engineVersion: result[9]! as String,
     );
   }
 
@@ -178,18 +197,7 @@ class EngineCapabilities {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(platform, other.platform) &&
-        _deepEquals(osVersion, other.osVersion) &&
-        _deepEquals(minimumOsVersion, other.minimumOsVersion) &&
-        _deepEquals(meetsMinimumOs, other.meetsMinimumOs) &&
-        _deepEquals(supportsSystemAudio, other.supportsSystemAudio) &&
-        _deepEquals(
-          supportsMicrophoneViaScreenCapture,
-          other.supportsMicrophoneViaScreenCapture,
-        ) &&
-        _deepEquals(hasHardwareH264Encoder, other.hasHardwareH264Encoder) &&
-        _deepEquals(hasHardwareHevcEncoder, other.hasHardwareHevcEncoder) &&
-        _deepEquals(engineVersion, other.engineVersion);
+    return _deepEquals(platform, other.platform) && _deepEquals(osVersion, other.osVersion) && _deepEquals(minimumOsVersion, other.minimumOsVersion) && _deepEquals(meetsMinimumOs, other.meetsMinimumOs) && _deepEquals(supportsRecording, other.supportsRecording) && _deepEquals(supportsSystemAudio, other.supportsSystemAudio) && _deepEquals(supportsMicrophoneViaScreenCapture, other.supportsMicrophoneViaScreenCapture) && _deepEquals(hasHardwareH264Encoder, other.hasHardwareH264Encoder) && _deepEquals(hasHardwareHevcEncoder, other.hasHardwareHevcEncoder) && _deepEquals(engineVersion, other.engineVersion);
   }
 
   @override
@@ -198,25 +206,29 @@ class EngineCapabilities {
 
   @override
   String toString() {
-    return 'EngineCapabilities(platform: $platform, osVersion: $osVersion, minimumOsVersion: $minimumOsVersion, meetsMinimumOs: $meetsMinimumOs, supportsSystemAudio: $supportsSystemAudio, supportsMicrophoneViaScreenCapture: $supportsMicrophoneViaScreenCapture, hasHardwareH264Encoder: $hasHardwareH264Encoder, hasHardwareHevcEncoder: $hasHardwareHevcEncoder, engineVersion: $engineVersion)';
+    return 'EngineCapabilities(platform: $platform, osVersion: $osVersion, minimumOsVersion: $minimumOsVersion, meetsMinimumOs: $meetsMinimumOs, supportsRecording: $supportsRecording, supportsSystemAudio: $supportsSystemAudio, supportsMicrophoneViaScreenCapture: $supportsMicrophoneViaScreenCapture, hasHardwareH264Encoder: $hasHardwareH264Encoder, hasHardwareHevcEncoder: $hasHardwareHevcEncoder, engineVersion: $engineVersion)';
   }
 }
 
 class DiskSpace {
-  DiskSpace({required this.freeBytes, required this.totalBytes});
+  DiskSpace({
+    required this.freeBytes,
+    required this.totalBytes,
+  });
 
-  /// Bytes available for new files on the volume containing the path.
   int freeBytes;
 
   int totalBytes;
 
   List<Object?> _toList() {
-    return <Object?>[freeBytes, totalBytes];
+    return <Object?>[
+      freeBytes,
+      totalBytes,
+    ];
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static DiskSpace decode(Object result) {
     result as List<Object?>;
@@ -235,8 +247,7 @@ class DiskSpace {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(freeBytes, other.freeBytes) &&
-        _deepEquals(totalBytes, other.totalBytes);
+    return _deepEquals(freeBytes, other.freeBytes) && _deepEquals(totalBytes, other.totalBytes);
   }
 
   @override
@@ -249,6 +260,439 @@ class DiskSpace {
   }
 }
 
+class EngineDisplay {
+  EngineDisplay({
+    required this.id,
+    required this.name,
+    required this.width,
+    required this.height,
+    required this.isMain,
+  });
+
+  int id;
+
+  String name;
+
+  /// Native pixel size (Retina/HiDPI included).
+  int width;
+
+  int height;
+
+  bool isMain;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      id,
+      name,
+      width,
+      height,
+      isMain,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static EngineDisplay decode(Object result) {
+    result as List<Object?>;
+    return EngineDisplay(
+      id: result[0]! as int,
+      name: result[1]! as String,
+      width: result[2]! as int,
+      height: result[3]! as int,
+      isMain: result[4]! as bool,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! EngineDisplay || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(id, other.id) && _deepEquals(name, other.name) && _deepEquals(width, other.width) && _deepEquals(height, other.height) && _deepEquals(isMain, other.isMain);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'EngineDisplay(id: $id, name: $name, width: $width, height: $height, isMain: $isMain)';
+  }
+}
+
+/// A rectangle on one display, in points, origin at the display's top-left.
+class EngineCaptureArea {
+  EngineCaptureArea({
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+  });
+
+  double x;
+
+  double y;
+
+  double width;
+
+  double height;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      x,
+      y,
+      width,
+      height,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static EngineCaptureArea decode(Object result) {
+    result as List<Object?>;
+    return EngineCaptureArea(
+      x: result[0]! as double,
+      y: result[1]! as double,
+      width: result[2]! as double,
+      height: result[3]! as double,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! EngineCaptureArea || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(x, other.x) && _deepEquals(y, other.y) && _deepEquals(width, other.width) && _deepEquals(height, other.height);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'EngineCaptureArea(x: $x, y: $y, width: $width, height: $height)';
+  }
+}
+
+class EngineRecordingRequest {
+  EngineRecordingRequest({
+    required this.displayId,
+    this.area,
+    required this.outputDirectory,
+    required this.framesPerSecond,
+    required this.maxHeight,
+  });
+
+  int displayId;
+
+  /// Null records the whole display.
+  EngineCaptureArea? area;
+
+  /// Parent folder; the engine creates a per-session folder inside it.
+  String outputDirectory;
+
+  int framesPerSecond;
+
+  /// Output is scaled down (GPU) to at most this height, keeping aspect ratio.
+  int maxHeight;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      displayId,
+      area,
+      outputDirectory,
+      framesPerSecond,
+      maxHeight,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static EngineRecordingRequest decode(Object result) {
+    result as List<Object?>;
+    return EngineRecordingRequest(
+      displayId: result[0]! as int,
+      area: result[1] as EngineCaptureArea?,
+      outputDirectory: result[2]! as String,
+      framesPerSecond: result[3]! as int,
+      maxHeight: result[4]! as int,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! EngineRecordingRequest || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(displayId, other.displayId) && _deepEquals(area, other.area) && _deepEquals(outputDirectory, other.outputDirectory) && _deepEquals(framesPerSecond, other.framesPerSecond) && _deepEquals(maxHeight, other.maxHeight);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'EngineRecordingRequest(displayId: $displayId, area: $area, outputDirectory: $outputDirectory, framesPerSecond: $framesPerSecond, maxHeight: $maxHeight)';
+  }
+}
+
+class EngineRecordingSession {
+  EngineRecordingSession({
+    required this.sessionDirectory,
+    required this.width,
+    required this.height,
+  });
+
+  String sessionDirectory;
+
+  int width;
+
+  int height;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      sessionDirectory,
+      width,
+      height,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static EngineRecordingSession decode(Object result) {
+    result as List<Object?>;
+    return EngineRecordingSession(
+      sessionDirectory: result[0]! as String,
+      width: result[1]! as int,
+      height: result[2]! as int,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! EngineRecordingSession || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(sessionDirectory, other.sessionDirectory) && _deepEquals(width, other.width) && _deepEquals(height, other.height);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'EngineRecordingSession(sessionDirectory: $sessionDirectory, width: $width, height: $height)';
+  }
+}
+
+class EngineRecordingStatus {
+  EngineRecordingStatus({
+    required this.phase,
+    required this.elapsedMs,
+    required this.segmentIndex,
+    required this.bytesWritten,
+    required this.droppedFrames,
+  });
+
+  EngineRecordingPhase phase;
+
+  int elapsedMs;
+
+  /// 1-based part number currently being written.
+  int segmentIndex;
+
+  int bytesWritten;
+
+  int droppedFrames;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      phase,
+      elapsedMs,
+      segmentIndex,
+      bytesWritten,
+      droppedFrames,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static EngineRecordingStatus decode(Object result) {
+    result as List<Object?>;
+    return EngineRecordingStatus(
+      phase: result[0]! as EngineRecordingPhase,
+      elapsedMs: result[1]! as int,
+      segmentIndex: result[2]! as int,
+      bytesWritten: result[3]! as int,
+      droppedFrames: result[4]! as int,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! EngineRecordingStatus || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(phase, other.phase) && _deepEquals(elapsedMs, other.elapsedMs) && _deepEquals(segmentIndex, other.segmentIndex) && _deepEquals(bytesWritten, other.bytesWritten) && _deepEquals(droppedFrames, other.droppedFrames);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'EngineRecordingStatus(phase: $phase, elapsedMs: $elapsedMs, segmentIndex: $segmentIndex, bytesWritten: $bytesWritten, droppedFrames: $droppedFrames)';
+  }
+}
+
+class EngineRecordingResult {
+  EngineRecordingResult({
+    required this.sessionDirectory,
+    required this.files,
+    required this.durationMs,
+    required this.bytesWritten,
+  });
+
+  String sessionDirectory;
+
+  List<String> files;
+
+  int durationMs;
+
+  int bytesWritten;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      sessionDirectory,
+      files,
+      durationMs,
+      bytesWritten,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static EngineRecordingResult decode(Object result) {
+    result as List<Object?>;
+    return EngineRecordingResult(
+      sessionDirectory: result[0]! as String,
+      files: (result[1]! as List<Object?>).cast<String>(),
+      durationMs: result[2]! as int,
+      bytesWritten: result[3]! as int,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! EngineRecordingResult || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(sessionDirectory, other.sessionDirectory) && _deepEquals(files, other.files) && _deepEquals(durationMs, other.durationMs) && _deepEquals(bytesWritten, other.bytesWritten);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'EngineRecordingResult(sessionDirectory: $sessionDirectory, files: $files, durationMs: $durationMs, bytesWritten: $bytesWritten)';
+  }
+}
+
+class EngineError {
+  EngineError({
+    required this.code,
+    required this.message,
+    required this.isFatal,
+  });
+
+  String code;
+
+  String message;
+
+  /// True when recording stopped because of this error.
+  bool isFatal;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      code,
+      message,
+      isFatal,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static EngineError decode(Object result) {
+    result as List<Object?>;
+    return EngineError(
+      code: result[0]! as String,
+      message: result[1]! as String,
+      isFatal: result[2]! as bool,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! EngineError || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(code, other.code) && _deepEquals(message, other.message) && _deepEquals(isFatal, other.isFatal);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'EngineError(code: $code, message: $message, isFatal: $isFatal)';
+  }
+}
+
+
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
   @override
@@ -256,14 +700,38 @@ class _PigeonCodec extends StandardMessageCodec {
     if (value is int) {
       buffer.putUint8(4);
       buffer.putInt64(value);
-    } else if (value is HostPlatform) {
+    }    else if (value is HostPlatform) {
       buffer.putUint8(129);
       writeValue(buffer, value.index);
-    } else if (value is EngineCapabilities) {
+    }    else if (value is EngineRecordingPhase) {
       buffer.putUint8(130);
-      writeValue(buffer, value.encode());
-    } else if (value is DiskSpace) {
+      writeValue(buffer, value.index);
+    }    else if (value is EngineCapabilities) {
       buffer.putUint8(131);
+      writeValue(buffer, value.encode());
+    }    else if (value is DiskSpace) {
+      buffer.putUint8(132);
+      writeValue(buffer, value.encode());
+    }    else if (value is EngineDisplay) {
+      buffer.putUint8(133);
+      writeValue(buffer, value.encode());
+    }    else if (value is EngineCaptureArea) {
+      buffer.putUint8(134);
+      writeValue(buffer, value.encode());
+    }    else if (value is EngineRecordingRequest) {
+      buffer.putUint8(135);
+      writeValue(buffer, value.encode());
+    }    else if (value is EngineRecordingSession) {
+      buffer.putUint8(136);
+      writeValue(buffer, value.encode());
+    }    else if (value is EngineRecordingStatus) {
+      buffer.putUint8(137);
+      writeValue(buffer, value.encode());
+    }    else if (value is EngineRecordingResult) {
+      buffer.putUint8(138);
+      writeValue(buffer, value.encode());
+    }    else if (value is EngineError) {
+      buffer.putUint8(139);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -277,35 +745,54 @@ class _PigeonCodec extends StandardMessageCodec {
         final value = readValue(buffer) as int?;
         return value == null ? null : HostPlatform.values[value];
       case 130:
-        return EngineCapabilities.decode(readValue(buffer)!);
+        final value = readValue(buffer) as int?;
+        return value == null ? null : EngineRecordingPhase.values[value];
       case 131:
+        return EngineCapabilities.decode(readValue(buffer)!);
+      case 132:
         return DiskSpace.decode(readValue(buffer)!);
+      case 133:
+        return EngineDisplay.decode(readValue(buffer)!);
+      case 134:
+        return EngineCaptureArea.decode(readValue(buffer)!);
+      case 135:
+        return EngineRecordingRequest.decode(readValue(buffer)!);
+      case 136:
+        return EngineRecordingSession.decode(readValue(buffer)!);
+      case 137:
+        return EngineRecordingStatus.decode(readValue(buffer)!);
+      case 138:
+        return EngineRecordingResult.decode(readValue(buffer)!);
+      case 139:
+        return EngineError.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
   }
 }
 
+/// Errors use PlatformException codes: `invalid_path`, `permission_denied`,
+/// `display_not_found`, `already_recording`, `not_recording`, `unsupported`,
+/// `capture_failed`, `writer_failed`.
 class EngineHostApi {
   /// Constructor for [EngineHostApi]. The [binaryMessenger] named argument is
   /// available for dependency injection. If it is left null, the default
   /// BinaryMessenger will be used which routes to the host platform.
   EngineHostApi({
-    BinaryMessenger? binaryMessenger,
-    String messageChannelSuffix = '',
-  }) : pigeonVar_binaryMessenger = binaryMessenger,
-       pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty
-           ? '.$messageChannelSuffix'
-           : '';
+      BinaryMessenger? binaryMessenger, 
+      String messageChannelSuffix = '', 
+      })
+      : pigeonVar_binaryMessenger = binaryMessenger,
+        pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
 
   final BinaryMessenger? pigeonVar_binaryMessenger;
   static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
 
   final String pigeonVar_messageChannelSuffix;
 
+
   Future<EngineCapabilities> getCapabilities() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.getCapabilities$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.getCapabilities$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -314,32 +801,232 @@ class EngineHostApi {
     final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as EngineCapabilities;
   }
 
-  /// Free/total space of the volume holding [path].
-  /// Throws a PlatformException with code "invalid_path" if it does not exist.
   Future<DiskSpace> getDiskSpace(String path) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.getDiskSpace$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.getDiskSpace$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[path],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[path]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as DiskSpace;
+  }
+
+  Future<bool> hasScreenCapturePermission() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.hasScreenCapturePermission$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as bool;
+  }
+
+  /// Shows the system prompt the first time; afterwards only Settings can grant it.
+  Future<bool> requestScreenCapturePermission() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.requestScreenCapturePermission$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as bool;
+  }
+
+  Future<void> openScreenCaptureSettings() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.openScreenCaptureSettings$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  Future<List<EngineDisplay>> listDisplays() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.listDisplays$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return (pigeonVar_replyValue! as List<Object?>).cast<EngineDisplay>();
+  }
+
+  Future<EngineRecordingSession> startRecording(EngineRecordingRequest request) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.startRecording$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[request]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as EngineRecordingSession;
+  }
+
+  Future<EngineRecordingResult> stopRecording() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.stopRecording$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as EngineRecordingResult;
+  }
+
+  Future<void> revealInFileManager(String path) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.revealInFileManager$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[path]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  /// Shows a drag-to-select overlay on the display. Null when the user cancels.
+  Future<EngineCaptureArea?> selectArea(int displayId) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.selectArea$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[displayId]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+    return pigeonVar_replyValue as EngineCaptureArea?;
+  }
+}
+
+/// Pushed from native on the platform thread: status about once per second.
+abstract class EngineEventsApi {
+  static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
+
+  void onStatus(EngineRecordingStatus status);
+
+  void onError(EngineError error);
+
+  static void setUp(EngineEventsApi? api, {
+    BinaryMessenger? binaryMessenger,
+    String messageChannelSuffix = '',
+  }) 
+{
+    messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.reclite_engine.EngineEventsApi.onStatus$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final EngineRecordingStatus arg_status = args[0]! as EngineRecordingStatus;
+          try {
+            api.onStatus(arg_status);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.reclite_engine.EngineEventsApi.onError$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final EngineError arg_error = args[0]! as EngineError;
+          try {
+            api.onError(arg_error);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
   }
 }

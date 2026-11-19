@@ -21,6 +21,13 @@ class ReadinessCubit extends Cubit<ReadinessState> {
 
   Future<void> load() async {
     emit(const ReadinessLoading());
+    await _check();
+  }
+
+  /// Re-checks (e.g. free space after a recording) without showing a spinner.
+  Future<void> refresh() => _check();
+
+  Future<void> _check() async {
     try {
       final (engine, storage) = await (
         _engine.getEngineInfo(),
@@ -57,6 +64,10 @@ class ReadinessCubit extends Cubit<ReadinessState> {
         ReadinessIssue.blocking(
           'RecLite needs ${engine.platformName} ${engine.minimumOsVersion} '
           'or later (this Mac/PC has ${engine.osVersion}).',
+        ),
+      if (!engine.supportsRecording)
+        ReadinessIssue.blocking(
+          'Recording on ${engine.platformName} is coming in the next version.',
         ),
       if (storage.freeBytes < RecordingDefaults.minFreeBytesToStart)
         const ReadinessIssue.blocking(

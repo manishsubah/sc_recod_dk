@@ -6,8 +6,11 @@ import 'package:reclite/core/constants/recording_defaults.dart';
 import 'package:reclite/core/utils/formatters.dart';
 import 'package:reclite/core/widgets/page_scaffold.dart';
 import 'package:reclite/features/recording/presentation/bloc/readiness_cubit.dart';
+import 'package:reclite/features/recording/presentation/bloc/recording_bloc.dart';
 import 'package:reclite/features/recording/presentation/widgets/info_row.dart';
 import 'package:reclite/features/recording/presentation/widgets/readiness_header.dart';
+import 'package:reclite/features/recording/presentation/widgets/recording_controls.dart';
+import 'package:reclite/features/recording/presentation/widgets/source_card.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -49,6 +52,10 @@ class _LoadedView extends StatelessWidget {
       children: [
         ReadinessHeader(canRecord: state.canRecord, issues: state.issues),
         const SizedBox(height: AppSpacing.md),
+        if (engine.supportsRecording) ...[
+          const SourceCard(),
+          const SizedBox(height: AppSpacing.md),
+        ],
         Card(
           child: Padding(
             padding: const EdgeInsets.symmetric(
@@ -100,23 +107,13 @@ class _LoadedView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.xxl),
-        Center(
-          child: FilledButton.icon(
-            onPressed: null,
-            icon: const Icon(
-              Icons.fiber_manual_record,
-              color: AppColors.recording,
-            ),
-            label: const Text('Start Recording'),
+        BlocListener<RecordingBloc, RecordingState>(
+          listenWhen: (_, s) => s is RecordingFinished || s is RecordingFailed,
+          listener: (context, _) => context.read<ReadinessCubit>().refresh(),
+          child: RecordingControls(
+            canRecord: state.canRecord,
+            outputFolder: storage.path,
           ),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          'Recording engine arrives in the next build. '
-          'Engine ${engine.engineVersion}',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodySmall
-              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     );

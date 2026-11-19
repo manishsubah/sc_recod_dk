@@ -33,4 +33,25 @@ void main() {
       ),
     );
   });
+
+  group('formatElapsed', () {
+    test(
+      'seconds',
+      () => expect(formatElapsed(const Duration(seconds: 7)), '00:07'),
+    );
+    test(
+      'minutes',
+      () => expect(
+        formatElapsed(const Duration(minutes: 14, seconds: 5)),
+        '14:05',
+      ),
+    );
+    test(
+      'hours',
+      () => expect(
+        formatElapsed(const Duration(hours: 2, minutes: 3, seconds: 9)),
+        '2:03:09',
+      ),
+    );
+  });
 }

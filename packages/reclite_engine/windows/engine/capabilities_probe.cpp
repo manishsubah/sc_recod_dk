@@ -75,6 +75,7 @@ EngineCapabilities QueryCapabilities() {
 
   return EngineCapabilities(
       HostPlatform::kWindows, os_version, kMinimumOsVersion, meets_minimum,
+      /*supports_recording=*/false,
       /*supports_system_audio=*/meets_minimum,  // WASAPI loopback
       /*supports_microphone_via_screen_capture=*/false,
       HasHardwareEncoder(MFVideoFormat_H264),

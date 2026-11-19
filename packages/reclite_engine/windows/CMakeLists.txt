@@ -37,6 +37,7 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE
   flutter_wrapper_plugin
   mfplat
   mfuuid
+  shell32
 )
 
 set(reclite_engine_bundled_libraries "" PARENT_SCOPE)

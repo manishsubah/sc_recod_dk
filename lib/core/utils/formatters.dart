@@ -20,3 +20,12 @@ String formatRecordingTimeLeft(
   final minutes = (hours * 60).floor();
   return minutes <= 0 ? 'no space' : 'about $minutes min';
 }
+
+/// `05:07` under an hour, `1:05:07` after.
+String formatElapsed(Duration d) {
+  String two(int n) => n.toString().padLeft(2, '0');
+  final hours = d.inHours;
+  final minutes = two(d.inMinutes.remainder(60));
+  final seconds = two(d.inSeconds.remainder(60));
+  return hours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
+}

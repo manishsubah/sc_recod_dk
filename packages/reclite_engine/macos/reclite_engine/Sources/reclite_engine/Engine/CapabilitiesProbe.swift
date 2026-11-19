@@ -19,6 +19,7 @@ enum CapabilitiesProbe {
       osVersion: "\(v.majorVersion).\(v.minorVersion).\(v.patchVersion)",
       minimumOsVersion: "\(minimumOs.majorVersion).\(minimumOs.minorVersion)",
       meetsMinimumOs: info.isOperatingSystemAtLeast(minimumOs),
+      supportsRecording: true,
       supportsSystemAudio: info.isOperatingSystemAtLeast(minimumOs),
       // SCStreamConfiguration.captureMicrophone is macOS 15+.
       supportsMicrophoneViaScreenCapture: info.isOperatingSystemAtLeast(

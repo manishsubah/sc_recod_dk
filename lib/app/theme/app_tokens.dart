@@ -25,6 +25,10 @@ abstract final class AppSize {
 
   static const double logo = 40;
 
+  static const double recordDot = 12;
+  static const double inlineProgress = 18;
+  static const double progressStroke = 2;
+
   static const double buttonHeight = 52;
   static const double buttonMinWidth = 220;
 }

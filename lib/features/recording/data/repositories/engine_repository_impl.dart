@@ -24,6 +24,7 @@ class EngineRepositoryImpl implements EngineRepository {
         osVersion: c.osVersion,
         minimumOsVersion: c.minimumOsVersion,
         meetsMinimumOs: c.meetsMinimumOs,
+        supportsRecording: c.supportsRecording,
         supportsSystemAudio: c.supportsSystemAudio,
         supportsMicrophoneViaScreenCapture:
             c.supportsMicrophoneViaScreenCapture,

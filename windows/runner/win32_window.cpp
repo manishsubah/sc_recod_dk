@@ -210,7 +210,10 @@ Win32Window::MessageHandler(HWND hwnd,
     case WM_GETMINMAXINFO: {
       // RecLite: keep the window at least 760x560 logical pixels.
       auto* info = reinterpret_cast<MINMAXINFO*>(lparam);
-      const double scale = GetDpiForWindow(hwnd) / 96.0;
+      const double scale =
+          FlutterDesktopGetDpiForMonitor(
+              MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST)) /
+          96.0;
       info->ptMinTrackSize.x = static_cast<LONG>(760 * scale);
       info->ptMinTrackSize.y = static_cast<LONG>(560 * scale);
       return 0;

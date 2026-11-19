@@ -30,7 +30,11 @@ jobs:
           flutter pub get
           dart run pigeon --input pigeons/engine_api.dart
           git diff --exit-code -- lib/src macos windows
-      - run: dart format --output=none --set-exit-if-changed lib test packages/reclite_engine/lib
+      # Generated files (*.g.dart) are committed exactly as Pigeon writes them.
+      - name: Formatting
+        run: |
+          find lib test integration_test packages/reclite_engine/lib -name '*.dart' ! -name '*.g.dart' -print0 \
+            | xargs -0 dart format --output=none --set-exit-if-changed
       - run: flutter analyze
       - run: flutter test
 

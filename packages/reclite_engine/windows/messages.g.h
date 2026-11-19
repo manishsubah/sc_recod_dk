@@ -50,6 +50,7 @@ template<class T> class ErrorOr {
 
  private:
   friend class EngineHostApi;
+  friend class EngineEventsApi;
   ErrorOr() = default;
   T TakeValue() && { return std::get<T>(std::move(v_)); }
 
@@ -62,9 +63,14 @@ enum class HostPlatform {
   kWindows = 1
 };
 
+enum class EngineRecordingPhase {
+  kIdle = 0,
+  kStarting = 1,
+  kRecording = 2,
+  kStopping = 3
+};
 
-// What this machine and OS can do. Queried once at startup.
-//
+
 // Generated class from Pigeon that represents data sent in messages.
 class EngineCapabilities {
  public:
@@ -74,6 +80,7 @@ class EngineCapabilities {
     const std::string& os_version,
     const std::string& minimum_os_version,
     bool meets_minimum_os,
+    bool supports_recording,
     bool supports_system_audio,
     bool supports_microphone_via_screen_capture,
     bool has_hardware_h264_encoder,
@@ -83,23 +90,22 @@ class EngineCapabilities {
   const HostPlatform& platform() const;
   void set_platform(const HostPlatform& value_arg);
 
-  // Human-readable OS version, e.g. "14.5.0" or "10.0.22631".
   const std::string& os_version() const;
   void set_os_version(std::string_view value_arg);
 
-  // Lowest OS version RecLite supports on this platform.
   const std::string& minimum_os_version() const;
   void set_minimum_os_version(std::string_view value_arg);
 
   bool meets_minimum_os() const;
   void set_meets_minimum_os(bool value_arg);
 
-  // System ("internal") audio capture is available.
+  // False while this platform's recording pipeline is not implemented yet.
+  bool supports_recording() const;
+  void set_supports_recording(bool value_arg);
+
   bool supports_system_audio() const;
   void set_supports_system_audio(bool value_arg);
 
-  // macOS 15+: microphone can be captured by ScreenCaptureKit on the same
-  // clock as the screen. Otherwise a separate mic pipeline is used.
   bool supports_microphone_via_screen_capture() const;
   void set_supports_microphone_via_screen_capture(bool value_arg);
 
@@ -122,11 +128,13 @@ class EngineCapabilities {
   static EngineCapabilities FromEncodableList(const ::flutter::EncodableList& list);
   ::flutter::EncodableList ToEncodableList() const;
   friend class EngineHostApi;
+  friend class EngineEventsApi;
   friend class PigeonInternalCodecSerializer;
   HostPlatform platform_;
   std::string os_version_;
   std::string minimum_os_version_;
   bool meets_minimum_os_;
+  bool supports_recording_;
   bool supports_system_audio_;
   bool supports_microphone_via_screen_capture_;
   bool has_hardware_h264_encoder_;
@@ -143,7 +151,6 @@ class DiskSpace {
     int64_t free_bytes,
     int64_t total_bytes);
 
-  // Bytes available for new files on the volume containing the path.
   int64_t free_bytes() const;
   void set_free_bytes(int64_t value_arg);
 
@@ -160,9 +167,324 @@ class DiskSpace {
   static DiskSpace FromEncodableList(const ::flutter::EncodableList& list);
   ::flutter::EncodableList ToEncodableList() const;
   friend class EngineHostApi;
+  friend class EngineEventsApi;
   friend class PigeonInternalCodecSerializer;
   int64_t free_bytes_;
   int64_t total_bytes_;
+};
+
+
+// Generated class from Pigeon that represents data sent in messages.
+class EngineDisplay {
+ public:
+  // Constructs an object setting all fields.
+  explicit EngineDisplay(
+    int64_t id,
+    const std::string& name,
+    int64_t width,
+    int64_t height,
+    bool is_main);
+
+  int64_t id() const;
+  void set_id(int64_t value_arg);
+
+  const std::string& name() const;
+  void set_name(std::string_view value_arg);
+
+  // Native pixel size (Retina/HiDPI included).
+  int64_t width() const;
+  void set_width(int64_t value_arg);
+
+  int64_t height() const;
+  void set_height(int64_t value_arg);
+
+  bool is_main() const;
+  void set_is_main(bool value_arg);
+
+  bool operator==(const EngineDisplay& other) const;
+  bool operator!=(const EngineDisplay& other) const;
+  /// Returns a hash code value for the object. This method is supported for the benefit of hash tables.
+  size_t Hash() const;
+  /// Stream output operator for formatted string representation.
+  friend std::ostream& operator<<(std::ostream& os, const EngineDisplay& obj);
+ private:
+  static EngineDisplay FromEncodableList(const ::flutter::EncodableList& list);
+  ::flutter::EncodableList ToEncodableList() const;
+  friend class EngineHostApi;
+  friend class EngineEventsApi;
+  friend class PigeonInternalCodecSerializer;
+  int64_t id_;
+  std::string name_;
+  int64_t width_;
+  int64_t height_;
+  bool is_main_;
+};
+
+
+// A rectangle on one display, in points, origin at the display's top-left.
+//
+// Generated class from Pigeon that represents data sent in messages.
+class EngineCaptureArea {
+ public:
+  // Constructs an object setting all fields.
+  explicit EngineCaptureArea(
+    double x,
+    double y,
+    double width,
+    double height);
+
+  double x() const;
+  void set_x(double value_arg);
+
+  double y() const;
+  void set_y(double value_arg);
+
+  double width() const;
+  void set_width(double value_arg);
+
+  double height() const;
+  void set_height(double value_arg);
+
+  bool operator==(const EngineCaptureArea& other) const;
+  bool operator!=(const EngineCaptureArea& other) const;
+  /// Returns a hash code value for the object. This method is supported for the benefit of hash tables.
+  size_t Hash() const;
+  /// Stream output operator for formatted string representation.
+  friend std::ostream& operator<<(std::ostream& os, const EngineCaptureArea& obj);
+ private:
+  static EngineCaptureArea FromEncodableList(const ::flutter::EncodableList& list);
+  ::flutter::EncodableList ToEncodableList() const;
+  friend class EngineRecordingRequest;
+  friend class EngineHostApi;
+  friend class EngineEventsApi;
+  friend class PigeonInternalCodecSerializer;
+  double x_;
+  double y_;
+  double width_;
+  double height_;
+};
+
+
+// Generated class from Pigeon that represents data sent in messages.
+class EngineRecordingRequest {
+ public:
+  // Constructs an object setting all non-nullable fields.
+  explicit EngineRecordingRequest(
+    int64_t display_id,
+    const std::string& output_directory,
+    int64_t frames_per_second,
+    int64_t max_height);
+
+  // Constructs an object setting all fields.
+  explicit EngineRecordingRequest(
+    int64_t display_id,
+    const EngineCaptureArea* area,
+    const std::string& output_directory,
+    int64_t frames_per_second,
+    int64_t max_height);
+
+  ~EngineRecordingRequest() = default;
+  EngineRecordingRequest(const EngineRecordingRequest& other);
+  EngineRecordingRequest& operator=(const EngineRecordingRequest& other);
+  EngineRecordingRequest(EngineRecordingRequest&& other) = default;
+  EngineRecordingRequest& operator=(EngineRecordingRequest&& other) noexcept = default;
+  int64_t display_id() const;
+  void set_display_id(int64_t value_arg);
+
+  // Null records the whole display.
+  const EngineCaptureArea* area() const;
+  void set_area(const EngineCaptureArea* value_arg);
+  void set_area(const EngineCaptureArea& value_arg);
+
+  // Parent folder; the engine creates a per-session folder inside it.
+  const std::string& output_directory() const;
+  void set_output_directory(std::string_view value_arg);
+
+  int64_t frames_per_second() const;
+  void set_frames_per_second(int64_t value_arg);
+
+  // Output is scaled down (GPU) to at most this height, keeping aspect ratio.
+  int64_t max_height() const;
+  void set_max_height(int64_t value_arg);
+
+  bool operator==(const EngineRecordingRequest& other) const;
+  bool operator!=(const EngineRecordingRequest& other) const;
+  /// Returns a hash code value for the object. This method is supported for the benefit of hash tables.
+  size_t Hash() const;
+  /// Stream output operator for formatted string representation.
+  friend std::ostream& operator<<(std::ostream& os, const EngineRecordingRequest& obj);
+ private:
+  static EngineRecordingRequest FromEncodableList(const ::flutter::EncodableList& list);
+  ::flutter::EncodableList ToEncodableList() const;
+  friend class EngineHostApi;
+  friend class EngineEventsApi;
+  friend class PigeonInternalCodecSerializer;
+  int64_t display_id_;
+  std::unique_ptr<EngineCaptureArea> area_;
+  std::string output_directory_;
+  int64_t frames_per_second_;
+  int64_t max_height_;
+};
+
+
+// Generated class from Pigeon that represents data sent in messages.
+class EngineRecordingSession {
+ public:
+  // Constructs an object setting all fields.
+  explicit EngineRecordingSession(
+    const std::string& session_directory,
+    int64_t width,
+    int64_t height);
+
+  const std::string& session_directory() const;
+  void set_session_directory(std::string_view value_arg);
+
+  int64_t width() const;
+  void set_width(int64_t value_arg);
+
+  int64_t height() const;
+  void set_height(int64_t value_arg);
+
+  bool operator==(const EngineRecordingSession& other) const;
+  bool operator!=(const EngineRecordingSession& other) const;
+  /// Returns a hash code value for the object. This method is supported for the benefit of hash tables.
+  size_t Hash() const;
+  /// Stream output operator for formatted string representation.
+  friend std::ostream& operator<<(std::ostream& os, const EngineRecordingSession& obj);
+ private:
+  static EngineRecordingSession FromEncodableList(const ::flutter::EncodableList& list);
+  ::flutter::EncodableList ToEncodableList() const;
+  friend class EngineHostApi;
+  friend class EngineEventsApi;
+  friend class PigeonInternalCodecSerializer;
+  std::string session_directory_;
+  int64_t width_;
+  int64_t height_;
+};
+
+
+// Generated class from Pigeon that represents data sent in messages.
+class EngineRecordingStatus {
+ public:
+  // Constructs an object setting all fields.
+  explicit EngineRecordingStatus(
+    const EngineRecordingPhase& phase,
+    int64_t elapsed_ms,
+    int64_t segment_index,
+    int64_t bytes_written,
+    int64_t dropped_frames);
+
+  const EngineRecordingPhase& phase() const;
+  void set_phase(const EngineRecordingPhase& value_arg);
+
+  int64_t elapsed_ms() const;
+  void set_elapsed_ms(int64_t value_arg);
+
+  // 1-based part number currently being written.
+  int64_t segment_index() const;
+  void set_segment_index(int64_t value_arg);
+
+  int64_t bytes_written() const;
+  void set_bytes_written(int64_t value_arg);
+
+  int64_t dropped_frames() const;
+  void set_dropped_frames(int64_t value_arg);
+
+  bool operator==(const EngineRecordingStatus& other) const;
+  bool operator!=(const EngineRecordingStatus& other) const;
+  /// Returns a hash code value for the object. This method is supported for the benefit of hash tables.
+  size_t Hash() const;
+  /// Stream output operator for formatted string representation.
+  friend std::ostream& operator<<(std::ostream& os, const EngineRecordingStatus& obj);
+ private:
+  static EngineRecordingStatus FromEncodableList(const ::flutter::EncodableList& list);
+  ::flutter::EncodableList ToEncodableList() const;
+  friend class EngineHostApi;
+  friend class EngineEventsApi;
+  friend class PigeonInternalCodecSerializer;
+  EngineRecordingPhase phase_;
+  int64_t elapsed_ms_;
+  int64_t segment_index_;
+  int64_t bytes_written_;
+  int64_t dropped_frames_;
+};
+
+
+// Generated class from Pigeon that represents data sent in messages.
+class EngineRecordingResult {
+ public:
+  // Constructs an object setting all fields.
+  explicit EngineRecordingResult(
+    const std::string& session_directory,
+    const ::flutter::EncodableList& files,
+    int64_t duration_ms,
+    int64_t bytes_written);
+
+  const std::string& session_directory() const;
+  void set_session_directory(std::string_view value_arg);
+
+  const ::flutter::EncodableList& files() const;
+  void set_files(const ::flutter::EncodableList& value_arg);
+
+  int64_t duration_ms() const;
+  void set_duration_ms(int64_t value_arg);
+
+  int64_t bytes_written() const;
+  void set_bytes_written(int64_t value_arg);
+
+  bool operator==(const EngineRecordingResult& other) const;
+  bool operator!=(const EngineRecordingResult& other) const;
+  /// Returns a hash code value for the object. This method is supported for the benefit of hash tables.
+  size_t Hash() const;
+  /// Stream output operator for formatted string representation.
+  friend std::ostream& operator<<(std::ostream& os, const EngineRecordingResult& obj);
+ private:
+  static EngineRecordingResult FromEncodableList(const ::flutter::EncodableList& list);
+  ::flutter::EncodableList ToEncodableList() const;
+  friend class EngineHostApi;
+  friend class EngineEventsApi;
+  friend class PigeonInternalCodecSerializer;
+  std::string session_directory_;
+  ::flutter::EncodableList files_;
+  int64_t duration_ms_;
+  int64_t bytes_written_;
+};
+
+
+// Generated class from Pigeon that represents data sent in messages.
+class EngineError {
+ public:
+  // Constructs an object setting all fields.
+  explicit EngineError(
+    const std::string& code,
+    const std::string& message,
+    bool is_fatal);
+
+  const std::string& code() const;
+  void set_code(std::string_view value_arg);
+
+  const std::string& message() const;
+  void set_message(std::string_view value_arg);
+
+  // True when recording stopped because of this error.
+  bool is_fatal() const;
+  void set_is_fatal(bool value_arg);
+
+  bool operator==(const EngineError& other) const;
+  bool operator!=(const EngineError& other) const;
+  /// Returns a hash code value for the object. This method is supported for the benefit of hash tables.
+  size_t Hash() const;
+  /// Stream output operator for formatted string representation.
+  friend std::ostream& operator<<(std::ostream& os, const EngineError& obj);
+ private:
+  static EngineError FromEncodableList(const ::flutter::EncodableList& list);
+  ::flutter::EncodableList ToEncodableList() const;
+  friend class EngineHostApi;
+  friend class EngineEventsApi;
+  friend class PigeonInternalCodecSerializer;
+  std::string code_;
+  std::string message_;
+  bool is_fatal_;
 };
 
 
@@ -183,6 +505,10 @@ class PigeonInternalCodecSerializer : public ::flutter::StandardCodecSerializer 
     ::flutter::ByteStreamReader* stream) const override;
 };
 
+// Errors use PlatformException codes: `invalid_path`, `permission_denied`,
+// `display_not_found`, `already_recording`, `not_recording`, `unsupported`,
+// `capture_failed`, `writer_failed`.
+//
 // Generated interface from Pigeon that represents a handler of messages from Flutter.
 class EngineHostApi {
  public:
@@ -190,9 +516,21 @@ class EngineHostApi {
   EngineHostApi& operator=(const EngineHostApi&) = delete;
   virtual ~EngineHostApi() {}
   virtual ErrorOr<EngineCapabilities> GetCapabilities() = 0;
-  // Free/total space of the volume holding [path].
-  // Throws a PlatformException with code "invalid_path" if it does not exist.
   virtual ErrorOr<DiskSpace> GetDiskSpace(const std::string& path) = 0;
+  virtual ErrorOr<bool> HasScreenCapturePermission() = 0;
+  // Shows the system prompt the first time; afterwards only Settings can grant it.
+  virtual ErrorOr<bool> RequestScreenCapturePermission() = 0;
+  virtual std::optional<FlutterError> OpenScreenCaptureSettings() = 0;
+  virtual void ListDisplays(std::function<void(ErrorOr<::flutter::EncodableList> reply)> result) = 0;
+  virtual void StartRecording(
+    const EngineRecordingRequest& request,
+    std::function<void(ErrorOr<EngineRecordingSession> reply)> result) = 0;
+  virtual void StopRecording(std::function<void(ErrorOr<EngineRecordingResult> reply)> result) = 0;
+  virtual std::optional<FlutterError> RevealInFileManager(const std::string& path) = 0;
+  // Shows a drag-to-select overlay on the display. Null when the user cancels.
+  virtual void SelectArea(
+    int64_t display_id,
+    std::function<void(ErrorOr<std::optional<EngineCaptureArea>> reply)> result) = 0;
 
   // The codec used by EngineHostApi.
   static const ::flutter::StandardMessageCodec& GetCodec();
@@ -209,5 +547,28 @@ class EngineHostApi {
  protected:
   EngineHostApi() = default;
 };
+// Pushed from native on the platform thread: status about once per second.
+//
+// Generated class from Pigeon that represents Flutter messages that can be called from C++.
+class EngineEventsApi {
+ public:
+  EngineEventsApi(::flutter::BinaryMessenger* binary_messenger);
+  EngineEventsApi(
+    ::flutter::BinaryMessenger* binary_messenger,
+    const std::string& message_channel_suffix);
+  static const ::flutter::StandardMessageCodec& GetCodec();
+  void OnStatus(
+    const EngineRecordingStatus& status,
+    std::function<void(void)>&& on_success,
+    std::function<void(const FlutterError&)>&& on_error);
+  void OnError(
+    const EngineError& error,
+    std::function<void(void)>&& on_success,
+    std::function<void(const FlutterError&)>&& on_error);
+ private:
+  ::flutter::BinaryMessenger* binary_messenger_;
+  std::string message_channel_suffix_;
+};
+
 }  // namespace reclite_engine
 #endif  // PIGEON_MESSAGES_G_H_

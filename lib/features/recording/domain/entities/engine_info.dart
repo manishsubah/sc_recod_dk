@@ -6,6 +6,7 @@ class EngineInfo extends Equatable {
     required this.osVersion,
     required this.minimumOsVersion,
     required this.meetsMinimumOs,
+    required this.supportsRecording,
     required this.supportsSystemAudio,
     required this.supportsMicrophoneViaScreenCapture,
     required this.hasHardwareH264Encoder,
@@ -17,6 +18,7 @@ class EngineInfo extends Equatable {
   final String osVersion;
   final String minimumOsVersion;
   final bool meetsMinimumOs;
+  final bool supportsRecording;
   final bool supportsSystemAudio;
   final bool supportsMicrophoneViaScreenCapture;
   final bool hasHardwareH264Encoder;
@@ -29,6 +31,7 @@ class EngineInfo extends Equatable {
     osVersion,
     minimumOsVersion,
     meetsMinimumOs,
+    supportsRecording,
     supportsSystemAudio,
     supportsMicrophoneViaScreenCapture,
     hasHardwareH264Encoder,

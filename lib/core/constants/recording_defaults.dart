@@ -3,6 +3,9 @@ import 'dart:io';
 abstract final class RecordingDefaults {
   static const Duration segmentDuration = Duration(minutes: 15);
 
+  static const int framesPerSecond = 30;
+  static const int maxOutputHeight = 1440;
+
   // Rough 1080p30 H.264 bitrate for the "time left" hint only.
   static const int estimatedBytesPerHour = 1200 * 1000 * 1000;
 

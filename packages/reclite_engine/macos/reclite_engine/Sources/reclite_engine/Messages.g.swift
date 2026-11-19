@@ -55,6 +55,10 @@ private func wrapError(_ error: Any) -> [Any?] {
   ]
 }
 
+private func createConnectionError(withChannelName channelName: String) -> PigeonError {
+  return PigeonError(code: "channel-error", message: "Unable to establish connection on channel: '\(channelName)'.", details: "")
+}
+
 enum MessagesPigeonInternal {
   static func isNullish(_ value: Any?) -> Bool {
     guard let innerValue = value else {
@@ -189,20 +193,22 @@ enum HostPlatform: Int, CaseIterable {
   case windows = 1
 }
 
-/// What this machine and OS can do. Queried once at startup.
-///
+enum EngineRecordingPhase: Int, CaseIterable {
+  case idle = 0
+  case starting = 1
+  case recording = 2
+  case stopping = 3
+}
+
 /// Generated class from Pigeon that represents data sent in messages.
 struct EngineCapabilities: Hashable, CustomStringConvertible {
   var platform: HostPlatform
-  /// Human-readable OS version, e.g. "14.5.0" or "10.0.22631".
   var osVersion: String
-  /// Lowest OS version RecLite supports on this platform.
   var minimumOsVersion: String
   var meetsMinimumOs: Bool
-  /// System ("internal") audio capture is available.
+  /// False while this platform's recording pipeline is not implemented yet.
+  var supportsRecording: Bool
   var supportsSystemAudio: Bool
-  /// macOS 15+: microphone can be captured by ScreenCaptureKit on the same
-  /// clock as the screen. Otherwise a separate mic pipeline is used.
   var supportsMicrophoneViaScreenCapture: Bool
   var hasHardwareH264Encoder: Bool
   var hasHardwareHevcEncoder: Bool
@@ -215,17 +221,19 @@ struct EngineCapabilities: Hashable, CustomStringConvertible {
     let osVersion = pigeonVar_list[1] as! String
     let minimumOsVersion = pigeonVar_list[2] as! String
     let meetsMinimumOs = pigeonVar_list[3] as! Bool
-    let supportsSystemAudio = pigeonVar_list[4] as! Bool
-    let supportsMicrophoneViaScreenCapture = pigeonVar_list[5] as! Bool
-    let hasHardwareH264Encoder = pigeonVar_list[6] as! Bool
-    let hasHardwareHevcEncoder = pigeonVar_list[7] as! Bool
-    let engineVersion = pigeonVar_list[8] as! String
+    let supportsRecording = pigeonVar_list[4] as! Bool
+    let supportsSystemAudio = pigeonVar_list[5] as! Bool
+    let supportsMicrophoneViaScreenCapture = pigeonVar_list[6] as! Bool
+    let hasHardwareH264Encoder = pigeonVar_list[7] as! Bool
+    let hasHardwareHevcEncoder = pigeonVar_list[8] as! Bool
+    let engineVersion = pigeonVar_list[9] as! String
 
     return EngineCapabilities(
       platform: platform,
       osVersion: osVersion,
       minimumOsVersion: minimumOsVersion,
       meetsMinimumOs: meetsMinimumOs,
+      supportsRecording: supportsRecording,
       supportsSystemAudio: supportsSystemAudio,
       supportsMicrophoneViaScreenCapture: supportsMicrophoneViaScreenCapture,
       hasHardwareH264Encoder: hasHardwareH264Encoder,
@@ -239,6 +247,7 @@ struct EngineCapabilities: Hashable, CustomStringConvertible {
       osVersion,
       minimumOsVersion,
       meetsMinimumOs,
+      supportsRecording,
       supportsSystemAudio,
       supportsMicrophoneViaScreenCapture,
       hasHardwareH264Encoder,
@@ -250,7 +259,7 @@ struct EngineCapabilities: Hashable, CustomStringConvertible {
     if Swift.type(of: lhs) != Swift.type(of: rhs) {
       return false
     }
-    return MessagesPigeonInternal.deepEquals(lhs.platform, rhs.platform) && MessagesPigeonInternal.deepEquals(lhs.osVersion, rhs.osVersion) && MessagesPigeonInternal.deepEquals(lhs.minimumOsVersion, rhs.minimumOsVersion) && MessagesPigeonInternal.deepEquals(lhs.meetsMinimumOs, rhs.meetsMinimumOs) && MessagesPigeonInternal.deepEquals(lhs.supportsSystemAudio, rhs.supportsSystemAudio) && MessagesPigeonInternal.deepEquals(lhs.supportsMicrophoneViaScreenCapture, rhs.supportsMicrophoneViaScreenCapture) && MessagesPigeonInternal.deepEquals(lhs.hasHardwareH264Encoder, rhs.hasHardwareH264Encoder) && MessagesPigeonInternal.deepEquals(lhs.hasHardwareHevcEncoder, rhs.hasHardwareHevcEncoder) && MessagesPigeonInternal.deepEquals(lhs.engineVersion, rhs.engineVersion)
+    return MessagesPigeonInternal.deepEquals(lhs.platform, rhs.platform) && MessagesPigeonInternal.deepEquals(lhs.osVersion, rhs.osVersion) && MessagesPigeonInternal.deepEquals(lhs.minimumOsVersion, rhs.minimumOsVersion) && MessagesPigeonInternal.deepEquals(lhs.meetsMinimumOs, rhs.meetsMinimumOs) && MessagesPigeonInternal.deepEquals(lhs.supportsRecording, rhs.supportsRecording) && MessagesPigeonInternal.deepEquals(lhs.supportsSystemAudio, rhs.supportsSystemAudio) && MessagesPigeonInternal.deepEquals(lhs.supportsMicrophoneViaScreenCapture, rhs.supportsMicrophoneViaScreenCapture) && MessagesPigeonInternal.deepEquals(lhs.hasHardwareH264Encoder, rhs.hasHardwareH264Encoder) && MessagesPigeonInternal.deepEquals(lhs.hasHardwareHevcEncoder, rhs.hasHardwareHevcEncoder) && MessagesPigeonInternal.deepEquals(lhs.engineVersion, rhs.engineVersion)
   }
 
   func hash(into hasher: inout Hasher) {
@@ -259,6 +268,7 @@ struct EngineCapabilities: Hashable, CustomStringConvertible {
     MessagesPigeonInternal.deepHash(value: osVersion, hasher: &hasher)
     MessagesPigeonInternal.deepHash(value: minimumOsVersion, hasher: &hasher)
     MessagesPigeonInternal.deepHash(value: meetsMinimumOs, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: supportsRecording, hasher: &hasher)
     MessagesPigeonInternal.deepHash(value: supportsSystemAudio, hasher: &hasher)
     MessagesPigeonInternal.deepHash(value: supportsMicrophoneViaScreenCapture, hasher: &hasher)
     MessagesPigeonInternal.deepHash(value: hasHardwareH264Encoder, hasher: &hasher)
@@ -267,13 +277,12 @@ struct EngineCapabilities: Hashable, CustomStringConvertible {
   }
 
   public var description: String {
-    return "EngineCapabilities(platform: \(String(describing: platform)), osVersion: \(String(describing: osVersion)), minimumOsVersion: \(String(describing: minimumOsVersion)), meetsMinimumOs: \(String(describing: meetsMinimumOs)), supportsSystemAudio: \(String(describing: supportsSystemAudio)), supportsMicrophoneViaScreenCapture: \(String(describing: supportsMicrophoneViaScreenCapture)), hasHardwareH264Encoder: \(String(describing: hasHardwareH264Encoder)), hasHardwareHevcEncoder: \(String(describing: hasHardwareHevcEncoder)), engineVersion: \(String(describing: engineVersion)))"
+    return "EngineCapabilities(platform: \(String(describing: platform)), osVersion: \(String(describing: osVersion)), minimumOsVersion: \(String(describing: minimumOsVersion)), meetsMinimumOs: \(String(describing: meetsMinimumOs)), supportsRecording: \(String(describing: supportsRecording)), supportsSystemAudio: \(String(describing: supportsSystemAudio)), supportsMicrophoneViaScreenCapture: \(String(describing: supportsMicrophoneViaScreenCapture)), hasHardwareH264Encoder: \(String(describing: hasHardwareH264Encoder)), hasHardwareHevcEncoder: \(String(describing: hasHardwareHevcEncoder)), engineVersion: \(String(describing: engineVersion)))"
   }
 }
 
 /// Generated class from Pigeon that represents data sent in messages.
 struct DiskSpace: Hashable, CustomStringConvertible {
-  /// Bytes available for new files on the volume containing the path.
   var freeBytes: Int64
   var totalBytes: Int64
 
@@ -312,6 +321,369 @@ struct DiskSpace: Hashable, CustomStringConvertible {
   }
 }
 
+/// Generated class from Pigeon that represents data sent in messages.
+struct EngineDisplay: Hashable, CustomStringConvertible {
+  var id: Int64
+  var name: String
+  /// Native pixel size (Retina/HiDPI included).
+  var width: Int64
+  var height: Int64
+  var isMain: Bool
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> EngineDisplay? {
+    let id = pigeonVar_list[0] as! Int64
+    let name = pigeonVar_list[1] as! String
+    let width = pigeonVar_list[2] as! Int64
+    let height = pigeonVar_list[3] as! Int64
+    let isMain = pigeonVar_list[4] as! Bool
+
+    return EngineDisplay(
+      id: id,
+      name: name,
+      width: width,
+      height: height,
+      isMain: isMain
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      id,
+      name,
+      width,
+      height,
+      isMain,
+    ]
+  }
+  static func == (lhs: EngineDisplay, rhs: EngineDisplay) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return MessagesPigeonInternal.deepEquals(lhs.id, rhs.id) && MessagesPigeonInternal.deepEquals(lhs.name, rhs.name) && MessagesPigeonInternal.deepEquals(lhs.width, rhs.width) && MessagesPigeonInternal.deepEquals(lhs.height, rhs.height) && MessagesPigeonInternal.deepEquals(lhs.isMain, rhs.isMain)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("EngineDisplay")
+    MessagesPigeonInternal.deepHash(value: id, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: name, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: width, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: height, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: isMain, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "EngineDisplay(id: \(String(describing: id)), name: \(String(describing: name)), width: \(String(describing: width)), height: \(String(describing: height)), isMain: \(String(describing: isMain)))"
+  }
+}
+
+/// A rectangle on one display, in points, origin at the display's top-left.
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct EngineCaptureArea: Hashable, CustomStringConvertible {
+  var x: Double
+  var y: Double
+  var width: Double
+  var height: Double
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> EngineCaptureArea? {
+    let x = pigeonVar_list[0] as! Double
+    let y = pigeonVar_list[1] as! Double
+    let width = pigeonVar_list[2] as! Double
+    let height = pigeonVar_list[3] as! Double
+
+    return EngineCaptureArea(
+      x: x,
+      y: y,
+      width: width,
+      height: height
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      x,
+      y,
+      width,
+      height,
+    ]
+  }
+  static func == (lhs: EngineCaptureArea, rhs: EngineCaptureArea) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return MessagesPigeonInternal.deepEquals(lhs.x, rhs.x) && MessagesPigeonInternal.deepEquals(lhs.y, rhs.y) && MessagesPigeonInternal.deepEquals(lhs.width, rhs.width) && MessagesPigeonInternal.deepEquals(lhs.height, rhs.height)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("EngineCaptureArea")
+    MessagesPigeonInternal.deepHash(value: x, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: y, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: width, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: height, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "EngineCaptureArea(x: \(String(describing: x)), y: \(String(describing: y)), width: \(String(describing: width)), height: \(String(describing: height)))"
+  }
+}
+
+/// Generated class from Pigeon that represents data sent in messages.
+struct EngineRecordingRequest: Hashable, CustomStringConvertible {
+  var displayId: Int64
+  /// Null records the whole display.
+  var area: EngineCaptureArea? = nil
+  /// Parent folder; the engine creates a per-session folder inside it.
+  var outputDirectory: String
+  var framesPerSecond: Int64
+  /// Output is scaled down (GPU) to at most this height, keeping aspect ratio.
+  var maxHeight: Int64
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> EngineRecordingRequest? {
+    let displayId = pigeonVar_list[0] as! Int64
+    let area: EngineCaptureArea? = nilOrValue(pigeonVar_list[1])
+    let outputDirectory = pigeonVar_list[2] as! String
+    let framesPerSecond = pigeonVar_list[3] as! Int64
+    let maxHeight = pigeonVar_list[4] as! Int64
+
+    return EngineRecordingRequest(
+      displayId: displayId,
+      area: area,
+      outputDirectory: outputDirectory,
+      framesPerSecond: framesPerSecond,
+      maxHeight: maxHeight
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      displayId,
+      area,
+      outputDirectory,
+      framesPerSecond,
+      maxHeight,
+    ]
+  }
+  static func == (lhs: EngineRecordingRequest, rhs: EngineRecordingRequest) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return MessagesPigeonInternal.deepEquals(lhs.displayId, rhs.displayId) && MessagesPigeonInternal.deepEquals(lhs.area, rhs.area) && MessagesPigeonInternal.deepEquals(lhs.outputDirectory, rhs.outputDirectory) && MessagesPigeonInternal.deepEquals(lhs.framesPerSecond, rhs.framesPerSecond) && MessagesPigeonInternal.deepEquals(lhs.maxHeight, rhs.maxHeight)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("EngineRecordingRequest")
+    MessagesPigeonInternal.deepHash(value: displayId, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: area, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: outputDirectory, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: framesPerSecond, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: maxHeight, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "EngineRecordingRequest(displayId: \(String(describing: displayId)), area: \(String(describing: area)), outputDirectory: \(String(describing: outputDirectory)), framesPerSecond: \(String(describing: framesPerSecond)), maxHeight: \(String(describing: maxHeight)))"
+  }
+}
+
+/// Generated class from Pigeon that represents data sent in messages.
+struct EngineRecordingSession: Hashable, CustomStringConvertible {
+  var sessionDirectory: String
+  var width: Int64
+  var height: Int64
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> EngineRecordingSession? {
+    let sessionDirectory = pigeonVar_list[0] as! String
+    let width = pigeonVar_list[1] as! Int64
+    let height = pigeonVar_list[2] as! Int64
+
+    return EngineRecordingSession(
+      sessionDirectory: sessionDirectory,
+      width: width,
+      height: height
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      sessionDirectory,
+      width,
+      height,
+    ]
+  }
+  static func == (lhs: EngineRecordingSession, rhs: EngineRecordingSession) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return MessagesPigeonInternal.deepEquals(lhs.sessionDirectory, rhs.sessionDirectory) && MessagesPigeonInternal.deepEquals(lhs.width, rhs.width) && MessagesPigeonInternal.deepEquals(lhs.height, rhs.height)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("EngineRecordingSession")
+    MessagesPigeonInternal.deepHash(value: sessionDirectory, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: width, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: height, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "EngineRecordingSession(sessionDirectory: \(String(describing: sessionDirectory)), width: \(String(describing: width)), height: \(String(describing: height)))"
+  }
+}
+
+/// Generated class from Pigeon that represents data sent in messages.
+struct EngineRecordingStatus: Hashable, CustomStringConvertible {
+  var phase: EngineRecordingPhase
+  var elapsedMs: Int64
+  /// 1-based part number currently being written.
+  var segmentIndex: Int64
+  var bytesWritten: Int64
+  var droppedFrames: Int64
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> EngineRecordingStatus? {
+    let phase = pigeonVar_list[0] as! EngineRecordingPhase
+    let elapsedMs = pigeonVar_list[1] as! Int64
+    let segmentIndex = pigeonVar_list[2] as! Int64
+    let bytesWritten = pigeonVar_list[3] as! Int64
+    let droppedFrames = pigeonVar_list[4] as! Int64
+
+    return EngineRecordingStatus(
+      phase: phase,
+      elapsedMs: elapsedMs,
+      segmentIndex: segmentIndex,
+      bytesWritten: bytesWritten,
+      droppedFrames: droppedFrames
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      phase,
+      elapsedMs,
+      segmentIndex,
+      bytesWritten,
+      droppedFrames,
+    ]
+  }
+  static func == (lhs: EngineRecordingStatus, rhs: EngineRecordingStatus) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return MessagesPigeonInternal.deepEquals(lhs.phase, rhs.phase) && MessagesPigeonInternal.deepEquals(lhs.elapsedMs, rhs.elapsedMs) && MessagesPigeonInternal.deepEquals(lhs.segmentIndex, rhs.segmentIndex) && MessagesPigeonInternal.deepEquals(lhs.bytesWritten, rhs.bytesWritten) && MessagesPigeonInternal.deepEquals(lhs.droppedFrames, rhs.droppedFrames)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("EngineRecordingStatus")
+    MessagesPigeonInternal.deepHash(value: phase, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: elapsedMs, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: segmentIndex, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: bytesWritten, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: droppedFrames, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "EngineRecordingStatus(phase: \(String(describing: phase)), elapsedMs: \(String(describing: elapsedMs)), segmentIndex: \(String(describing: segmentIndex)), bytesWritten: \(String(describing: bytesWritten)), droppedFrames: \(String(describing: droppedFrames)))"
+  }
+}
+
+/// Generated class from Pigeon that represents data sent in messages.
+struct EngineRecordingResult: Hashable, CustomStringConvertible {
+  var sessionDirectory: String
+  var files: [String]
+  var durationMs: Int64
+  var bytesWritten: Int64
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> EngineRecordingResult? {
+    let sessionDirectory = pigeonVar_list[0] as! String
+    let files = pigeonVar_list[1] as! [String]
+    let durationMs = pigeonVar_list[2] as! Int64
+    let bytesWritten = pigeonVar_list[3] as! Int64
+
+    return EngineRecordingResult(
+      sessionDirectory: sessionDirectory,
+      files: files,
+      durationMs: durationMs,
+      bytesWritten: bytesWritten
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      sessionDirectory,
+      files,
+      durationMs,
+      bytesWritten,
+    ]
+  }
+  static func == (lhs: EngineRecordingResult, rhs: EngineRecordingResult) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return MessagesPigeonInternal.deepEquals(lhs.sessionDirectory, rhs.sessionDirectory) && MessagesPigeonInternal.deepEquals(lhs.files, rhs.files) && MessagesPigeonInternal.deepEquals(lhs.durationMs, rhs.durationMs) && MessagesPigeonInternal.deepEquals(lhs.bytesWritten, rhs.bytesWritten)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("EngineRecordingResult")
+    MessagesPigeonInternal.deepHash(value: sessionDirectory, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: files, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: durationMs, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: bytesWritten, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "EngineRecordingResult(sessionDirectory: \(String(describing: sessionDirectory)), files: \(String(describing: files)), durationMs: \(String(describing: durationMs)), bytesWritten: \(String(describing: bytesWritten)))"
+  }
+}
+
+/// Generated class from Pigeon that represents data sent in messages.
+struct EngineError: Hashable, CustomStringConvertible {
+  var code: String
+  var message: String
+  /// True when recording stopped because of this error.
+  var isFatal: Bool
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> EngineError? {
+    let code = pigeonVar_list[0] as! String
+    let message = pigeonVar_list[1] as! String
+    let isFatal = pigeonVar_list[2] as! Bool
+
+    return EngineError(
+      code: code,
+      message: message,
+      isFatal: isFatal
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      code,
+      message,
+      isFatal,
+    ]
+  }
+  static func == (lhs: EngineError, rhs: EngineError) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return MessagesPigeonInternal.deepEquals(lhs.code, rhs.code) && MessagesPigeonInternal.deepEquals(lhs.message, rhs.message) && MessagesPigeonInternal.deepEquals(lhs.isFatal, rhs.isFatal)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("EngineError")
+    MessagesPigeonInternal.deepHash(value: code, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: message, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: isFatal, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "EngineError(code: \(String(describing: code)), message: \(String(describing: message)), isFatal: \(String(describing: isFatal)))"
+  }
+}
+
 private class MessagesPigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
@@ -322,9 +694,29 @@ private class MessagesPigeonCodecReader: FlutterStandardReader {
       }
       return nil
     case 130:
-      return EngineCapabilities.fromList(self.readValue() as! [Any?])
+      let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
+      if let enumResultAsInt = enumResultAsInt {
+        return EngineRecordingPhase(rawValue: enumResultAsInt)
+      }
+      return nil
     case 131:
+      return EngineCapabilities.fromList(self.readValue() as! [Any?])
+    case 132:
       return DiskSpace.fromList(self.readValue() as! [Any?])
+    case 133:
+      return EngineDisplay.fromList(self.readValue() as! [Any?])
+    case 134:
+      return EngineCaptureArea.fromList(self.readValue() as! [Any?])
+    case 135:
+      return EngineRecordingRequest.fromList(self.readValue() as! [Any?])
+    case 136:
+      return EngineRecordingSession.fromList(self.readValue() as! [Any?])
+    case 137:
+      return EngineRecordingStatus.fromList(self.readValue() as! [Any?])
+    case 138:
+      return EngineRecordingResult.fromList(self.readValue() as! [Any?])
+    case 139:
+      return EngineError.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
     }
@@ -336,11 +728,35 @@ private class MessagesPigeonCodecWriter: FlutterStandardWriter {
     if let value = value as? HostPlatform {
       super.writeByte(129)
       super.writeValue(value.rawValue)
-    } else if let value = value as? EngineCapabilities {
+    } else if let value = value as? EngineRecordingPhase {
       super.writeByte(130)
+      super.writeValue(value.rawValue)
+    } else if let value = value as? EngineCapabilities {
+      super.writeByte(131)
       super.writeValue(value.toList())
     } else if let value = value as? DiskSpace {
-      super.writeByte(131)
+      super.writeByte(132)
+      super.writeValue(value.toList())
+    } else if let value = value as? EngineDisplay {
+      super.writeByte(133)
+      super.writeValue(value.toList())
+    } else if let value = value as? EngineCaptureArea {
+      super.writeByte(134)
+      super.writeValue(value.toList())
+    } else if let value = value as? EngineRecordingRequest {
+      super.writeByte(135)
+      super.writeValue(value.toList())
+    } else if let value = value as? EngineRecordingSession {
+      super.writeByte(136)
+      super.writeValue(value.toList())
+    } else if let value = value as? EngineRecordingStatus {
+      super.writeByte(137)
+      super.writeValue(value.toList())
+    } else if let value = value as? EngineRecordingResult {
+      super.writeByte(138)
+      super.writeValue(value.toList())
+    } else if let value = value as? EngineError {
+      super.writeByte(139)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -362,12 +778,25 @@ class MessagesPigeonCodec: FlutterStandardMessageCodec, @unchecked Sendable {
   static let shared = MessagesPigeonCodec(readerWriter: MessagesPigeonCodecReaderWriter())
 }
 
+
+/// Errors use PlatformException codes: `invalid_path`, `permission_denied`,
+/// `display_not_found`, `already_recording`, `not_recording`, `unsupported`,
+/// `capture_failed`, `writer_failed`.
+///
 /// Generated protocol from Pigeon that represents a handler of messages from Flutter.
 protocol EngineHostApi {
   func getCapabilities() throws -> EngineCapabilities
-  /// Free/total space of the volume holding [path].
-  /// Throws a PlatformException with code "invalid_path" if it does not exist.
   func getDiskSpace(path: String) throws -> DiskSpace
+  func hasScreenCapturePermission() throws -> Bool
+  /// Shows the system prompt the first time; afterwards only Settings can grant it.
+  func requestScreenCapturePermission() throws -> Bool
+  func openScreenCaptureSettings() throws
+  func listDisplays() async throws -> [EngineDisplay]
+  func startRecording(request: EngineRecordingRequest) async throws -> EngineRecordingSession
+  func stopRecording() async throws -> EngineRecordingResult
+  func revealInFileManager(path: String) throws
+  /// Shows a drag-to-select overlay on the display. Null when the user cancels.
+  func selectArea(displayId: Int64) async throws -> EngineCaptureArea?
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -389,8 +818,6 @@ class EngineHostApiSetup {
     } else {
       getCapabilitiesChannel.setMessageHandler(nil)
     }
-    /// Free/total space of the volume holding [path].
-    /// Throws a PlatformException with code "invalid_path" if it does not exist.
     let getDiskSpaceChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.getDiskSpace\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       getDiskSpaceChannel.setMessageHandler { message, reply in
@@ -405,6 +832,185 @@ class EngineHostApiSetup {
       }
     } else {
       getDiskSpaceChannel.setMessageHandler(nil)
+    }
+    let hasScreenCapturePermissionChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.hasScreenCapturePermission\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      hasScreenCapturePermissionChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.hasScreenCapturePermission()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      hasScreenCapturePermissionChannel.setMessageHandler(nil)
+    }
+    /// Shows the system prompt the first time; afterwards only Settings can grant it.
+    let requestScreenCapturePermissionChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.requestScreenCapturePermission\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      requestScreenCapturePermissionChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.requestScreenCapturePermission()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      requestScreenCapturePermissionChannel.setMessageHandler(nil)
+    }
+    let openScreenCaptureSettingsChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.openScreenCaptureSettings\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      openScreenCaptureSettingsChannel.setMessageHandler { _, reply in
+        do {
+          try api.openScreenCaptureSettings()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      openScreenCaptureSettingsChannel.setMessageHandler(nil)
+    }
+    let listDisplaysChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.listDisplays\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      listDisplaysChannel.setMessageHandler { _, reply in
+        Task { @MainActor in
+          do {
+            let result = try await api.listDisplays()
+            reply(wrapResult(result))
+          } catch {
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      listDisplaysChannel.setMessageHandler(nil)
+    }
+    let startRecordingChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.startRecording\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      startRecordingChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let requestArg = args[0] as! EngineRecordingRequest
+        Task { @MainActor in
+          do {
+            let result = try await api.startRecording(request: requestArg)
+            reply(wrapResult(result))
+          } catch {
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      startRecordingChannel.setMessageHandler(nil)
+    }
+    let stopRecordingChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.stopRecording\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      stopRecordingChannel.setMessageHandler { _, reply in
+        Task { @MainActor in
+          do {
+            let result = try await api.stopRecording()
+            reply(wrapResult(result))
+          } catch {
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      stopRecordingChannel.setMessageHandler(nil)
+    }
+    let revealInFileManagerChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.revealInFileManager\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      revealInFileManagerChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let pathArg = args[0] as! String
+        do {
+          try api.revealInFileManager(path: pathArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      revealInFileManagerChannel.setMessageHandler(nil)
+    }
+    /// Shows a drag-to-select overlay on the display. Null when the user cancels.
+    let selectAreaChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.selectArea\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      selectAreaChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let displayIdArg = args[0] as! Int64
+        Task { @MainActor in
+          do {
+            let result = try await api.selectArea(displayId: displayIdArg)
+            reply(wrapResult(result))
+          } catch {
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      selectAreaChannel.setMessageHandler(nil)
+    }
+  }
+}
+
+/// Pushed from native on the platform thread: status about once per second.
+///
+/// Generated protocol from Pigeon that represents Flutter messages that can be called from Swift.
+protocol EngineEventsApiProtocol {
+  @MainActor func onStatus(status statusArg: EngineRecordingStatus) async throws
+  @MainActor func onError(error errorArg: EngineError) async throws
+}
+class EngineEventsApi: EngineEventsApiProtocol {
+  private let binaryMessenger: FlutterBinaryMessenger
+  private let messageChannelSuffix: String
+  init(binaryMessenger: FlutterBinaryMessenger, messageChannelSuffix: String = "") {
+    self.binaryMessenger = binaryMessenger
+    self.messageChannelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+  }
+  var codec: MessagesPigeonCodec {
+    return MessagesPigeonCodec.shared
+  }
+  @MainActor func onStatus(status statusArg: EngineRecordingStatus) async throws {
+    return try await withCheckedThrowingContinuation { continuation in
+      let channelName: String = "dev.flutter.pigeon.reclite_engine.EngineEventsApi.onStatus\(messageChannelSuffix)"
+      let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+      channel.sendMessage([statusArg] as [Any?]) { response in
+        guard let listResponse = response as? [Any?] else {
+          continuation.resume(throwing: createConnectionError(withChannelName: channelName))
+          return
+        }
+        if listResponse.count > 1 {
+          let code: String = listResponse[0] as! String
+          let message: String? = nilOrValue(listResponse[1])
+          let details: String? = nilOrValue(listResponse[2])
+          continuation.resume(throwing: PigeonError(code: code, message: message, details: details))
+        } else {
+          continuation.resume()
+        }
+      }
+    }
+  }
+  @MainActor func onError(error errorArg: EngineError) async throws {
+    return try await withCheckedThrowingContinuation { continuation in
+      let channelName: String = "dev.flutter.pigeon.reclite_engine.EngineEventsApi.onError\(messageChannelSuffix)"
+      let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+      channel.sendMessage([errorArg] as [Any?]) { response in
+        guard let listResponse = response as? [Any?] else {
+          continuation.resume(throwing: createConnectionError(withChannelName: channelName))
+          return
+        }
+        if listResponse.count > 1 {
+          let code: String = listResponse[0] as! String
+          let message: String? = nilOrValue(listResponse[1])
+          let details: String? = nilOrValue(listResponse[2])
+          continuation.resume(throwing: PigeonError(code: code, message: message, details: details))
+        } else {
+          continuation.resume()
+        }
+      }
     }
   }
 }

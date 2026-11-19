@@ -5,6 +5,8 @@ import 'package:reclite/app/di.dart';
 import 'package:reclite/app/theme/app_tokens.dart';
 import 'package:reclite/features/history/presentation/pages/history_page.dart';
 import 'package:reclite/features/recording/presentation/bloc/readiness_cubit.dart';
+import 'package:reclite/features/recording/presentation/bloc/recording_bloc.dart';
+import 'package:reclite/features/recording/presentation/bloc/sources_cubit.dart';
 import 'package:reclite/features/recording/presentation/pages/home_page.dart';
 import 'package:reclite/features/settings/presentation/pages/settings_page.dart';
 
@@ -36,8 +38,16 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<ReadinessCubit>(
-      create: (_) => getIt<ReadinessCubit>()..load(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<ReadinessCubit>(
+          create: (_) => getIt<ReadinessCubit>()..load(),
+        ),
+        BlocProvider<SourcesCubit>(
+          create: (_) => getIt<SourcesCubit>()..load(),
+        ),
+        BlocProvider<RecordingBloc>(create: (_) => getIt<RecordingBloc>()),
+      ],
       child: Scaffold(
         body: Row(
           children: [
@@ -52,7 +62,9 @@ class _AppShellState extends State<AppShell> {
               destinations: [
                 for (final s in AppSection.values)
                   NavigationRailDestination(
-                    icon: Icon(s.icon),
+                    icon: s == AppSection.record
+                        ? _RecordingBadge(child: Icon(s.icon))
+                        : Icon(s.icon),
                     selectedIcon: Icon(s.selectedIcon),
                     label: Text(s.label),
                   ),
@@ -90,6 +102,24 @@ class _Logo extends StatelessWidget {
         ),
         child: Icon(Icons.videocam_rounded, color: scheme.onPrimary),
       ),
+    );
+  }
+}
+
+/// Red dot on the Record section while a recording runs in the background.
+class _RecordingBadge extends StatelessWidget {
+  const _RecordingBadge({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final busy = context.select<RecordingBloc, bool>((b) => b.state.isBusy);
+    return Badge(
+      isLabelVisible: busy,
+      backgroundColor: AppColors.recording,
+      smallSize: AppSize.recordDot,
+      child: child,
     );
   }
 }
