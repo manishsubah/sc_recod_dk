@@ -26,6 +26,10 @@ class RecliteEnginePlugin : public flutter::Plugin, public EngineHostApi {
   ErrorOr<bool> HasScreenCapturePermission() override;
   ErrorOr<bool> RequestScreenCapturePermission() override;
   std::optional<FlutterError> OpenScreenCaptureSettings() override;
+  ErrorOr<bool> HasMicrophonePermission() override;
+  void RequestMicrophonePermission(
+      std::function<void(ErrorOr<bool> reply)> result) override;
+  std::optional<FlutterError> OpenMicrophoneSettings() override;
   void ListDisplays(
       std::function<void(ErrorOr<flutter::EncodableList> reply)> result) override;
   void StartRecording(

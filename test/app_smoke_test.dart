@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reclite/app/app.dart';
 import 'package:reclite/app/di.dart';
+import 'package:reclite/features/recording/domain/entities/audio_levels.dart';
 import 'package:reclite/features/recording/domain/entities/engine_info.dart';
 import 'package:reclite/features/recording/domain/entities/storage_info.dart';
 import 'package:reclite/features/recording/domain/repositories/engine_repository.dart';
+import 'package:reclite/features/recording/presentation/bloc/audio_cubit.dart';
+import 'package:reclite/features/recording/presentation/bloc/audio_levels_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/readiness_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/recording_bloc.dart';
 import 'package:reclite/features/recording/presentation/bloc/sources_cubit.dart';
@@ -30,6 +33,8 @@ void main() {
         () => ReadinessCubit(_FakeEngineRepository(), outputFolder: '/rec'),
       )
       ..registerFactory<SourcesCubit>(() => SourcesCubit(recorder))
+      ..registerFactory<AudioCubit>(() => AudioCubit(recorder))
+      ..registerFactory<AudioLevelsCubit>(() => AudioLevelsCubit(recorder))
       ..registerFactory<RecordingBloc>(() => RecordingBloc(recorder));
   });
 
@@ -39,7 +44,7 @@ void main() {
   });
 
   Future<void> pumpApp(WidgetTester tester) async {
-    tester.view.physicalSize = const Size(1200, 1000);
+    tester.view.physicalSize = const Size(1200, 1400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(const RecLiteApp());
@@ -141,5 +146,45 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('1280 × 720'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('audio toggles reach the recording and meters move', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    expect(find.text('System sound'), findsOneWidget);
+
+    await tester.tap(find.byType(Switch).last); // microphone
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start Recording'));
+    await tester.pumpAndSettle();
+    final config = recorder.startCalls.single;
+    expect(config.captureSystemAudio, isTrue);
+    expect(config.captureMicrophone, isTrue);
+
+    recorder.emitLevels(const AudioLevels(system: 0.5, microphone: 0.95));
+    await tester.pumpAndSettle();
+    final meters = tester
+        .widgetList<LinearProgressIndicator>(
+          find.byType(LinearProgressIndicator),
+        )
+        .map((m) => m.value)
+        .toList();
+    expect(meters, containsAll(<double>[0.5, 0.95]));
+
+    final switches = tester.widgetList<Switch>(find.byType(Switch));
+    expect(switches.every((s) => s.onChanged == null), isTrue);
+  });
+
+  testWidgets('blocked microphone stays off and offers Settings', (
+    tester,
+  ) async {
+    recorder.microphonePermission = false;
+    await pumpApp(tester);
+
+    await tester.tap(find.byType(Switch).last);
+    await tester.pumpAndSettle();
+    expect(tester.widget<Switch>(find.byType(Switch).last).value, isFalse);
+    expect(find.text('Microphone access is off.'), findsOneWidget);
   });
 }

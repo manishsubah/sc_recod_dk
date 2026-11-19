@@ -271,6 +271,8 @@ class EngineRecordingRequest {
   // Constructs an object setting all non-nullable fields.
   explicit EngineRecordingRequest(
     int64_t display_id,
+    bool capture_system_audio,
+    bool capture_microphone,
     const std::string& output_directory,
     int64_t frames_per_second,
     int64_t max_height);
@@ -278,6 +280,8 @@ class EngineRecordingRequest {
   // Constructs an object setting all fields.
   explicit EngineRecordingRequest(
     int64_t display_id,
+    bool capture_system_audio,
+    bool capture_microphone,
     const EngineCaptureArea* area,
     const std::string& output_directory,
     int64_t frames_per_second,
@@ -290,6 +294,14 @@ class EngineRecordingRequest {
   EngineRecordingRequest& operator=(EngineRecordingRequest&& other) noexcept = default;
   int64_t display_id() const;
   void set_display_id(int64_t value_arg);
+
+  // Everything the computer plays (meetings, videos), excluding RecLite itself.
+  bool capture_system_audio() const;
+  void set_capture_system_audio(bool value_arg);
+
+  // Default input device, mixed with system audio into one AAC track.
+  bool capture_microphone() const;
+  void set_capture_microphone(bool value_arg);
 
   // Null records the whole display.
   const EngineCaptureArea* area() const;
@@ -320,6 +332,8 @@ class EngineRecordingRequest {
   friend class EngineEventsApi;
   friend class PigeonInternalCodecSerializer;
   int64_t display_id_;
+  bool capture_system_audio_;
+  bool capture_microphone_;
   std::unique_ptr<EngineCaptureArea> area_;
   std::string output_directory_;
   int64_t frames_per_second_;
@@ -451,6 +465,39 @@ class EngineRecordingResult {
 };
 
 
+// Peak level since the previous event, 0 (silent) to 1 (full scale).
+//
+// Generated class from Pigeon that represents data sent in messages.
+class EngineAudioLevels {
+ public:
+  // Constructs an object setting all fields.
+  explicit EngineAudioLevels(
+    double system,
+    double microphone);
+
+  double system() const;
+  void set_system(double value_arg);
+
+  double microphone() const;
+  void set_microphone(double value_arg);
+
+  bool operator==(const EngineAudioLevels& other) const;
+  bool operator!=(const EngineAudioLevels& other) const;
+  /// Returns a hash code value for the object. This method is supported for the benefit of hash tables.
+  size_t Hash() const;
+  /// Stream output operator for formatted string representation.
+  friend std::ostream& operator<<(std::ostream& os, const EngineAudioLevels& obj);
+ private:
+  static EngineAudioLevels FromEncodableList(const ::flutter::EncodableList& list);
+  ::flutter::EncodableList ToEncodableList() const;
+  friend class EngineHostApi;
+  friend class EngineEventsApi;
+  friend class PigeonInternalCodecSerializer;
+  double system_;
+  double microphone_;
+};
+
+
 // Generated class from Pigeon that represents data sent in messages.
 class EngineError {
  public:
@@ -521,6 +568,10 @@ class EngineHostApi {
   // Shows the system prompt the first time; afterwards only Settings can grant it.
   virtual ErrorOr<bool> RequestScreenCapturePermission() = 0;
   virtual std::optional<FlutterError> OpenScreenCaptureSettings() = 0;
+  virtual ErrorOr<bool> HasMicrophonePermission() = 0;
+  // Shows the system prompt the first time; afterwards only Settings can grant it.
+  virtual void RequestMicrophonePermission(std::function<void(ErrorOr<bool> reply)> result) = 0;
+  virtual std::optional<FlutterError> OpenMicrophoneSettings() = 0;
   virtual void ListDisplays(std::function<void(ErrorOr<::flutter::EncodableList> reply)> result) = 0;
   virtual void StartRecording(
     const EngineRecordingRequest& request,
@@ -563,6 +614,11 @@ class EngineEventsApi {
     std::function<void(const FlutterError&)>&& on_error);
   void OnError(
     const EngineError& error,
+    std::function<void(void)>&& on_success,
+    std::function<void(const FlutterError&)>&& on_error);
+  // About 15 times per second while recording with audio.
+  void OnAudioLevels(
+    const EngineAudioLevels& levels,
     std::function<void(void)>&& on_success,
     std::function<void(const FlutterError&)>&& on_error);
  private:

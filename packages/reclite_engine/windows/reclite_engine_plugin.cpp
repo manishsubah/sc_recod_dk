@@ -49,6 +49,20 @@ std::optional<FlutterError> RecliteEnginePlugin::OpenScreenCaptureSettings() {
   return std::nullopt;
 }
 
+// Desktop microphone access is a Windows privacy toggle; checked when capture starts (Phase 2).
+ErrorOr<bool> RecliteEnginePlugin::HasMicrophonePermission() { return true; }
+
+void RecliteEnginePlugin::RequestMicrophonePermission(
+    std::function<void(ErrorOr<bool> reply)> result) {
+  result(true);
+}
+
+std::optional<FlutterError> RecliteEnginePlugin::OpenMicrophoneSettings() {
+  ::ShellExecuteW(nullptr, L"open", L"ms-settings:privacy-microphone", nullptr,
+                  nullptr, SW_SHOWNORMAL);
+  return std::nullopt;
+}
+
 void RecliteEnginePlugin::ListDisplays(
     std::function<void(ErrorOr<flutter::EncodableList> reply)> result) {
   result(Unsupported());

@@ -819,21 +819,29 @@ size_t PigeonInternalDeepHash(const EngineCaptureArea& v) {
 
 EngineRecordingRequest::EngineRecordingRequest(
   int64_t display_id,
+  bool capture_system_audio,
+  bool capture_microphone,
   const std::string& output_directory,
   int64_t frames_per_second,
   int64_t max_height)
  : display_id_(display_id),
+    capture_system_audio_(capture_system_audio),
+    capture_microphone_(capture_microphone),
     output_directory_(output_directory),
     frames_per_second_(frames_per_second),
     max_height_(max_height) {}
 
 EngineRecordingRequest::EngineRecordingRequest(
   int64_t display_id,
+  bool capture_system_audio,
+  bool capture_microphone,
   const EngineCaptureArea* area,
   const std::string& output_directory,
   int64_t frames_per_second,
   int64_t max_height)
  : display_id_(display_id),
+    capture_system_audio_(capture_system_audio),
+    capture_microphone_(capture_microphone),
     area_(area ? std::make_unique<EngineCaptureArea>(*area) : nullptr),
     output_directory_(output_directory),
     frames_per_second_(frames_per_second),
@@ -841,6 +849,8 @@ EngineRecordingRequest::EngineRecordingRequest(
 
 EngineRecordingRequest::EngineRecordingRequest(const EngineRecordingRequest& other)
  : display_id_(other.display_id_),
+    capture_system_audio_(other.capture_system_audio_),
+    capture_microphone_(other.capture_microphone_),
     area_(other.area_ ? std::make_unique<EngineCaptureArea>(*other.area_) : nullptr),
     output_directory_(other.output_directory_),
     frames_per_second_(other.frames_per_second_),
@@ -848,6 +858,8 @@ EngineRecordingRequest::EngineRecordingRequest(const EngineRecordingRequest& oth
 
 EngineRecordingRequest& EngineRecordingRequest::operator=(const EngineRecordingRequest& other) {
   display_id_ = other.display_id_;
+  capture_system_audio_ = other.capture_system_audio_;
+  capture_microphone_ = other.capture_microphone_;
   area_ = other.area_ ? std::make_unique<EngineCaptureArea>(*other.area_) : nullptr;
   output_directory_ = other.output_directory_;
   frames_per_second_ = other.frames_per_second_;
@@ -861,6 +873,24 @@ int64_t EngineRecordingRequest::display_id() const {
 
 void EngineRecordingRequest::set_display_id(int64_t value_arg) {
   display_id_ = value_arg;
+}
+
+
+bool EngineRecordingRequest::capture_system_audio() const {
+  return capture_system_audio_;
+}
+
+void EngineRecordingRequest::set_capture_system_audio(bool value_arg) {
+  capture_system_audio_ = value_arg;
+}
+
+
+bool EngineRecordingRequest::capture_microphone() const {
+  return capture_microphone_;
+}
+
+void EngineRecordingRequest::set_capture_microphone(bool value_arg) {
+  capture_microphone_ = value_arg;
 }
 
 
@@ -906,8 +936,10 @@ void EngineRecordingRequest::set_max_height(int64_t value_arg) {
 
 EncodableList EngineRecordingRequest::ToEncodableList() const {
   EncodableList list;
-  list.reserve(5);
+  list.reserve(7);
   list.push_back(EncodableValue(display_id_));
+  list.push_back(EncodableValue(capture_system_audio_));
+  list.push_back(EncodableValue(capture_microphone_));
   list.push_back(area_ ? CustomEncodableValue(*area_) : EncodableValue());
   list.push_back(EncodableValue(output_directory_));
   list.push_back(EncodableValue(frames_per_second_));
@@ -918,10 +950,12 @@ EncodableList EngineRecordingRequest::ToEncodableList() const {
 EngineRecordingRequest EngineRecordingRequest::FromEncodableList(const EncodableList& list) {
   EngineRecordingRequest decoded(
     std::get<int64_t>(list[0]),
-    std::get<std::string>(list[2]),
-    std::get<int64_t>(list[3]),
-    std::get<int64_t>(list[4]));
-  auto& encodable_area = list[1];
+    std::get<bool>(list[1]),
+    std::get<bool>(list[2]),
+    std::get<std::string>(list[4]),
+    std::get<int64_t>(list[5]),
+    std::get<int64_t>(list[6]));
+  auto& encodable_area = list[3];
   if (!encodable_area.IsNull()) {
     decoded.set_area(std::any_cast<const EngineCaptureArea&>(std::get<CustomEncodableValue>(encodable_area)));
   }
@@ -929,7 +963,7 @@ EngineRecordingRequest EngineRecordingRequest::FromEncodableList(const Encodable
 }
 
 bool EngineRecordingRequest::operator==(const EngineRecordingRequest& other) const {
-  return PigeonInternalDeepEquals(display_id_, other.display_id_) && PigeonInternalDeepEquals(area_, other.area_) && PigeonInternalDeepEquals(output_directory_, other.output_directory_) && PigeonInternalDeepEquals(frames_per_second_, other.frames_per_second_) && PigeonInternalDeepEquals(max_height_, other.max_height_);
+  return PigeonInternalDeepEquals(display_id_, other.display_id_) && PigeonInternalDeepEquals(capture_system_audio_, other.capture_system_audio_) && PigeonInternalDeepEquals(capture_microphone_, other.capture_microphone_) && PigeonInternalDeepEquals(area_, other.area_) && PigeonInternalDeepEquals(output_directory_, other.output_directory_) && PigeonInternalDeepEquals(frames_per_second_, other.frames_per_second_) && PigeonInternalDeepEquals(max_height_, other.max_height_);
 }
 
 bool EngineRecordingRequest::operator!=(const EngineRecordingRequest& other) const {
@@ -939,6 +973,8 @@ bool EngineRecordingRequest::operator!=(const EngineRecordingRequest& other) con
 size_t EngineRecordingRequest::Hash() const {
   size_t result = 1;
   result = result * 31 + PigeonInternalDeepHash(display_id_);
+  result = result * 31 + PigeonInternalDeepHash(capture_system_audio_);
+  result = result * 31 + PigeonInternalDeepHash(capture_microphone_);
   result = result * 31 + PigeonInternalDeepHash(area_);
   result = result * 31 + PigeonInternalDeepHash(output_directory_);
   result = result * 31 + PigeonInternalDeepHash(frames_per_second_);
@@ -952,6 +988,10 @@ std::ostream& operator<<(
   os << "EngineRecordingRequest(";
   os << "display_id: ";
   os << PigeonInternalToString(obj.display_id_);
+  os << ", capture_system_audio: ";
+  os << PigeonInternalToString(obj.capture_system_audio_);
+  os << ", capture_microphone: ";
+  os << PigeonInternalToString(obj.capture_microphone_);
   os << ", area: ";
   if (obj.area_) {
     os << *obj.area_;
@@ -1285,6 +1325,78 @@ size_t PigeonInternalDeepHash(const EngineRecordingResult& v) {
   return v.Hash();
 }
 
+// EngineAudioLevels
+
+EngineAudioLevels::EngineAudioLevels(
+  double system,
+  double microphone)
+ : system_(system),
+    microphone_(microphone) {}
+
+double EngineAudioLevels::system() const {
+  return system_;
+}
+
+void EngineAudioLevels::set_system(double value_arg) {
+  system_ = value_arg;
+}
+
+
+double EngineAudioLevels::microphone() const {
+  return microphone_;
+}
+
+void EngineAudioLevels::set_microphone(double value_arg) {
+  microphone_ = value_arg;
+}
+
+
+EncodableList EngineAudioLevels::ToEncodableList() const {
+  EncodableList list;
+  list.reserve(2);
+  list.push_back(EncodableValue(system_));
+  list.push_back(EncodableValue(microphone_));
+  return list;
+}
+
+EngineAudioLevels EngineAudioLevels::FromEncodableList(const EncodableList& list) {
+  EngineAudioLevels decoded(
+    std::get<double>(list[0]),
+    std::get<double>(list[1]));
+  return decoded;
+}
+
+bool EngineAudioLevels::operator==(const EngineAudioLevels& other) const {
+  return PigeonInternalDeepEquals(system_, other.system_) && PigeonInternalDeepEquals(microphone_, other.microphone_);
+}
+
+bool EngineAudioLevels::operator!=(const EngineAudioLevels& other) const {
+  return !(*this == other);
+}
+
+size_t EngineAudioLevels::Hash() const {
+  size_t result = 1;
+  result = result * 31 + PigeonInternalDeepHash(system_);
+  result = result * 31 + PigeonInternalDeepHash(microphone_);
+  return result;
+}
+
+std::ostream& operator<<(
+  std::ostream& os,
+  const EngineAudioLevels& obj) {
+  os << "EngineAudioLevels(";
+  os << "system: ";
+  os << PigeonInternalToString(obj.system_);
+  os << ", microphone: ";
+  os << PigeonInternalToString(obj.microphone_);
+  os << ")";
+  return os;
+}
+
+size_t PigeonInternalDeepHash(const EngineAudioLevels& v) {
+  return v.Hash();
+}
+
 // EngineError
 
 EngineError::EngineError(
@@ -1415,6 +1527,9 @@ EncodableValue PigeonInternalCodecSerializer::ReadValueOfType(
         return CustomEncodableValue(EngineRecordingResult::FromEncodableList(std::get<EncodableList>(ReadValue(stream))));
       }
     case 139: {
+        return CustomEncodableValue(EngineAudioLevels::FromEncodableList(std::get<EncodableList>(ReadValue(stream))));
+      }
+    case 140: {
         return CustomEncodableValue(EngineError::FromEncodableList(std::get<EncodableList>(ReadValue(stream))));
       }
     default:
@@ -1476,8 +1591,13 @@ void PigeonInternalCodecSerializer::WriteValue(
       WriteValue(EncodableValue(std::any_cast<EngineRecordingResult>(*custom_value).ToEncodableList()), stream);
       return;
     }
-    if (custom_value->type() == typeid(EngineError)) {
+    if (custom_value->type() == typeid(EngineAudioLevels)) {
       stream->WriteByte(139);
+      WriteValue(EncodableValue(std::any_cast<EngineAudioLevels>(*custom_value).ToEncodableList()), stream);
+      return;
+    }
+    if (custom_value->type() == typeid(EngineError)) {
+      stream->WriteByte(140);
       WriteValue(EncodableValue(std::any_cast<EngineError>(*custom_value).ToEncodableList()), stream);
       return;
     }
@@ -1599,6 +1719,70 @@ void EngineHostApi::SetUp(
       channel.SetMessageHandler([api](const EncodableValue& message, const ::flutter::MessageReply<EncodableValue>& reply) {
         try {
           std::optional<FlutterError> output = api->OpenScreenCaptureSettings();
+          if (output.has_value()) {
+            reply(WrapError(output.value()));
+            return;
+          }
+          EncodableList wrapped;
+          wrapped.push_back(EncodableValue());
+          reply(EncodableValue(std::move(wrapped)));
+        } catch (const std::exception& exception) {
+          reply(WrapError(exception.what()));
+        }
+      });
+    } else {
+      channel.SetMessageHandler(nullptr);
+    }
+  }
+  {
+    BasicMessageChannel<> channel(binary_messenger, "dev.flutter.pigeon.reclite_engine.EngineHostApi.hasMicrophonePermission" + prepended_suffix, &GetCodec());
+    if (api != nullptr) {
+      channel.SetMessageHandler([api](const EncodableValue& message, const ::flutter::MessageReply<EncodableValue>& reply) {
+        try {
+          ErrorOr<bool> output = api->HasMicrophonePermission();
+          if (output.has_error()) {
+            reply(WrapError(output.error()));
+            return;
+          }
+          EncodableList wrapped;
+          wrapped.push_back(EncodableValue(std::move(output).TakeValue()));
+          reply(EncodableValue(std::move(wrapped)));
+        } catch (const std::exception& exception) {
+          reply(WrapError(exception.what()));
+        }
+      });
+    } else {
+      channel.SetMessageHandler(nullptr);
+    }
+  }
+  {
+    BasicMessageChannel<> channel(binary_messenger, "dev.flutter.pigeon.reclite_engine.EngineHostApi.requestMicrophonePermission" + prepended_suffix, &GetCodec());
+    if (api != nullptr) {
+      channel.SetMessageHandler([api](const EncodableValue& message, const ::flutter::MessageReply<EncodableValue>& reply) {
+        try {
+          api->RequestMicrophonePermission([reply](ErrorOr<bool>&& output) {
+            if (output.has_error()) {
+              reply(WrapError(output.error()));
+              return;
+            }
+            EncodableList wrapped;
+            wrapped.push_back(EncodableValue(std::move(output).TakeValue()));
+            reply(EncodableValue(std::move(wrapped)));
+          });
+        } catch (const std::exception& exception) {
+          reply(WrapError(exception.what()));
+        }
+      });
+    } else {
+      channel.SetMessageHandler(nullptr);
+    }
+  }
+  {
+    BasicMessageChannel<> channel(binary_messenger, "dev.flutter.pigeon.reclite_engine.EngineHostApi.openMicrophoneSettings" + prepended_suffix, &GetCodec());
+    if (api != nullptr) {
+      channel.SetMessageHandler([api](const EncodableValue& message, const ::flutter::MessageReply<EncodableValue>& reply) {
+        try {
+          std::optional<FlutterError> output = api->OpenMicrophoneSettings();
           if (output.has_value()) {
             reply(WrapError(output.value()));
             return;
@@ -1815,6 +1999,31 @@ void EngineEventsApi::OnError(
   BasicMessageChannel<> channel(binary_messenger_, channel_name, &GetCodec());
   EncodableValue encoded_api_arguments = EncodableValue(EncodableList{
     CustomEncodableValue(error_arg),
+  });
+  channel.Send(encoded_api_arguments, [channel_name, on_success = std::move(on_success), on_error = std::move(on_error)](const uint8_t* reply, size_t reply_size) {
+    std::unique_ptr<EncodableValue> response = GetCodec().DecodeMessage(reply, reply_size);
+    const auto& encodable_return_value = *response;
+    const auto* list_return_value = std::get_if<EncodableList>(&encodable_return_value);
+    if (list_return_value) {
+      if (list_return_value->size() > 1) {
+        on_error(FlutterError(std::get<std::string>(list_return_value->at(0)), std::get<std::string>(list_return_value->at(1)), list_return_value->at(2)));
+      } else {
+        on_success();
+      }
+    } else {
+      on_error(CreateConnectionError(channel_name));
+    } 
+  });
+}
+
+void EngineEventsApi::OnAudioLevels(
+  const EngineAudioLevels& levels_arg,
+  std::function<void(void)>&& on_success,
+  std::function<void(const FlutterError&)>&& on_error) {
+  const std::string channel_name = "dev.flutter.pigeon.reclite_engine.EngineEventsApi.onAudioLevels" + message_channel_suffix_;
+  BasicMessageChannel<> channel(binary_messenger_, channel_name, &GetCodec());
+  EncodableValue encoded_api_arguments = EncodableValue(EncodableList{
+    CustomEncodableValue(levels_arg),
   });
   channel.Send(encoded_api_arguments, [channel_name, on_success = std::move(on_success), on_error = std::move(on_error)](const uint8_t* reply, size_t reply_size) {
     std::unique_ptr<EncodableValue> response = GetCodec().DecodeMessage(reply, reply_size);

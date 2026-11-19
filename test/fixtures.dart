@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:reclite/features/recording/domain/entities/audio_levels.dart';
 import 'package:reclite/features/recording/domain/entities/capture_area.dart';
 import 'package:reclite/features/recording/domain/entities/capture_display.dart';
 import 'package:reclite/features/recording/domain/entities/engine_info.dart';
@@ -87,18 +88,23 @@ class FakeRecorderRepository implements RecorderRepository {
   FakeRecorderRepository({this.permission = true});
 
   bool permission;
+  bool microphonePermission = true;
 
   /// What the drag-to-select overlay returns; null simulates Esc.
   CaptureArea? areaToSelect = testArea;
   final startCalls = <RecordingConfig>[];
   final _status = StreamController<RecordingStatus>.broadcast();
   final _interruptions = StreamController<RecordingInterruption>.broadcast();
+  final _levels = StreamController<AudioLevels>.broadcast();
+
+  void emitLevels(AudioLevels l) => _levels.add(l);
 
   void emitStatus(RecordingStatus s) => _status.add(s);
 
   Future<void> dispose() async {
     await _status.close();
     await _interruptions.close();
+    await _levels.close();
   }
 
   @override
@@ -106,6 +112,18 @@ class FakeRecorderRepository implements RecorderRepository {
 
   @override
   Stream<RecordingInterruption> get interruptions => _interruptions.stream;
+
+  @override
+  Stream<AudioLevels> get audioLevels => _levels.stream;
+
+  @override
+  Future<bool> hasMicrophonePermission() async => microphonePermission;
+
+  @override
+  Future<bool> requestMicrophonePermission() async => microphonePermission;
+
+  @override
+  Future<void> openMicrophoneSettings() async {}
 
   @override
   Future<bool> hasScreenPermission() async => permission;

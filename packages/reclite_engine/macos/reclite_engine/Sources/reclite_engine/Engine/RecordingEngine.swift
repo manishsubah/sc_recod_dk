@@ -15,6 +15,7 @@ final class RecordingEngine {
   private var phase: EngineRecordingPhase = .idle
   private var session: ActiveSession?
   private var ticker: Timer?
+  private var levelTicker: Timer?
   private let highlight = AreaHighlight()
   private let areaSelector = AreaSelector()
 
@@ -35,6 +36,7 @@ final class RecordingEngine {
   func start(_ request: EngineRecordingRequest) async throws -> EngineRecordingSession {
     guard phase == .idle else { throw EngineErrors.alreadyRecording }
     guard ScreenCapturePermission.isGranted else { throw EngineErrors.permissionDenied }
+    let audioSources = try Self.audioSources(for: request)
 
     setPhase(.starting)
     var directory: URL?
@@ -63,13 +65,16 @@ final class RecordingEngine {
       let writer = try SegmentWriter(
         url: sessionDirectory.appendingPathComponent(
           SessionNaming.segmentFileName(startedAt: startedAt, index: 1)),
-        width: size.width, height: size.height, framesPerSecond: fps)
+        width: size.width, height: size.height, framesPerSecond: fps,
+        withAudio: !audioSources.isEmpty)
 
       let capture = CaptureSession(
         filter: Self.filter(for: display, in: content),
         configuration: Self.configuration(
-          width: size.width, height: size.height, fps: fps, sourceRect: area),
-        writer: writer)
+          width: size.width, height: size.height, fps: fps, sourceRect: area,
+          audio: audioSources),
+        writer: writer,
+        audioSources: audioSources)
       capture.onStreamStopped = { [weak self] error in
         Task { await self?.handleStreamStopped(error) }
       }
@@ -82,6 +87,7 @@ final class RecordingEngine {
       session = ActiveSession(capture: capture, directory: sessionDirectory, startedAt: startedAt)
       setPhase(.recording)
       startTicker()
+      if !audioSources.isEmpty { startLevelTicker() }
       return EngineRecordingSession(
         sessionDirectory: sessionDirectory.path, width: Int64(size.width),
         height: Int64(size.height))
@@ -102,6 +108,7 @@ final class RecordingEngine {
   {
     setPhase(.stopping)
     stopTicker()
+    stopLevelTicker()
     highlight.hide()
     defer {
       session = nil
@@ -141,6 +148,25 @@ final class RecordingEngine {
   private func stopTicker() {
     ticker?.invalidate()
     ticker = nil
+  }
+
+  private func startLevelTicker() {
+    levelTicker = Timer.scheduledTimer(withTimeInterval: 1.0 / 15, repeats: true) { [weak self] _ in
+      Task { @MainActor in self?.sendLevels() }
+    }
+  }
+
+  private func stopLevelTicker() {
+    levelTicker?.invalidate()
+    levelTicker = nil
+    Task { try? await events.onAudioLevels(levels: EngineAudioLevels(system: 0, microphone: 0)) }
+  }
+
+  private func sendLevels() {
+    guard phase == .recording, let session else { return }
+    let levels = session.capture.audioLevels()
+    let event = EngineAudioLevels(system: levels.system ?? 0, microphone: levels.microphone ?? 0)
+    Task { try? await events.onAudioLevels(levels: event) }
   }
 
   private func tick() {
@@ -198,9 +224,26 @@ final class RecordingEngine {
     return rect
   }
 
-  private static func configuration(width: Int, height: Int, fps: Int, sourceRect: CGRect?)
-    -> SCStreamConfiguration
-  {
+  private static func audioSources(for request: EngineRecordingRequest) throws -> [AudioSource] {
+    var sources: [AudioSource] = []
+    if request.captureSystemAudio { sources.append(.system) }
+    if request.captureMicrophone {
+      guard #available(macOS 15.0, *) else {
+        throw EngineErrors.make(
+          "unsupported", "Microphone recording needs macOS 15 or later for now.")
+      }
+      guard MicrophonePermission.isGranted else {
+        throw EngineErrors.make(
+          "microphone_permission_denied", "Microphone permission is not granted.")
+      }
+      sources.append(.microphone)
+    }
+    return sources
+  }
+
+  private static func configuration(
+    width: Int, height: Int, fps: Int, sourceRect: CGRect?, audio: [AudioSource]
+  ) -> SCStreamConfiguration {
     let config = SCStreamConfiguration()
     config.width = width
     config.height = height
@@ -211,7 +254,13 @@ final class RecordingEngine {
     config.colorSpaceName = CGColorSpace.sRGB
     config.queueDepth = 5
     config.showsCursor = true
-    config.capturesAudio = false
+    config.capturesAudio = audio.contains(.system)
+    config.sampleRate = Int(AudioPipeline.sampleRate)
+    config.channelCount = 2
+    config.excludesCurrentProcessAudio = true
+    if #available(macOS 15.0, *) {
+      config.captureMicrophone = audio.contains(.microphone)
+    }
     return config
   }
 

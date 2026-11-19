@@ -390,6 +390,8 @@ class EngineCaptureArea {
 class EngineRecordingRequest {
   EngineRecordingRequest({
     required this.displayId,
+    required this.captureSystemAudio,
+    required this.captureMicrophone,
     this.area,
     required this.outputDirectory,
     required this.framesPerSecond,
@@ -397,6 +399,12 @@ class EngineRecordingRequest {
   });
 
   int displayId;
+
+  /// Everything the computer plays (meetings, videos), excluding RecLite itself.
+  bool captureSystemAudio;
+
+  /// Default input device, mixed with system audio into one AAC track.
+  bool captureMicrophone;
 
   /// Null records the whole display.
   EngineCaptureArea? area;
@@ -412,6 +420,8 @@ class EngineRecordingRequest {
   List<Object?> _toList() {
     return <Object?>[
       displayId,
+      captureSystemAudio,
+      captureMicrophone,
       area,
       outputDirectory,
       framesPerSecond,
@@ -426,10 +436,12 @@ class EngineRecordingRequest {
     result as List<Object?>;
     return EngineRecordingRequest(
       displayId: result[0]! as int,
-      area: result[1] as EngineCaptureArea?,
-      outputDirectory: result[2]! as String,
-      framesPerSecond: result[3]! as int,
-      maxHeight: result[4]! as int,
+      captureSystemAudio: result[1]! as bool,
+      captureMicrophone: result[2]! as bool,
+      area: result[3] as EngineCaptureArea?,
+      outputDirectory: result[4]! as String,
+      framesPerSecond: result[5]! as int,
+      maxHeight: result[6]! as int,
     );
   }
 
@@ -442,7 +454,7 @@ class EngineRecordingRequest {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(displayId, other.displayId) && _deepEquals(area, other.area) && _deepEquals(outputDirectory, other.outputDirectory) && _deepEquals(framesPerSecond, other.framesPerSecond) && _deepEquals(maxHeight, other.maxHeight);
+    return _deepEquals(displayId, other.displayId) && _deepEquals(captureSystemAudio, other.captureSystemAudio) && _deepEquals(captureMicrophone, other.captureMicrophone) && _deepEquals(area, other.area) && _deepEquals(outputDirectory, other.outputDirectory) && _deepEquals(framesPerSecond, other.framesPerSecond) && _deepEquals(maxHeight, other.maxHeight);
   }
 
   @override
@@ -451,7 +463,7 @@ class EngineRecordingRequest {
 
   @override
   String toString() {
-    return 'EngineRecordingRequest(displayId: $displayId, area: $area, outputDirectory: $outputDirectory, framesPerSecond: $framesPerSecond, maxHeight: $maxHeight)';
+    return 'EngineRecordingRequest(displayId: $displayId, captureSystemAudio: $captureSystemAudio, captureMicrophone: $captureMicrophone, area: $area, outputDirectory: $outputDirectory, framesPerSecond: $framesPerSecond, maxHeight: $maxHeight)';
   }
 }
 
@@ -636,6 +648,57 @@ class EngineRecordingResult {
   }
 }
 
+/// Peak level since the previous event, 0 (silent) to 1 (full scale).
+class EngineAudioLevels {
+  EngineAudioLevels({
+    required this.system,
+    required this.microphone,
+  });
+
+  double system;
+
+  double microphone;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      system,
+      microphone,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static EngineAudioLevels decode(Object result) {
+    result as List<Object?>;
+    return EngineAudioLevels(
+      system: result[0]! as double,
+      microphone: result[1]! as double,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! EngineAudioLevels || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(system, other.system) && _deepEquals(microphone, other.microphone);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'EngineAudioLevels(system: $system, microphone: $microphone)';
+  }
+}
+
 class EngineError {
   EngineError({
     required this.code,
@@ -730,8 +793,11 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is EngineRecordingResult) {
       buffer.putUint8(138);
       writeValue(buffer, value.encode());
-    }    else if (value is EngineError) {
+    }    else if (value is EngineAudioLevels) {
       buffer.putUint8(139);
+      writeValue(buffer, value.encode());
+    }    else if (value is EngineError) {
+      buffer.putUint8(140);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -764,6 +830,8 @@ class _PigeonCodec extends StandardMessageCodec {
       case 138:
         return EngineRecordingResult.decode(readValue(buffer)!);
       case 139:
+        return EngineAudioLevels.decode(readValue(buffer)!);
+      case 140:
         return EngineError.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
@@ -881,6 +949,60 @@ class EngineHostApi {
     ;
   }
 
+  Future<bool> hasMicrophonePermission() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.hasMicrophonePermission$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as bool;
+  }
+
+  /// Shows the system prompt the first time; afterwards only Settings can grant it.
+  Future<bool> requestMicrophonePermission() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.requestMicrophonePermission$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as bool;
+  }
+
+  Future<void> openMicrophoneSettings() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.openMicrophoneSettings$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
   Future<List<EngineDisplay>> listDisplays() async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.listDisplays$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -980,6 +1102,9 @@ abstract class EngineEventsApi {
 
   void onError(EngineError error);
 
+  /// About 15 times per second while recording with audio.
+  void onAudioLevels(EngineAudioLevels levels);
+
   static void setUp(EngineEventsApi? api, {
     BinaryMessenger? binaryMessenger,
     String messageChannelSuffix = '',
@@ -1019,6 +1144,27 @@ abstract class EngineEventsApi {
           final EngineError arg_error = args[0]! as EngineError;
           try {
             api.onError(arg_error);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.reclite_engine.EngineEventsApi.onAudioLevels$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final EngineAudioLevels arg_levels = args[0]! as EngineAudioLevels;
+          try {
+            api.onAudioLevels(arg_levels);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

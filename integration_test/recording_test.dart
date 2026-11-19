@@ -41,6 +41,8 @@ void main() {
         outputDirectory: out.path,
         framesPerSecond: 30,
         maxHeight: 1080,
+        captureSystemAudio: true,
+        captureMicrophone: false,
       ),
     );
     expect(session.height, lessThanOrEqualTo(1080));

@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:reclite/core/errors/failures.dart';
+import 'package:reclite/features/recording/domain/entities/audio_levels.dart';
 import 'package:reclite/features/recording/domain/entities/capture_area.dart';
 import 'package:reclite/features/recording/domain/entities/capture_display.dart';
 import 'package:reclite/features/recording/domain/entities/recording_config.dart';
@@ -21,6 +22,23 @@ class RecorderRepositoryImpl implements RecorderRepository {
   Stream<RecordingInterruption> get interruptions => _engine.errors.map(
     (e) => RecordingInterruption(message: e.message, isFatal: e.isFatal),
   );
+
+  @override
+  Stream<AudioLevels> get audioLevels => _engine.audioLevels.map(
+    (l) => AudioLevels(system: l.system, microphone: l.microphone),
+  );
+
+  @override
+  Future<bool> hasMicrophonePermission() =>
+      _guard(_engine.hasMicrophonePermission);
+
+  @override
+  Future<bool> requestMicrophonePermission() =>
+      _guard(_engine.requestMicrophonePermission);
+
+  @override
+  Future<void> openMicrophoneSettings() =>
+      _guard(_engine.openMicrophoneSettings);
 
   @override
   Future<bool> hasScreenPermission() =>
@@ -57,6 +75,8 @@ class RecorderRepositoryImpl implements RecorderRepository {
         outputDirectory: config.outputFolder,
         framesPerSecond: config.framesPerSecond,
         maxHeight: config.maxHeight,
+        captureSystemAudio: config.captureSystemAudio,
+        captureMicrophone: config.captureMicrophone,
         area: switch (config.area) {
           final a? => EngineCaptureArea(
             x: a.x,

@@ -35,6 +35,18 @@ public final class RecliteEnginePlugin: NSObject, FlutterPlugin, EngineHostApi {
     ScreenCapturePermission.openSettings()
   }
 
+  func hasMicrophonePermission() throws -> Bool {
+    MicrophonePermission.isGranted
+  }
+
+  func requestMicrophonePermission() async throws -> Bool {
+    await MicrophonePermission.request()
+  }
+
+  func openMicrophoneSettings() throws {
+    MicrophonePermission.openSettings()
+  }
+
   func listDisplays() async throws -> [EngineDisplay] {
     guard ScreenCapturePermission.isGranted else { throw EngineErrors.permissionDenied }
     do {

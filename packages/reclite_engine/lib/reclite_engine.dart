@@ -7,6 +7,7 @@ import 'src/messages.g.dart';
 export 'src/messages.g.dart'
     show
         DiskSpace,
+        EngineAudioLevels,
         EngineCaptureArea,
         EngineCapabilities,
         EngineDisplay,
@@ -21,16 +22,20 @@ export 'src/messages.g.dart'
 /// Single entry point to the native engine. Create one per app.
 class RecliteEngine {
   RecliteEngine({EngineHostApi? hostApi}) : _api = hostApi ?? EngineHostApi() {
-    EngineEventsApi.setUp(_EventSink(_status, _errors));
+    EngineEventsApi.setUp(_EventSink(_status, _errors, _levels));
   }
 
   final EngineHostApi _api;
   final _status = StreamController<EngineRecordingStatus>.broadcast();
   final _errors = StreamController<EngineError>.broadcast();
+  final _levels = StreamController<EngineAudioLevels>.broadcast();
 
   Stream<EngineRecordingStatus> get status => _status.stream;
 
   Stream<EngineError> get errors => _errors.stream;
+
+  /// About 15 per second while recording with audio; a final zero event on stop.
+  Stream<EngineAudioLevels> get audioLevels => _levels.stream;
 
   Future<EngineCapabilities> getCapabilities() => _api.getCapabilities();
 
@@ -43,6 +48,13 @@ class RecliteEngine {
       _api.requestScreenCapturePermission();
 
   Future<void> openScreenCaptureSettings() => _api.openScreenCaptureSettings();
+
+  Future<bool> hasMicrophonePermission() => _api.hasMicrophonePermission();
+
+  Future<bool> requestMicrophonePermission() =>
+      _api.requestMicrophonePermission();
+
+  Future<void> openMicrophoneSettings() => _api.openMicrophoneSettings();
 
   Future<List<EngineDisplay>> listDisplays() => _api.listDisplays();
 
@@ -63,14 +75,19 @@ class RecliteEngine {
     EngineEventsApi.setUp(null);
     unawaited(_status.close());
     unawaited(_errors.close());
+    unawaited(_levels.close());
   }
 }
 
 class _EventSink implements EngineEventsApi {
-  _EventSink(this._status, this._errors);
+  _EventSink(this._status, this._errors, this._levels);
 
   final StreamController<EngineRecordingStatus> _status;
   final StreamController<EngineError> _errors;
+  final StreamController<EngineAudioLevels> _levels;
+
+  @override
+  void onAudioLevels(EngineAudioLevels levels) => _levels.add(levels);
 
   @override
   void onStatus(EngineRecordingStatus status) => _status.add(status);

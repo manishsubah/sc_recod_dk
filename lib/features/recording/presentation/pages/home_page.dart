@@ -7,6 +7,7 @@ import 'package:reclite/core/utils/formatters.dart';
 import 'package:reclite/core/widgets/page_scaffold.dart';
 import 'package:reclite/features/recording/presentation/bloc/readiness_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/recording_bloc.dart';
+import 'package:reclite/features/recording/presentation/widgets/audio_card.dart';
 import 'package:reclite/features/recording/presentation/widgets/info_row.dart';
 import 'package:reclite/features/recording/presentation/widgets/readiness_header.dart';
 import 'package:reclite/features/recording/presentation/widgets/recording_controls.dart';
@@ -55,7 +56,20 @@ class _LoadedView extends StatelessWidget {
         if (engine.supportsRecording) ...[
           const SourceCard(),
           const SizedBox(height: AppSpacing.md),
+          AudioCard(
+            microphoneSupported: engine.supportsMicrophoneViaScreenCapture,
+          ),
+          const SizedBox(height: AppSpacing.md),
         ],
+        BlocListener<RecordingBloc, RecordingState>(
+          listenWhen: (_, s) => s is RecordingFinished || s is RecordingFailed,
+          listener: (context, _) => context.read<ReadinessCubit>().refresh(),
+          child: RecordingControls(
+            canRecord: state.canRecord,
+            outputFolder: storage.path,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xxl),
         Card(
           child: Padding(
             padding: const EdgeInsets.symmetric(
@@ -104,15 +118,6 @@ class _LoadedView extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xxl),
-        BlocListener<RecordingBloc, RecordingState>(
-          listenWhen: (_, s) => s is RecordingFinished || s is RecordingFailed,
-          listener: (context, _) => context.read<ReadinessCubit>().refresh(),
-          child: RecordingControls(
-            canRecord: state.canRecord,
-            outputFolder: storage.path,
           ),
         ),
       ],

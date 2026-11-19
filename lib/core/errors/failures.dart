@@ -15,6 +15,10 @@ sealed class Failure extends Equatable implements Exception {
         'permission_denied' => const PermissionFailure(
           'RecLite needs screen recording permission.',
         ),
+        'microphone_permission_denied' => const PermissionFailure(
+          'RecLite needs microphone permission. Turn it on in System Settings, '
+          'or record without the microphone.',
+        ),
         'display_not_found' => const EngineFailure(
           'The selected display is no longer connected. Pick another one.',
         ),

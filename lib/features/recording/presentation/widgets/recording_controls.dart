@@ -9,6 +9,7 @@ import 'package:reclite/core/utils/formatters.dart';
 import 'package:reclite/features/recording/domain/entities/recording_config.dart';
 import 'package:reclite/features/recording/domain/entities/recording_result.dart';
 import 'package:reclite/features/recording/domain/entities/recording_status.dart';
+import 'package:reclite/features/recording/presentation/bloc/audio_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/recording_bloc.dart';
 import 'package:reclite/features/recording/presentation/bloc/sources_cubit.dart';
 
@@ -66,6 +67,7 @@ class _StartButton extends StatelessWidget {
         _ => null,
       },
     );
+    final audio = context.watch<AudioCubit>().state;
     final enabled = canRecord && source != null;
 
     return Center(
@@ -76,6 +78,8 @@ class _StartButton extends StatelessWidget {
                   RecordingConfig(
                     displayId: source.selectedId,
                     area: source.area,
+                    captureSystemAudio: audio.systemAudio,
+                    captureMicrophone: audio.microphone,
                     outputFolder: outputFolder,
                     framesPerSecond: RecordingDefaults.framesPerSecond,
                     maxHeight: RecordingDefaults.maxOutputHeight,

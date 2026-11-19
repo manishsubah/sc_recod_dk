@@ -8,6 +8,8 @@ class RecordingConfig extends Equatable {
     required this.framesPerSecond,
     required this.maxHeight,
     this.area,
+    this.captureSystemAudio = true,
+    this.captureMicrophone = false,
   });
 
   final int displayId;
@@ -18,6 +20,9 @@ class RecordingConfig extends Equatable {
   /// Null records the whole display.
   final CaptureArea? area;
 
+  final bool captureSystemAudio;
+  final bool captureMicrophone;
+
   @override
   List<Object?> get props => [
     displayId,
@@ -25,5 +30,7 @@ class RecordingConfig extends Equatable {
     framesPerSecond,
     maxHeight,
     area,
+    captureSystemAudio,
+    captureMicrophone,
   ];
 }

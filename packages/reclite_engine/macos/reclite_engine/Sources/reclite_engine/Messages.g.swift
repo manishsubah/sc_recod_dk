@@ -432,6 +432,10 @@ struct EngineCaptureArea: Hashable, CustomStringConvertible {
 /// Generated class from Pigeon that represents data sent in messages.
 struct EngineRecordingRequest: Hashable, CustomStringConvertible {
   var displayId: Int64
+  /// Everything the computer plays (meetings, videos), excluding RecLite itself.
+  var captureSystemAudio: Bool
+  /// Default input device, mixed with system audio into one AAC track.
+  var captureMicrophone: Bool
   /// Null records the whole display.
   var area: EngineCaptureArea? = nil
   /// Parent folder; the engine creates a per-session folder inside it.
@@ -444,13 +448,17 @@ struct EngineRecordingRequest: Hashable, CustomStringConvertible {
   // swift-format-ignore: AlwaysUseLowerCamelCase
   static func fromList(_ pigeonVar_list: [Any?]) -> EngineRecordingRequest? {
     let displayId = pigeonVar_list[0] as! Int64
-    let area: EngineCaptureArea? = nilOrValue(pigeonVar_list[1])
-    let outputDirectory = pigeonVar_list[2] as! String
-    let framesPerSecond = pigeonVar_list[3] as! Int64
-    let maxHeight = pigeonVar_list[4] as! Int64
+    let captureSystemAudio = pigeonVar_list[1] as! Bool
+    let captureMicrophone = pigeonVar_list[2] as! Bool
+    let area: EngineCaptureArea? = nilOrValue(pigeonVar_list[3])
+    let outputDirectory = pigeonVar_list[4] as! String
+    let framesPerSecond = pigeonVar_list[5] as! Int64
+    let maxHeight = pigeonVar_list[6] as! Int64
 
     return EngineRecordingRequest(
       displayId: displayId,
+      captureSystemAudio: captureSystemAudio,
+      captureMicrophone: captureMicrophone,
       area: area,
       outputDirectory: outputDirectory,
       framesPerSecond: framesPerSecond,
@@ -460,6 +468,8 @@ struct EngineRecordingRequest: Hashable, CustomStringConvertible {
   func toList() -> [Any?] {
     return [
       displayId,
+      captureSystemAudio,
+      captureMicrophone,
       area,
       outputDirectory,
       framesPerSecond,
@@ -470,12 +480,14 @@ struct EngineRecordingRequest: Hashable, CustomStringConvertible {
     if Swift.type(of: lhs) != Swift.type(of: rhs) {
       return false
     }
-    return MessagesPigeonInternal.deepEquals(lhs.displayId, rhs.displayId) && MessagesPigeonInternal.deepEquals(lhs.area, rhs.area) && MessagesPigeonInternal.deepEquals(lhs.outputDirectory, rhs.outputDirectory) && MessagesPigeonInternal.deepEquals(lhs.framesPerSecond, rhs.framesPerSecond) && MessagesPigeonInternal.deepEquals(lhs.maxHeight, rhs.maxHeight)
+    return MessagesPigeonInternal.deepEquals(lhs.displayId, rhs.displayId) && MessagesPigeonInternal.deepEquals(lhs.captureSystemAudio, rhs.captureSystemAudio) && MessagesPigeonInternal.deepEquals(lhs.captureMicrophone, rhs.captureMicrophone) && MessagesPigeonInternal.deepEquals(lhs.area, rhs.area) && MessagesPigeonInternal.deepEquals(lhs.outputDirectory, rhs.outputDirectory) && MessagesPigeonInternal.deepEquals(lhs.framesPerSecond, rhs.framesPerSecond) && MessagesPigeonInternal.deepEquals(lhs.maxHeight, rhs.maxHeight)
   }
 
   func hash(into hasher: inout Hasher) {
     hasher.combine("EngineRecordingRequest")
     MessagesPigeonInternal.deepHash(value: displayId, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: captureSystemAudio, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: captureMicrophone, hasher: &hasher)
     MessagesPigeonInternal.deepHash(value: area, hasher: &hasher)
     MessagesPigeonInternal.deepHash(value: outputDirectory, hasher: &hasher)
     MessagesPigeonInternal.deepHash(value: framesPerSecond, hasher: &hasher)
@@ -483,7 +495,7 @@ struct EngineRecordingRequest: Hashable, CustomStringConvertible {
   }
 
   public var description: String {
-    return "EngineRecordingRequest(displayId: \(String(describing: displayId)), area: \(String(describing: area)), outputDirectory: \(String(describing: outputDirectory)), framesPerSecond: \(String(describing: framesPerSecond)), maxHeight: \(String(describing: maxHeight)))"
+    return "EngineRecordingRequest(displayId: \(String(describing: displayId)), captureSystemAudio: \(String(describing: captureSystemAudio)), captureMicrophone: \(String(describing: captureMicrophone)), area: \(String(describing: area)), outputDirectory: \(String(describing: outputDirectory)), framesPerSecond: \(String(describing: framesPerSecond)), maxHeight: \(String(describing: maxHeight)))"
   }
 }
 
@@ -638,6 +650,48 @@ struct EngineRecordingResult: Hashable, CustomStringConvertible {
   }
 }
 
+/// Peak level since the previous event, 0 (silent) to 1 (full scale).
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct EngineAudioLevels: Hashable, CustomStringConvertible {
+  var system: Double
+  var microphone: Double
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> EngineAudioLevels? {
+    let system = pigeonVar_list[0] as! Double
+    let microphone = pigeonVar_list[1] as! Double
+
+    return EngineAudioLevels(
+      system: system,
+      microphone: microphone
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      system,
+      microphone,
+    ]
+  }
+  static func == (lhs: EngineAudioLevels, rhs: EngineAudioLevels) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return MessagesPigeonInternal.deepEquals(lhs.system, rhs.system) && MessagesPigeonInternal.deepEquals(lhs.microphone, rhs.microphone)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("EngineAudioLevels")
+    MessagesPigeonInternal.deepHash(value: system, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: microphone, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "EngineAudioLevels(system: \(String(describing: system)), microphone: \(String(describing: microphone)))"
+  }
+}
+
 /// Generated class from Pigeon that represents data sent in messages.
 struct EngineError: Hashable, CustomStringConvertible {
   var code: String
@@ -716,6 +770,8 @@ private class MessagesPigeonCodecReader: FlutterStandardReader {
     case 138:
       return EngineRecordingResult.fromList(self.readValue() as! [Any?])
     case 139:
+      return EngineAudioLevels.fromList(self.readValue() as! [Any?])
+    case 140:
       return EngineError.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
@@ -755,8 +811,11 @@ private class MessagesPigeonCodecWriter: FlutterStandardWriter {
     } else if let value = value as? EngineRecordingResult {
       super.writeByte(138)
       super.writeValue(value.toList())
-    } else if let value = value as? EngineError {
+    } else if let value = value as? EngineAudioLevels {
       super.writeByte(139)
+      super.writeValue(value.toList())
+    } else if let value = value as? EngineError {
+      super.writeByte(140)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -791,6 +850,10 @@ protocol EngineHostApi {
   /// Shows the system prompt the first time; afterwards only Settings can grant it.
   func requestScreenCapturePermission() throws -> Bool
   func openScreenCaptureSettings() throws
+  func hasMicrophonePermission() throws -> Bool
+  /// Shows the system prompt the first time; afterwards only Settings can grant it.
+  func requestMicrophonePermission() async throws -> Bool
+  func openMicrophoneSettings() throws
   func listDisplays() async throws -> [EngineDisplay]
   func startRecording(request: EngineRecordingRequest) async throws -> EngineRecordingSession
   func stopRecording() async throws -> EngineRecordingResult
@@ -872,6 +935,48 @@ class EngineHostApiSetup {
       }
     } else {
       openScreenCaptureSettingsChannel.setMessageHandler(nil)
+    }
+    let hasMicrophonePermissionChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.hasMicrophonePermission\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      hasMicrophonePermissionChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.hasMicrophonePermission()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      hasMicrophonePermissionChannel.setMessageHandler(nil)
+    }
+    /// Shows the system prompt the first time; afterwards only Settings can grant it.
+    let requestMicrophonePermissionChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.requestMicrophonePermission\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      requestMicrophonePermissionChannel.setMessageHandler { _, reply in
+        Task { @MainActor in
+          do {
+            let result = try await api.requestMicrophonePermission()
+            reply(wrapResult(result))
+          } catch {
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      requestMicrophonePermissionChannel.setMessageHandler(nil)
+    }
+    let openMicrophoneSettingsChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.openMicrophoneSettings\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      openMicrophoneSettingsChannel.setMessageHandler { _, reply in
+        do {
+          try api.openMicrophoneSettings()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      openMicrophoneSettingsChannel.setMessageHandler(nil)
     }
     let listDisplaysChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.listDisplays\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
@@ -962,6 +1067,8 @@ class EngineHostApiSetup {
 protocol EngineEventsApiProtocol {
   @MainActor func onStatus(status statusArg: EngineRecordingStatus) async throws
   @MainActor func onError(error errorArg: EngineError) async throws
+  /// About 15 times per second while recording with audio.
+  @MainActor func onAudioLevels(levels levelsArg: EngineAudioLevels) async throws
 }
 class EngineEventsApi: EngineEventsApiProtocol {
   private let binaryMessenger: FlutterBinaryMessenger
@@ -998,6 +1105,27 @@ class EngineEventsApi: EngineEventsApiProtocol {
       let channelName: String = "dev.flutter.pigeon.reclite_engine.EngineEventsApi.onError\(messageChannelSuffix)"
       let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
       channel.sendMessage([errorArg] as [Any?]) { response in
+        guard let listResponse = response as? [Any?] else {
+          continuation.resume(throwing: createConnectionError(withChannelName: channelName))
+          return
+        }
+        if listResponse.count > 1 {
+          let code: String = listResponse[0] as! String
+          let message: String? = nilOrValue(listResponse[1])
+          let details: String? = nilOrValue(listResponse[2])
+          continuation.resume(throwing: PigeonError(code: code, message: message, details: details))
+        } else {
+          continuation.resume()
+        }
+      }
+    }
+  }
+  /// About 15 times per second while recording with audio.
+  @MainActor func onAudioLevels(levels levelsArg: EngineAudioLevels) async throws {
+    return try await withCheckedThrowingContinuation { continuation in
+      let channelName: String = "dev.flutter.pigeon.reclite_engine.EngineEventsApi.onAudioLevels\(messageChannelSuffix)"
+      let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+      channel.sendMessage([levelsArg] as [Any?]) { response in
         guard let listResponse = response as? [Any?] else {
           continuation.resume(throwing: createConnectionError(withChannelName: channelName))
           return

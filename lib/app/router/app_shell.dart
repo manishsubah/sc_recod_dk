@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:reclite/app/di.dart';
 import 'package:reclite/app/theme/app_tokens.dart';
 import 'package:reclite/features/history/presentation/pages/history_page.dart';
+import 'package:reclite/features/recording/presentation/bloc/audio_cubit.dart';
+import 'package:reclite/features/recording/presentation/bloc/audio_levels_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/readiness_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/recording_bloc.dart';
 import 'package:reclite/features/recording/presentation/bloc/sources_cubit.dart';
@@ -45,6 +47,10 @@ class _AppShellState extends State<AppShell> {
         ),
         BlocProvider<SourcesCubit>(
           create: (_) => getIt<SourcesCubit>()..load(),
+        ),
+        BlocProvider<AudioCubit>(create: (_) => getIt<AudioCubit>()),
+        BlocProvider<AudioLevelsCubit>(
+          create: (_) => getIt<AudioLevelsCubit>(),
         ),
         BlocProvider<RecordingBloc>(create: (_) => getIt<RecordingBloc>()),
       ],

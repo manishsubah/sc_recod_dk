@@ -26,6 +26,8 @@ abstract final class AppSize {
   static const double logo = 40;
 
   static const double recordDot = 12;
+  static const double meterHeight = 6;
+  static const double meterWidth = 140;
   static const double inlineProgress = 18;
   static const double progressStroke = 2;
 

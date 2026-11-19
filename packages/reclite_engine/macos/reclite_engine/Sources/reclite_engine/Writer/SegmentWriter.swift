@@ -11,15 +11,17 @@ final class SegmentWriter {
   let partURL: URL
   private let writer: AVAssetWriter
   private let videoInput: AVAssetWriterInput
+  private let audioInput: AVAssetWriterInput?
 
   private(set) var firstPTS: CMTime = .invalid
   private(set) var lastPTS: CMTime = .invalid
   private(set) var droppedFrames = 0
+  private(set) var droppedAudioBuffers = 0
 
   /// Kept so the final frame can be repeated at the stop time (one buffer, not a queue).
   private var lastBuffer: CMSampleBuffer?
 
-  init(url: URL, width: Int, height: Int, framesPerSecond: Int) throws {
+  init(url: URL, width: Int, height: Int, framesPerSecond: Int, withAudio: Bool) throws {
     finalURL = url
     partURL = url.appendingPathExtension("part")
 
@@ -34,6 +36,16 @@ final class SegmentWriter {
 
     guard writer.canAdd(videoInput) else { throw EngineErrors.writerFailed(writer.error) }
     writer.add(videoInput)
+
+    if withAudio {
+      let input = AVAssetWriterInput(mediaType: .audio, outputSettings: Self.audioSettings)
+      input.expectsMediaDataInRealTime = true
+      guard writer.canAdd(input) else { throw EngineErrors.writerFailed(writer.error) }
+      writer.add(input)
+      audioInput = input
+    } else {
+      audioInput = nil
+    }
     guard writer.startWriting() else { throw EngineErrors.writerFailed(writer.error) }
   }
 
@@ -71,6 +83,7 @@ final class SegmentWriter {
     repeatLastFrame(at: end)
     lastBuffer = nil
     videoInput.markAsFinished()
+    audioInput?.markAsFinished()
     writer.endSession(atSourceTime: CMTimeMaximum(end, lastPTS))
     writer.finishWriting { [writer, partURL, finalURL] in
       guard writer.status == .completed else {
@@ -83,6 +96,18 @@ final class SegmentWriter {
       } catch {
         completion(.failure(EngineErrors.writerFailed(error)))
       }
+    }
+  }
+
+  /// Session time of the first video frame; audio is placed relative to it.
+  var sessionStart: CMTime? { firstPTS.isValid ? firstPTS : nil }
+
+  /// Only valid after the first video frame (the session starts with video).
+  func appendAudio(_ buffer: CMSampleBuffer) {
+    guard let audioInput, firstPTS.isValid else { return }
+    guard audioInput.isReadyForMoreMediaData, audioInput.append(buffer) else {
+      droppedAudioBuffers += 1
+      return
     }
   }
 
@@ -132,6 +157,13 @@ final class SegmentWriter {
       ],
     ]
   }
+
+  private static let audioSettings: [String: Any] = [
+    AVFormatIDKey: kAudioFormatMPEG4AAC,
+    AVSampleRateKey: 48_000,
+    AVNumberOfChannelsKey: 2,
+    AVEncoderBitRateKey: 160_000,
+  ]
 
   /// ~0.08 bits per pixel per frame (≈5 Mbps at 1080p30), clamped for tiny/huge outputs.
   static func bitrate(width: Int, height: Int, fps: Int) -> Int {

@@ -3,6 +3,8 @@ import 'package:reclite/features/recording/data/repositories/engine_repository_i
 import 'package:reclite/features/recording/data/repositories/recorder_repository_impl.dart';
 import 'package:reclite/features/recording/domain/repositories/engine_repository.dart';
 import 'package:reclite/features/recording/domain/repositories/recorder_repository.dart';
+import 'package:reclite/features/recording/presentation/bloc/audio_cubit.dart';
+import 'package:reclite/features/recording/presentation/bloc/audio_levels_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/readiness_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/recording_bloc.dart';
 import 'package:reclite/features/recording/presentation/bloc/sources_cubit.dart';
@@ -24,6 +26,10 @@ void configureDependencies() {
     )
     ..registerFactory<SourcesCubit>(
       () => SourcesCubit(getIt<RecorderRepository>()),
+    )
+    ..registerFactory<AudioCubit>(() => AudioCubit(getIt<RecorderRepository>()))
+    ..registerFactory<AudioLevelsCubit>(
+      () => AudioLevelsCubit(getIt<RecorderRepository>()),
     )
     ..registerFactory<RecordingBloc>(
       () => RecordingBloc(getIt<RecorderRepository>()),

@@ -1,3 +1,4 @@
+import 'package:reclite/features/recording/domain/entities/audio_levels.dart';
 import 'package:reclite/features/recording/domain/entities/capture_area.dart';
 import 'package:reclite/features/recording/domain/entities/capture_display.dart';
 import 'package:reclite/features/recording/domain/entities/recording_config.dart';
@@ -11,12 +12,22 @@ abstract interface class RecorderRepository {
 
   Stream<RecordingInterruption> get interruptions;
 
+  /// About 15 per second while recording with audio; ends with [AudioLevels.silent].
+  Stream<AudioLevels> get audioLevels;
+
   Future<bool> hasScreenPermission();
 
   /// Shows the system prompt only the first time it is called.
   Future<bool> requestScreenPermission();
 
   Future<void> openScreenPermissionSettings();
+
+  Future<bool> hasMicrophonePermission();
+
+  /// Shows the system prompt only while the user hasn't answered yet.
+  Future<bool> requestMicrophonePermission();
+
+  Future<void> openMicrophoneSettings();
 
   Future<List<CaptureDisplay>> listDisplays();
 

@@ -91,10 +91,18 @@ class EngineRecordingRequest {
     required this.outputDirectory,
     required this.framesPerSecond,
     required this.maxHeight,
+    required this.captureSystemAudio,
+    required this.captureMicrophone,
     this.area,
   });
 
   int displayId;
+
+  /// Everything the computer plays (meetings, videos), excluding RecLite itself.
+  bool captureSystemAudio;
+
+  /// Default input device, mixed with system audio into one AAC track.
+  bool captureMicrophone;
 
   /// Null records the whole display.
   EngineCaptureArea? area;
@@ -153,6 +161,14 @@ class EngineRecordingResult {
   int bytesWritten;
 }
 
+/// Peak level since the previous event, 0 (silent) to 1 (full scale).
+class EngineAudioLevels {
+  EngineAudioLevels({required this.system, required this.microphone});
+
+  double system;
+  double microphone;
+}
+
 class EngineError {
   EngineError({
     required this.code,
@@ -183,6 +199,14 @@ abstract class EngineHostApi {
 
   void openScreenCaptureSettings();
 
+  bool hasMicrophonePermission();
+
+  /// Shows the system prompt the first time; afterwards only Settings can grant it.
+  @async
+  bool requestMicrophonePermission();
+
+  void openMicrophoneSettings();
+
   @async
   List<EngineDisplay> listDisplays();
 
@@ -205,4 +229,7 @@ abstract class EngineEventsApi {
   void onStatus(EngineRecordingStatus status);
 
   void onError(EngineError error);
+
+  /// About 15 times per second while recording with audio.
+  void onAudioLevels(EngineAudioLevels levels);
 }
