@@ -1,0 +1,5 @@
+PRODUCT_NAME = screen_recorder
+
+PRODUCT_BUNDLE_IDENTIFIER = com.screenrecorder.manishsubah.screenRecorder
+
+PRODUCT_COPYRIGHT = Copyright © 2026 com.screen_recorder.manishsubah. All rights reserved.
