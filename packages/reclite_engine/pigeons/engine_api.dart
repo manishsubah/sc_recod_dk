@@ -311,6 +311,9 @@ abstract class EngineHostApi {
   /// Moves a file or folder to the Recycle Bin / Trash, so it can be restored.
   void moveToTrash(String path);
 
+  /// Opens an https:, http: or mailto: link in the default browser / mail app.
+  void openUrl(String url);
+
   /// Replaces all system-wide shortcuts; an empty list turns them off. Returns
   /// the indexes of shortcuts that another app already uses.
   List<int> setGlobalShortcuts(List<EngineShortcut> shortcuts);

@@ -96,6 +96,9 @@ class RecliteEngine {
 
   Future<void> openPath(String path) => _api.openPath(path);
 
+  /// https:, http: or mailto: only.
+  Future<void> openUrl(String url) => _api.openUrl(url);
+
   /// Recycle Bin on Windows, Trash on macOS; the user can restore it.
   Future<void> moveToTrash(String path) => _api.moveToTrash(path);
 

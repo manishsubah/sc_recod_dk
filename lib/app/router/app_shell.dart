@@ -7,6 +7,8 @@ import 'package:reclite/app/di.dart';
 import 'package:reclite/app/theme/app_tokens.dart';
 import 'package:reclite/features/desktop/domain/entities/tray.dart';
 import 'package:reclite/features/desktop/presentation/bloc/window_mode_cubit.dart';
+import 'package:reclite/features/help/presentation/bloc/help_cubit.dart';
+import 'package:reclite/features/help/presentation/pages/help_page.dart';
 import 'package:reclite/features/history/presentation/bloc/history_cubit.dart';
 import 'package:reclite/features/history/presentation/pages/history_page.dart';
 import 'package:reclite/features/recording/presentation/bloc/audio_cubit.dart';
@@ -31,7 +33,8 @@ enum AppSection {
     Icons.radio_button_checked,
   ),
   history('History', Icons.video_library_outlined, Icons.video_library),
-  settings('Settings', Icons.settings_outlined, Icons.settings);
+  settings('Settings', Icons.settings_outlined, Icons.settings),
+  help('Help', Icons.help_outline, Icons.help);
 
   const AppSection(this.label, this.icon, this.selectedIcon);
 
@@ -72,6 +75,7 @@ class _AppShellState extends State<AppShell> {
         BlocProvider<HistoryCubit>(
           create: (_) => getIt<HistoryCubit>()..load(),
         ),
+        BlocProvider<HelpCubit>(create: (_) => getIt<HelpCubit>()),
         BlocProvider<WindowModeCubit>(
           create: (_) =>
               getIt<WindowModeCubit>()..showTrayStatus(TrayStatus.idle),
@@ -134,6 +138,7 @@ class _AppShellState extends State<AppShell> {
               AppSection.settings => const SettingsPage(
                 extraSections: [ShortcutsCard()],
               ),
+              AppSection.help => const HelpPage(),
             },
           ),
         ],

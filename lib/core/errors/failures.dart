@@ -40,6 +40,7 @@ sealed class Failure extends Equatable implements Exception {
           'Recording is not available on this system yet.',
         ),
         'capture_failed' => EngineFailure('Screen capture failed${_detail(e)}'),
+        'invalid_url' => const EngineFailure('This link cannot be opened.'),
         'open_failed' => const StorageFailure(
           'No app on this computer can play this file.',
         ),

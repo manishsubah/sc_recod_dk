@@ -2,6 +2,9 @@ import 'package:get_it/get_it.dart';
 import 'package:reclite/features/desktop/data/repositories/desktop_repository_impl.dart';
 import 'package:reclite/features/desktop/domain/repositories/desktop_repository.dart';
 import 'package:reclite/features/desktop/presentation/bloc/window_mode_cubit.dart';
+import 'package:reclite/features/help/data/repositories/links_repository_impl.dart';
+import 'package:reclite/features/help/domain/repositories/links_repository.dart';
+import 'package:reclite/features/help/presentation/bloc/help_cubit.dart';
 import 'package:reclite/features/history/data/repositories/history_repository_impl.dart';
 import 'package:reclite/features/history/domain/repositories/history_repository.dart';
 import 'package:reclite/features/history/presentation/bloc/history_cubit.dart';
@@ -45,9 +48,13 @@ void configureDependencies(SharedPreferences prefs) {
     ..registerLazySingleton<DesktopRepository>(
       () => DesktopRepositoryImpl(getIt<RecliteEngine>()),
     )
+    ..registerLazySingleton<LinksRepository>(
+      () => LinksRepositoryImpl(getIt<RecliteEngine>()),
+    )
     ..registerLazySingleton<HistoryRepository>(
       () => HistoryRepositoryImpl(getIt<RecliteEngine>()),
     )
+    ..registerFactory<HelpCubit>(() => HelpCubit(getIt<LinksRepository>()))
     ..registerFactory<WindowModeCubit>(
       () => WindowModeCubit(getIt<DesktopRepository>()),
     )

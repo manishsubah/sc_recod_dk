@@ -1102,6 +1102,8 @@ protocol EngineHostApi {
   func openPath(path: String) throws
   /// Moves a file or folder to the Recycle Bin / Trash, so it can be restored.
   func moveToTrash(path: String) throws
+  /// Opens an https:, http: or mailto: link in the default browser / mail app.
+  func openUrl(url: String) throws
   /// Replaces all system-wide shortcuts; an empty list turns them off. Returns
   /// the indexes of shortcuts that another app already uses.
   func setGlobalShortcuts(shortcuts: [EngineShortcut]) throws -> [Int64]
@@ -1387,6 +1389,22 @@ class EngineHostApiSetup {
       }
     } else {
       moveToTrashChannel.setMessageHandler(nil)
+    }
+    /// Opens an https:, http: or mailto: link in the default browser / mail app.
+    let openUrlChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.openUrl\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      openUrlChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let urlArg = args[0] as! String
+        do {
+          try api.openUrl(url: urlArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      openUrlChannel.setMessageHandler(nil)
     }
     /// Replaces all system-wide shortcuts; an empty list turns them off. Returns
     /// the indexes of shortcuts that another app already uses.

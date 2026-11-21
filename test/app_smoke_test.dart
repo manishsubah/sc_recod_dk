@@ -8,6 +8,8 @@ import 'package:reclite/core/widgets/page_scaffold.dart';
 import 'package:reclite/features/desktop/domain/entities/tray.dart';
 import 'package:reclite/features/desktop/domain/repositories/desktop_repository.dart';
 import 'package:reclite/features/desktop/presentation/bloc/window_mode_cubit.dart';
+import 'package:reclite/features/help/domain/repositories/links_repository.dart';
+import 'package:reclite/features/help/presentation/bloc/help_cubit.dart';
 import 'package:reclite/features/history/domain/entities/saved_recording.dart';
 import 'package:reclite/features/history/domain/repositories/history_repository.dart';
 import 'package:reclite/features/history/presentation/bloc/history_cubit.dart';
@@ -73,6 +75,16 @@ class _FakeSettingsRepository implements SettingsRepository {
 
   @override
   Future<void> setThemeMode(AppThemeMode mode) async => themeMode = mode;
+}
+
+class _FakeLinksRepository implements LinksRepository {
+  final opened = <Uri>[];
+
+  @override
+  Future<void> open(Uri link) async => opened.add(link);
+
+  @override
+  String get systemDescription => 'Windows 10.0.26200';
 }
 
 class _FakeDesktopRepository implements DesktopRepository {
@@ -160,6 +172,7 @@ void main() {
       ..registerFactory<SettingsCubit>(() => SettingsCubit(settings))
       ..registerFactory<ShortcutsCubit>(() => ShortcutsCubit(shortcuts))
       ..registerFactory<WindowModeCubit>(() => WindowModeCubit(desktop))
+      ..registerFactory<HelpCubit>(() => HelpCubit(_FakeLinksRepository()))
       ..registerFactory<HistoryCubit>(
         () => HistoryCubit(_FakeHistoryRepository(), '/rec'),
       );
@@ -323,6 +336,21 @@ void main() {
     expect(desktop.miniCalls, [true, false]);
     expect(find.byType(NavigationRail), findsOneWidget);
     expect(find.text('REC'), findsOneWidget, reason: 'still recording');
+  });
+
+  testWidgets('Help shows About, the guide and the licenses', (tester) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.text('Help'));
+    await tester.pumpAndSettle();
+    expect(find.text('Version 0.1.0 (build 1)'), findsOneWidget);
+    expect(find.textContaining('All rights reserved'), findsOneWidget);
+    expect(find.text('Quick guide'), findsOneWidget);
+    expect(find.text('Get help'), findsOneWidget);
+
+    await tester.tap(find.text('Open-source licenses'));
+    await tester.pumpAndSettle();
+    expect(find.byType(LicensePage), findsOneWidget);
   });
 
   testWidgets('asks for screen permission when missing', (tester) async {

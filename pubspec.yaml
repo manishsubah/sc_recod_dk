@@ -32,5 +32,6 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/reclite_icon.png
     - assets/reelyte_icon.jpg
     - assets/reelyte_icon.svg

@@ -767,6 +767,8 @@ class EngineHostApi {
   virtual std::optional<FlutterError> OpenPath(const std::string& path) = 0;
   // Moves a file or folder to the Recycle Bin / Trash, so it can be restored.
   virtual std::optional<FlutterError> MoveToTrash(const std::string& path) = 0;
+  // Opens an https:, http: or mailto: link in the default browser / mail app.
+  virtual std::optional<FlutterError> OpenUrl(const std::string& url) = 0;
   // Replaces all system-wide shortcuts; an empty list turns them off. Returns
   // the indexes of shortcuts that another app already uses.
   virtual ErrorOr<::flutter::EncodableList> SetGlobalShortcuts(const ::flutter::EncodableList& shortcuts) = 0;

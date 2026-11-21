@@ -52,6 +52,7 @@ class RecliteEnginePlugin : public flutter::Plugin, public EngineHostApi {
   std::optional<FlutterError> RevealInFileManager(const std::string& path) override;
   std::optional<FlutterError> OpenPath(const std::string& path) override;
   std::optional<FlutterError> MoveToTrash(const std::string& path) override;
+  std::optional<FlutterError> OpenUrl(const std::string& url) override;
   ErrorOr<flutter::EncodableList> SetGlobalShortcuts(
       const flutter::EncodableList& shortcuts) override;
   std::optional<FlutterError> SetMiniWindow(bool mini) override;

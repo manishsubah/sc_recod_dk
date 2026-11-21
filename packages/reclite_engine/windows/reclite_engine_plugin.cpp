@@ -129,6 +129,22 @@ std::optional<FlutterError> RecliteEnginePlugin::OpenPath(const std::string& pat
   return std::nullopt;
 }
 
+std::optional<FlutterError> RecliteEnginePlugin::OpenUrl(const std::string& url) {
+  // Only web and mail links: never let a string from Dart start a program.
+  const bool allowed = url.rfind("https://", 0) == 0 || url.rfind("http://", 0) == 0 ||
+                       url.rfind("mailto:", 0) == 0;
+  if (!allowed) {
+    return FlutterError("invalid_url", "Only web and mail links can be opened.");
+  }
+  const std::wstring wide = Utf8ToWide(url);
+  const auto status = reinterpret_cast<INT_PTR>(
+      ::ShellExecuteW(nullptr, L"open", wide.c_str(), nullptr, nullptr, SW_SHOWNORMAL));
+  if (status <= 32) {
+    return FlutterError("open_failed", "No app could open " + url);
+  }
+  return std::nullopt;
+}
+
 std::optional<FlutterError> RecliteEnginePlugin::MoveToTrash(const std::string& path) {
   const std::wstring wide = Utf8ToWide(path);
   if (wide.empty() || ::GetFileAttributesW(wide.c_str()) == INVALID_FILE_ATTRIBUTES) {

@@ -1452,6 +1452,26 @@ class EngineHostApi {
     );
   }
 
+  /// Opens an https:, http: or mailto: link in the default browser / mail app.
+  Future<void> openUrl(String url) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.reclite_engine.EngineHostApi.openUrl$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[url],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
+  }
+
   /// Replaces all system-wide shortcuts; an empty list turns them off. Returns
   /// the indexes of shortcuts that another app already uses.
   Future<List<int>> setGlobalShortcuts(List<EngineShortcut> shortcuts) async {

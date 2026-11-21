@@ -135,6 +135,17 @@ public final class RecliteEnginePlugin: NSObject, FlutterPlugin, EngineHostApi {
     }
   }
 
+  func openUrl(url: String) throws {
+    // Only web and mail links: never let a string from Dart start a program.
+    guard let link = URL(string: url), ["https", "http", "mailto"].contains(link.scheme)
+    else {
+      throw EngineErrors.make("invalid_url", "Only web and mail links can be opened.")
+    }
+    guard NSWorkspace.shared.open(link) else {
+      throw EngineErrors.make("open_failed", "No app could open \(url)")
+    }
+  }
+
   func moveToTrash(path: String) throws {
     guard FileManager.default.fileExists(atPath: path) else {
       throw EngineErrors.make("invalid_path", "Path does not exist: \(path)")

@@ -24,6 +24,7 @@ abstract final class AppSize {
   static const double iconDisplay = 48;
 
   static const double logo = 40;
+  static const double aboutIcon = 64;
 
   static const double recordDot = 12;
   static const double meterHeight = 6;
