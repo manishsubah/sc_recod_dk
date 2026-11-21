@@ -26,6 +26,7 @@ final class SourcesLoaded extends SourcesState {
     required this.displays,
     required this.selectedId,
     this.area,
+    this.window,
   });
 
   final List<CaptureDisplay> displays;
@@ -34,13 +35,19 @@ final class SourcesLoaded extends SourcesState {
   /// Null records the whole display.
   final CaptureArea? area;
 
+  /// Records only this window instead of the display; never set with [area].
+  final CaptureWindow? window;
+
   CaptureDisplay get selected => displays.firstWhere((d) => d.id == selectedId);
 
   SourcesLoaded withArea(CaptureArea? area) =>
       SourcesLoaded(displays: displays, selectedId: selectedId, area: area);
 
+  SourcesLoaded withWindow(CaptureWindow? window) =>
+      SourcesLoaded(displays: displays, selectedId: selectedId, window: window);
+
   @override
-  List<Object?> get props => [displays, selectedId, area];
+  List<Object?> get props => [displays, selectedId, area, window];
 }
 
 final class SourcesFailed extends SourcesState {

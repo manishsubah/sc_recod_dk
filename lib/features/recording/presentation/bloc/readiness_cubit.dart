@@ -6,22 +6,47 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:reclite/core/constants/recording_defaults.dart';
 import 'package:reclite/core/errors/failures.dart';
 import 'package:reclite/features/recording/domain/entities/engine_info.dart';
+import 'package:reclite/features/recording/domain/entities/recording_options.dart';
 import 'package:reclite/features/recording/domain/entities/storage_info.dart';
 import 'package:reclite/features/recording/domain/repositories/engine_repository.dart';
 
 part 'readiness_state.dart';
 
 class ReadinessCubit extends Cubit<ReadinessState> {
-  ReadinessCubit(this._engine, {String? outputFolder})
-    : _outputFolder = outputFolder ?? RecordingDefaults.outputFolder(),
-      super(const ReadinessLoading());
+  ReadinessCubit(
+    this._engine, {
+    String? outputFolder,
+    this._options = const RecordingOptions(),
+  }) : _outputFolder = outputFolder ?? RecordingDefaults.outputFolder(),
+       super(const ReadinessLoading());
 
   final EngineRepository _engine;
-  final String _outputFolder;
+  String _outputFolder;
+  RecordingOptions _options;
 
   Future<void> load() async {
     emit(const ReadinessLoading());
     await _check();
+  }
+
+  Future<void> changeFolder(String folder) {
+    _outputFolder = folder;
+    return load();
+  }
+
+  void changeOptions(RecordingOptions options) {
+    _options = options;
+    final current = state;
+    if (current is ReadinessLoaded) {
+      emit(
+        ReadinessLoaded(
+          engine: current.engine,
+          storage: current.storage,
+          issues: current.issues,
+          options: options,
+        ),
+      );
+    }
   }
 
   /// Re-checks (e.g. free space after a recording) without showing a spinner.
@@ -38,6 +63,7 @@ class ReadinessCubit extends Cubit<ReadinessState> {
           engine: engine,
           storage: storage,
           issues: _findIssues(engine, storage),
+          options: _options,
         ),
       );
     } on ParallelWaitError<

@@ -15,9 +15,10 @@ class RecoveryCubit extends Cubit<RecoveryState> {
       super(const RecoveryIdle());
 
   final RecorderRepository _recorder;
-  final String _outputFolder;
+  String _outputFolder;
 
-  Future<void> check() async {
+  Future<void> check({String? folder}) async {
+    if (folder != null) _outputFolder = folder;
     try {
       final recovered = await _recorder.recover(_outputFolder);
       if (recovered.isNotEmpty) emit(RecoveryFound(recovered));

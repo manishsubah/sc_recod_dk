@@ -53,6 +53,9 @@ class SegmentedRecorder : public std::enable_shared_from_this<SegmentedRecorder>
   static constexpr int64_t kPrewarmLead = 10 * kTicksPerSecond;
   // With no new frames and no audio, the boundary is enforced this long after it passes.
   static constexpr int64_t kRotationGrace = 5'000'000;  // 500 ms
+  // A still screen is filled with repeats only this far behind now, so a frame
+  // still on its way from the GPU keeps its own slot.
+  static constexpr int64_t kStillFrameLag = 2'000'000;  // 200 ms
 
   static std::shared_ptr<SegmentedRecorder> Create(Settings settings, SerialQueue* queue,
                                                    IMFDXGIDeviceManager* manager,

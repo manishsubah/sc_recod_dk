@@ -66,10 +66,7 @@ class _LoadedView extends StatelessWidget {
         BlocListener<RecordingBloc, RecordingState>(
           listenWhen: (_, s) => s is RecordingFinished || s is RecordingFailed,
           listener: (context, _) => context.read<ReadinessCubit>().refresh(),
-          child: RecordingControls(
-            canRecord: state.canRecord,
-            outputFolder: storage.path,
-          ),
+          child: RecordingControls(canRecord: state.canRecord),
         ),
         const SizedBox(height: AppSpacing.xxl),
         Card(
@@ -114,7 +111,7 @@ class _LoadedView extends StatelessWidget {
                 InfoRow(
                   icon: Icons.content_cut_outlined,
                   label: 'Split every',
-                  value: formatSegmentLength(RecordingDefaults.segmentDuration),
+                  value: formatSegmentLength(state.options.segmentDuration),
                   showDivider: false,
                 ),
               ],

@@ -193,6 +193,18 @@ enum HostPlatform: Int, CaseIterable {
   case windows = 1
 }
 
+enum EngineTrayState: Int, CaseIterable {
+  case idle = 0
+  case recording = 1
+  case paused = 2
+}
+
+enum EngineTrayCommand: Int, CaseIterable {
+  case startStop = 0
+  case pauseResume = 1
+  case showWindow = 2
+}
+
 enum EngineRecordingPhase: Int, CaseIterable {
   case idle = 0
   case starting = 1
@@ -431,8 +443,132 @@ struct EngineCaptureArea: Hashable, CustomStringConvertible {
   }
 }
 
+/// An app window that can be recorded on its own.
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct EngineWindow: Hashable, CustomStringConvertible {
+  /// HWND on Windows, CGWindowID on macOS; valid while the window is open.
+  var id: Int64
+  var title: String
+  var appName: String
+  /// Pixels.
+  var width: Int64
+  var height: Int64
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> EngineWindow? {
+    let id = pigeonVar_list[0] as! Int64
+    let title = pigeonVar_list[1] as! String
+    let appName = pigeonVar_list[2] as! String
+    let width = pigeonVar_list[3] as! Int64
+    let height = pigeonVar_list[4] as! Int64
+
+    return EngineWindow(
+      id: id,
+      title: title,
+      appName: appName,
+      width: width,
+      height: height
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      id,
+      title,
+      appName,
+      width,
+      height,
+    ]
+  }
+  static func == (lhs: EngineWindow, rhs: EngineWindow) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return MessagesPigeonInternal.deepEquals(lhs.id, rhs.id) && MessagesPigeonInternal.deepEquals(lhs.title, rhs.title) && MessagesPigeonInternal.deepEquals(lhs.appName, rhs.appName) && MessagesPigeonInternal.deepEquals(lhs.width, rhs.width) && MessagesPigeonInternal.deepEquals(lhs.height, rhs.height)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("EngineWindow")
+    MessagesPigeonInternal.deepHash(value: id, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: title, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: appName, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: width, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: height, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "EngineWindow(id: \(String(describing: id)), title: \(String(describing: title)), appName: \(String(describing: appName)), width: \(String(describing: width)), height: \(String(describing: height)))"
+  }
+}
+
+/// A system-wide key combination, e.g. Ctrl+Alt+R.
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct EngineShortcut: Hashable, CustomStringConvertible {
+  /// "A"-"Z", "0"-"9" or "F1"-"F12".
+  var key: String
+  var control: Bool
+  /// Alt on Windows, Option on macOS.
+  var alt: Bool
+  var shift: Bool
+  /// Windows key on Windows, Command on macOS.
+  var meta: Bool
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> EngineShortcut? {
+    let key = pigeonVar_list[0] as! String
+    let control = pigeonVar_list[1] as! Bool
+    let alt = pigeonVar_list[2] as! Bool
+    let shift = pigeonVar_list[3] as! Bool
+    let meta = pigeonVar_list[4] as! Bool
+
+    return EngineShortcut(
+      key: key,
+      control: control,
+      alt: alt,
+      shift: shift,
+      meta: meta
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      key,
+      control,
+      alt,
+      shift,
+      meta,
+    ]
+  }
+  static func == (lhs: EngineShortcut, rhs: EngineShortcut) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return MessagesPigeonInternal.deepEquals(lhs.key, rhs.key) && MessagesPigeonInternal.deepEquals(lhs.control, rhs.control) && MessagesPigeonInternal.deepEquals(lhs.alt, rhs.alt) && MessagesPigeonInternal.deepEquals(lhs.shift, rhs.shift) && MessagesPigeonInternal.deepEquals(lhs.meta, rhs.meta)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("EngineShortcut")
+    MessagesPigeonInternal.deepHash(value: key, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: control, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: alt, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: shift, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: meta, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "EngineShortcut(key: \(String(describing: key)), control: \(String(describing: control)), alt: \(String(describing: alt)), shift: \(String(describing: shift)), meta: \(String(describing: meta)))"
+  }
+}
+
 /// Generated class from Pigeon that represents data sent in messages.
 struct EngineRecordingRequest: Hashable, CustomStringConvertible {
+  /// Records only this window (from listWindows); displayId and area are then
+  /// ignored. The video keeps the window's size from when recording started.
+  var windowId: Int64? = nil
+  /// Draws the mouse pointer into the video.
+  var showCursor: Bool
   var displayId: Int64
   /// Everything the computer plays (meetings, videos), excluding RecLite itself.
   var captureSystemAudio: Bool
@@ -451,16 +587,20 @@ struct EngineRecordingRequest: Hashable, CustomStringConvertible {
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
   static func fromList(_ pigeonVar_list: [Any?]) -> EngineRecordingRequest? {
-    let displayId = pigeonVar_list[0] as! Int64
-    let captureSystemAudio = pigeonVar_list[1] as! Bool
-    let captureMicrophone = pigeonVar_list[2] as! Bool
-    let segmentSeconds = pigeonVar_list[3] as! Int64
-    let area: EngineCaptureArea? = nilOrValue(pigeonVar_list[4])
-    let outputDirectory = pigeonVar_list[5] as! String
-    let framesPerSecond = pigeonVar_list[6] as! Int64
-    let maxHeight = pigeonVar_list[7] as! Int64
+    let windowId: Int64? = nilOrValue(pigeonVar_list[0])
+    let showCursor = pigeonVar_list[1] as! Bool
+    let displayId = pigeonVar_list[2] as! Int64
+    let captureSystemAudio = pigeonVar_list[3] as! Bool
+    let captureMicrophone = pigeonVar_list[4] as! Bool
+    let segmentSeconds = pigeonVar_list[5] as! Int64
+    let area: EngineCaptureArea? = nilOrValue(pigeonVar_list[6])
+    let outputDirectory = pigeonVar_list[7] as! String
+    let framesPerSecond = pigeonVar_list[8] as! Int64
+    let maxHeight = pigeonVar_list[9] as! Int64
 
     return EngineRecordingRequest(
+      windowId: windowId,
+      showCursor: showCursor,
       displayId: displayId,
       captureSystemAudio: captureSystemAudio,
       captureMicrophone: captureMicrophone,
@@ -473,6 +613,8 @@ struct EngineRecordingRequest: Hashable, CustomStringConvertible {
   }
   func toList() -> [Any?] {
     return [
+      windowId,
+      showCursor,
       displayId,
       captureSystemAudio,
       captureMicrophone,
@@ -487,11 +629,13 @@ struct EngineRecordingRequest: Hashable, CustomStringConvertible {
     if Swift.type(of: lhs) != Swift.type(of: rhs) {
       return false
     }
-    return MessagesPigeonInternal.deepEquals(lhs.displayId, rhs.displayId) && MessagesPigeonInternal.deepEquals(lhs.captureSystemAudio, rhs.captureSystemAudio) && MessagesPigeonInternal.deepEquals(lhs.captureMicrophone, rhs.captureMicrophone) && MessagesPigeonInternal.deepEquals(lhs.segmentSeconds, rhs.segmentSeconds) && MessagesPigeonInternal.deepEquals(lhs.area, rhs.area) && MessagesPigeonInternal.deepEquals(lhs.outputDirectory, rhs.outputDirectory) && MessagesPigeonInternal.deepEquals(lhs.framesPerSecond, rhs.framesPerSecond) && MessagesPigeonInternal.deepEquals(lhs.maxHeight, rhs.maxHeight)
+    return MessagesPigeonInternal.deepEquals(lhs.windowId, rhs.windowId) && MessagesPigeonInternal.deepEquals(lhs.showCursor, rhs.showCursor) && MessagesPigeonInternal.deepEquals(lhs.displayId, rhs.displayId) && MessagesPigeonInternal.deepEquals(lhs.captureSystemAudio, rhs.captureSystemAudio) && MessagesPigeonInternal.deepEquals(lhs.captureMicrophone, rhs.captureMicrophone) && MessagesPigeonInternal.deepEquals(lhs.segmentSeconds, rhs.segmentSeconds) && MessagesPigeonInternal.deepEquals(lhs.area, rhs.area) && MessagesPigeonInternal.deepEquals(lhs.outputDirectory, rhs.outputDirectory) && MessagesPigeonInternal.deepEquals(lhs.framesPerSecond, rhs.framesPerSecond) && MessagesPigeonInternal.deepEquals(lhs.maxHeight, rhs.maxHeight)
   }
 
   func hash(into hasher: inout Hasher) {
     hasher.combine("EngineRecordingRequest")
+    MessagesPigeonInternal.deepHash(value: windowId, hasher: &hasher)
+    MessagesPigeonInternal.deepHash(value: showCursor, hasher: &hasher)
     MessagesPigeonInternal.deepHash(value: displayId, hasher: &hasher)
     MessagesPigeonInternal.deepHash(value: captureSystemAudio, hasher: &hasher)
     MessagesPigeonInternal.deepHash(value: captureMicrophone, hasher: &hasher)
@@ -503,7 +647,7 @@ struct EngineRecordingRequest: Hashable, CustomStringConvertible {
   }
 
   public var description: String {
-    return "EngineRecordingRequest(displayId: \(String(describing: displayId)), captureSystemAudio: \(String(describing: captureSystemAudio)), captureMicrophone: \(String(describing: captureMicrophone)), segmentSeconds: \(String(describing: segmentSeconds)), area: \(String(describing: area)), outputDirectory: \(String(describing: outputDirectory)), framesPerSecond: \(String(describing: framesPerSecond)), maxHeight: \(String(describing: maxHeight)))"
+    return "EngineRecordingRequest(windowId: \(String(describing: windowId)), showCursor: \(String(describing: showCursor)), displayId: \(String(describing: displayId)), captureSystemAudio: \(String(describing: captureSystemAudio)), captureMicrophone: \(String(describing: captureMicrophone)), segmentSeconds: \(String(describing: segmentSeconds)), area: \(String(describing: area)), outputDirectory: \(String(describing: outputDirectory)), framesPerSecond: \(String(describing: framesPerSecond)), maxHeight: \(String(describing: maxHeight)))"
   }
 }
 
@@ -805,30 +949,46 @@ private class MessagesPigeonCodecReader: FlutterStandardReader {
     case 130:
       let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
       if let enumResultAsInt = enumResultAsInt {
-        return EngineRecordingPhase(rawValue: enumResultAsInt)
+        return EngineTrayState(rawValue: enumResultAsInt)
       }
       return nil
     case 131:
-      return EngineCapabilities.fromList(self.readValue() as! [Any?])
+      let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
+      if let enumResultAsInt = enumResultAsInt {
+        return EngineTrayCommand(rawValue: enumResultAsInt)
+      }
+      return nil
     case 132:
-      return DiskSpace.fromList(self.readValue() as! [Any?])
+      let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
+      if let enumResultAsInt = enumResultAsInt {
+        return EngineRecordingPhase(rawValue: enumResultAsInt)
+      }
+      return nil
     case 133:
-      return EngineDisplay.fromList(self.readValue() as! [Any?])
+      return EngineCapabilities.fromList(self.readValue() as! [Any?])
     case 134:
-      return EngineCaptureArea.fromList(self.readValue() as! [Any?])
+      return DiskSpace.fromList(self.readValue() as! [Any?])
     case 135:
-      return EngineRecordingRequest.fromList(self.readValue() as! [Any?])
+      return EngineDisplay.fromList(self.readValue() as! [Any?])
     case 136:
-      return EngineRecordingSession.fromList(self.readValue() as! [Any?])
+      return EngineCaptureArea.fromList(self.readValue() as! [Any?])
     case 137:
-      return EngineRecoveredSession.fromList(self.readValue() as! [Any?])
+      return EngineWindow.fromList(self.readValue() as! [Any?])
     case 138:
-      return EngineRecordingStatus.fromList(self.readValue() as! [Any?])
+      return EngineShortcut.fromList(self.readValue() as! [Any?])
     case 139:
-      return EngineRecordingResult.fromList(self.readValue() as! [Any?])
+      return EngineRecordingRequest.fromList(self.readValue() as! [Any?])
     case 140:
-      return EngineAudioLevels.fromList(self.readValue() as! [Any?])
+      return EngineRecordingSession.fromList(self.readValue() as! [Any?])
     case 141:
+      return EngineRecoveredSession.fromList(self.readValue() as! [Any?])
+    case 142:
+      return EngineRecordingStatus.fromList(self.readValue() as! [Any?])
+    case 143:
+      return EngineRecordingResult.fromList(self.readValue() as! [Any?])
+    case 144:
+      return EngineAudioLevels.fromList(self.readValue() as! [Any?])
+    case 145:
       return EngineError.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
@@ -841,41 +1001,53 @@ private class MessagesPigeonCodecWriter: FlutterStandardWriter {
     if let value = value as? HostPlatform {
       super.writeByte(129)
       super.writeValue(value.rawValue)
-    } else if let value = value as? EngineRecordingPhase {
+    } else if let value = value as? EngineTrayState {
       super.writeByte(130)
       super.writeValue(value.rawValue)
-    } else if let value = value as? EngineCapabilities {
+    } else if let value = value as? EngineTrayCommand {
       super.writeByte(131)
-      super.writeValue(value.toList())
-    } else if let value = value as? DiskSpace {
+      super.writeValue(value.rawValue)
+    } else if let value = value as? EngineRecordingPhase {
       super.writeByte(132)
-      super.writeValue(value.toList())
-    } else if let value = value as? EngineDisplay {
+      super.writeValue(value.rawValue)
+    } else if let value = value as? EngineCapabilities {
       super.writeByte(133)
       super.writeValue(value.toList())
-    } else if let value = value as? EngineCaptureArea {
+    } else if let value = value as? DiskSpace {
       super.writeByte(134)
       super.writeValue(value.toList())
-    } else if let value = value as? EngineRecordingRequest {
+    } else if let value = value as? EngineDisplay {
       super.writeByte(135)
       super.writeValue(value.toList())
-    } else if let value = value as? EngineRecordingSession {
+    } else if let value = value as? EngineCaptureArea {
       super.writeByte(136)
       super.writeValue(value.toList())
-    } else if let value = value as? EngineRecoveredSession {
+    } else if let value = value as? EngineWindow {
       super.writeByte(137)
       super.writeValue(value.toList())
-    } else if let value = value as? EngineRecordingStatus {
+    } else if let value = value as? EngineShortcut {
       super.writeByte(138)
       super.writeValue(value.toList())
-    } else if let value = value as? EngineRecordingResult {
+    } else if let value = value as? EngineRecordingRequest {
       super.writeByte(139)
       super.writeValue(value.toList())
-    } else if let value = value as? EngineAudioLevels {
+    } else if let value = value as? EngineRecordingSession {
       super.writeByte(140)
       super.writeValue(value.toList())
-    } else if let value = value as? EngineError {
+    } else if let value = value as? EngineRecoveredSession {
       super.writeByte(141)
+      super.writeValue(value.toList())
+    } else if let value = value as? EngineRecordingStatus {
+      super.writeByte(142)
+      super.writeValue(value.toList())
+    } else if let value = value as? EngineRecordingResult {
+      super.writeByte(143)
+      super.writeValue(value.toList())
+    } else if let value = value as? EngineAudioLevels {
+      super.writeByte(144)
+      super.writeValue(value.toList())
+    } else if let value = value as? EngineError {
+      super.writeByte(145)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -915,6 +1087,8 @@ protocol EngineHostApi {
   func requestMicrophonePermission() async throws -> Bool
   func openMicrophoneSettings() throws
   func listDisplays() async throws -> [EngineDisplay]
+  /// Open app windows that can be recorded, excluding RecLite's own.
+  func listWindows() async throws -> [EngineWindow]
   func startRecording(request: EngineRecordingRequest) async throws -> EngineRecordingSession
   /// Keeps capturing but stops writing; paused time is not part of the video.
   func pauseRecording() throws
@@ -924,6 +1098,20 @@ protocol EngineHostApi {
   /// part and marks the session as recovered. Skips the active recording.
   func recoverSessions(outputDirectory: String) async throws -> [EngineRecoveredSession]
   func revealInFileManager(path: String) throws
+  /// Opens a file or folder with its default app (e.g. an MP4 in the video player).
+  func openPath(path: String) throws
+  /// Moves a file or folder to the Recycle Bin / Trash, so it can be restored.
+  func moveToTrash(path: String) throws
+  /// Replaces all system-wide shortcuts; an empty list turns them off. Returns
+  /// the indexes of shortcuts that another app already uses.
+  func setGlobalShortcuts(shortcuts: [EngineShortcut]) throws -> [Int64]
+  /// Shrinks the main window to a small always-on-top bar at the top of its
+  /// screen (true), or restores its earlier size and position (false).
+  func setMiniWindow(mini: Bool) throws
+  /// Moves the window with the mouse; call while the mouse button is down.
+  func startWindowDrag() throws
+  /// Shows the tray (Windows) / menu-bar (macOS) icon for this state.
+  func setTrayState(state: EngineTrayState) throws
   /// Shows a drag-to-select overlay on the display. Null when the user cancels.
   func selectArea(displayId: Int64) async throws -> EngineCaptureArea?
 }
@@ -1059,6 +1247,22 @@ class EngineHostApiSetup {
     } else {
       listDisplaysChannel.setMessageHandler(nil)
     }
+    /// Open app windows that can be recorded, excluding RecLite's own.
+    let listWindowsChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.listWindows\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      listWindowsChannel.setMessageHandler { _, reply in
+        Task { @MainActor in
+          do {
+            let result = try await api.listWindows()
+            reply(wrapResult(result))
+          } catch {
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      listWindowsChannel.setMessageHandler(nil)
+    }
     let startRecordingChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.startRecording\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       startRecordingChannel.setMessageHandler { message, reply in
@@ -1152,6 +1356,102 @@ class EngineHostApiSetup {
     } else {
       revealInFileManagerChannel.setMessageHandler(nil)
     }
+    /// Opens a file or folder with its default app (e.g. an MP4 in the video player).
+    let openPathChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.openPath\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      openPathChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let pathArg = args[0] as! String
+        do {
+          try api.openPath(path: pathArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      openPathChannel.setMessageHandler(nil)
+    }
+    /// Moves a file or folder to the Recycle Bin / Trash, so it can be restored.
+    let moveToTrashChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.moveToTrash\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      moveToTrashChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let pathArg = args[0] as! String
+        do {
+          try api.moveToTrash(path: pathArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      moveToTrashChannel.setMessageHandler(nil)
+    }
+    /// Replaces all system-wide shortcuts; an empty list turns them off. Returns
+    /// the indexes of shortcuts that another app already uses.
+    let setGlobalShortcutsChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.setGlobalShortcuts\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setGlobalShortcutsChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let shortcutsArg = args[0] as! [EngineShortcut]
+        do {
+          let result = try api.setGlobalShortcuts(shortcuts: shortcutsArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setGlobalShortcutsChannel.setMessageHandler(nil)
+    }
+    /// Shrinks the main window to a small always-on-top bar at the top of its
+    /// screen (true), or restores its earlier size and position (false).
+    let setMiniWindowChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.setMiniWindow\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setMiniWindowChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let miniArg = args[0] as! Bool
+        do {
+          try api.setMiniWindow(mini: miniArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setMiniWindowChannel.setMessageHandler(nil)
+    }
+    /// Moves the window with the mouse; call while the mouse button is down.
+    let startWindowDragChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.startWindowDrag\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      startWindowDragChannel.setMessageHandler { _, reply in
+        do {
+          try api.startWindowDrag()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      startWindowDragChannel.setMessageHandler(nil)
+    }
+    /// Shows the tray (Windows) / menu-bar (macOS) icon for this state.
+    let setTrayStateChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.setTrayState\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setTrayStateChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let stateArg = args[0] as! EngineTrayState
+        do {
+          try api.setTrayState(state: stateArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setTrayStateChannel.setMessageHandler(nil)
+    }
     /// Shows a drag-to-select overlay on the display. Null when the user cancels.
     let selectAreaChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.selectArea\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
@@ -1181,6 +1481,11 @@ protocol EngineEventsApiProtocol {
   @MainActor func onError(error errorArg: EngineError) async throws
   /// About 15 times per second while recording with audio.
   @MainActor func onAudioLevels(levels levelsArg: EngineAudioLevels) async throws
+  /// A shortcut from setGlobalShortcuts was pressed (index into that list).
+  @MainActor func onShortcut(index indexArg: Int64) async throws
+  /// A tray / menu-bar menu item was chosen. For showWindow the engine has
+  /// already brought the window to the front.
+  @MainActor func onTrayCommand(command commandArg: EngineTrayCommand) async throws
 }
 class EngineEventsApi: EngineEventsApiProtocol {
   private let binaryMessenger: FlutterBinaryMessenger
@@ -1238,6 +1543,49 @@ class EngineEventsApi: EngineEventsApiProtocol {
       let channelName: String = "dev.flutter.pigeon.reclite_engine.EngineEventsApi.onAudioLevels\(messageChannelSuffix)"
       let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
       channel.sendMessage([levelsArg] as [Any?]) { response in
+        guard let listResponse = response as? [Any?] else {
+          continuation.resume(throwing: createConnectionError(withChannelName: channelName))
+          return
+        }
+        if listResponse.count > 1 {
+          let code: String = listResponse[0] as! String
+          let message: String? = nilOrValue(listResponse[1])
+          let details: String? = nilOrValue(listResponse[2])
+          continuation.resume(throwing: PigeonError(code: code, message: message, details: details))
+        } else {
+          continuation.resume()
+        }
+      }
+    }
+  }
+  /// A shortcut from setGlobalShortcuts was pressed (index into that list).
+  @MainActor func onShortcut(index indexArg: Int64) async throws {
+    return try await withCheckedThrowingContinuation { continuation in
+      let channelName: String = "dev.flutter.pigeon.reclite_engine.EngineEventsApi.onShortcut\(messageChannelSuffix)"
+      let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+      channel.sendMessage([indexArg] as [Any?]) { response in
+        guard let listResponse = response as? [Any?] else {
+          continuation.resume(throwing: createConnectionError(withChannelName: channelName))
+          return
+        }
+        if listResponse.count > 1 {
+          let code: String = listResponse[0] as! String
+          let message: String? = nilOrValue(listResponse[1])
+          let details: String? = nilOrValue(listResponse[2])
+          continuation.resume(throwing: PigeonError(code: code, message: message, details: details))
+        } else {
+          continuation.resume()
+        }
+      }
+    }
+  }
+  /// A tray / menu-bar menu item was chosen. For showWindow the engine has
+  /// already brought the window to the front.
+  @MainActor func onTrayCommand(command commandArg: EngineTrayCommand) async throws {
+    return try await withCheckedThrowingContinuation { continuation in
+      let channelName: String = "dev.flutter.pigeon.reclite_engine.EngineEventsApi.onTrayCommand\(messageChannelSuffix)"
+      let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+      channel.sendMessage([commandArg] as [Any?]) { response in
         guard let listResponse = response as? [Any?] else {
           continuation.resume(throwing: createConnectionError(withChannelName: channelName))
           return

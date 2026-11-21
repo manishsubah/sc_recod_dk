@@ -108,7 +108,7 @@ std::unique_ptr<SegmentWriter> SegmentWriter::Create(int index,
   segment->part_path_ = final_path;
   segment->part_path_ += L".part";
   segment->format_ = format;
-  segment->frame_duration_ = kTicksPerSecond / std::max(1, format.frames_per_second);
+  segment->format_.frames_per_second = std::max(1, format.frames_per_second);
 
   ComPtr<IMFAttributes> attributes;
   HRESULT hr = ::MFCreateAttributes(&attributes, 5);
@@ -163,15 +163,49 @@ void SegmentWriter::AppendVideo(ID3D11Texture2D* nv12, int64_t time) {
   if (time < session_start_ || time <= last_video_time_) {
     return;
   }
-  if (!WriteVideoSample(nv12, time - session_start_)) {
-    ++dropped_frames_;
-    return;
-  }
   last_video_time_ = time;
+  const int64_t slot = SlotOf(time);
+  if (slot >= next_slot_) {
+    FillTo(slot);
+    if (!WriteSlot(nv12)) {
+      ++dropped_frames_;
+    }
+  }
+  // A frame landing in an already written slot shows from the next slot on.
   last_frame_ = nv12;
 }
 
-bool SegmentWriter::WriteVideoSample(ID3D11Texture2D* nv12, int64_t relative_time) {
+void SegmentWriter::FillUntil(int64_t time) {
+  if (session_start_ >= 0 && time > session_start_) {
+    FillTo(SlotOf(time));
+  }
+}
+
+int64_t SegmentWriter::SlotOf(int64_t time) const {
+  return (time - session_start_) * format_.frames_per_second / kTicksPerSecond;
+}
+
+int64_t SegmentWriter::SlotTime(int64_t slot) const {
+  return slot * kTicksPerSecond / format_.frames_per_second;
+}
+
+void SegmentWriter::FillTo(int64_t slot) {
+  while (last_frame_ && next_slot_ < slot && !failed()) {
+    WriteSlot(last_frame_.Get());
+  }
+}
+
+bool SegmentWriter::WriteSlot(ID3D11Texture2D* nv12) {
+  const int64_t start = SlotTime(next_slot_);
+  if (!WriteVideoSample(nv12, start, SlotTime(next_slot_ + 1) - start)) {
+    return false;
+  }
+  ++next_slot_;
+  return true;
+}
+
+bool SegmentWriter::WriteVideoSample(ID3D11Texture2D* nv12, int64_t relative_time,
+                                     int64_t duration) {
   ComPtr<IMFMediaBuffer> buffer;
   HRESULT hr = ::MFCreateDXGISurfaceBuffer(__uuidof(ID3D11Texture2D), nv12, 0, FALSE, &buffer);
   ComPtr<IMF2DBuffer> buffer_2d;
@@ -183,7 +217,7 @@ bool SegmentWriter::WriteVideoSample(ID3D11Texture2D* nv12, int64_t relative_tim
   if (SUCCEEDED(hr)) hr = ::MFCreateSample(&sample);
   if (SUCCEEDED(hr)) hr = sample->AddBuffer(buffer.Get());
   if (SUCCEEDED(hr)) hr = sample->SetSampleTime(relative_time);
-  if (SUCCEEDED(hr)) hr = sample->SetSampleDuration(frame_duration_);
+  if (SUCCEEDED(hr)) hr = sample->SetSampleDuration(duration);
   if (SUCCEEDED(hr)) hr = writer_->WriteSample(video_stream_, sample.Get());
   if (FAILED(hr)) {
     Fail("The video encoder stopped", hr);
@@ -250,12 +284,9 @@ bool SegmentWriter::Finish(int64_t end, std::string* error) {
     *error = "No video frames were captured.";
     return false;
   }
-  // Media Foundation ends the file at the last sample, so repeat the last picture
-  // as the final frame to keep a still screen's full length.
-  const int64_t final_frame = end - frame_duration_;
-  if (last_frame_ && final_frame > last_video_time_) {
-    WriteVideoSample(last_frame_.Get(), final_frame - session_start_);
-  }
+  // Repeat the last picture up to `end` so a still screen keeps its full length.
+  const int64_t slot_length = SlotTime(1);
+  FillTo(SlotOf(std::max(end, last_video_time_) + slot_length - 1));
   last_frame_.Reset();
 
   const HRESULT hr = writer_->Finalize();

@@ -99,6 +99,14 @@ void SegmentedRecorder::Tick(int64_t host_now) {
     return;
   }
   PumpAudio(host_now);
+  if (!paused_at_) {
+    writer_->FillUntil(Media(host_now) - kStillFrameLag);
+    if (writer_->failed()) {
+      Fail(writer_->failure());
+      PublishStats(host_now);
+      return;
+    }
+  }
   if (const auto edge = boundary()) {
     const int64_t now = Media(paused_at_.value_or(host_now));
     const int64_t until_boundary = *edge - now;

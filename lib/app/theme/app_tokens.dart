@@ -46,6 +46,8 @@ abstract final class AppRadius {
 abstract final class AppLayout {
   static const double contentMaxWidth = 760;
   static const double labelColumnWidth = 150;
+  static const double windowLabelMaxWidth = 260;
+  static const double windowPickerWidth = 480;
 }
 
 abstract final class AppColors {

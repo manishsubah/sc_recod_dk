@@ -6,19 +6,18 @@ abstract final class RecordingDefaults {
   static const Duration standardSegmentDuration = Duration(minutes: 15);
 
   /// Debug builds accept `RECLITE_SEGMENT_SECONDS` so part switching can be tested
-  /// without waiting 15 minutes. Release builds always use 15 minutes.
-  static Duration get segmentDuration {
-    if (kDebugMode) {
-      final seconds = int.tryParse(
-        Platform.environment['RECLITE_SEGMENT_SECONDS'] ?? '',
-      );
-      if (seconds != null && seconds >= 5) return Duration(seconds: seconds);
-    }
-    return standardSegmentDuration;
+  /// without waiting; it wins over the Settings choice. Null in release builds.
+  static Duration? get debugSegmentOverride {
+    if (!kDebugMode) return null;
+    final seconds = int.tryParse(
+      Platform.environment['RECLITE_SEGMENT_SECONDS'] ?? '',
+    );
+    return seconds != null && seconds >= 5 ? Duration(seconds: seconds) : null;
   }
 
-  static const int framesPerSecond = 30;
-  static const int maxOutputHeight = 1440;
+  static const List<int> segmentMinuteChoices = [5, 10, 15, 30, 60];
+  static const List<int> maxHeightChoices = [720, 1080, 1440];
+  static const List<int> framesPerSecondChoices = [30, 60];
 
   // Rough 1080p30 H.264 bitrate for the "time left" hint only.
   static const int estimatedBytesPerHour = 1200 * 1000 * 1000;

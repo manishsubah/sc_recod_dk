@@ -122,7 +122,14 @@ ComPtr<ID3D11Texture2D> FrameConverter::Convert(ID3D11Texture2D* bgra) {
   if (desc.Width == input_width_ && desc.Height == input_height_) {
     context_->CopyResource(input_.Get(), bgra);
   } else {
-    // The capture surface can briefly differ in size (e.g. resolution change).
+    // A resized window or a resolution change: black where the frame has no
+    // pixels, so an old picture never shows through.
+    if (!input_target_ &&
+        FAILED(device_->CreateRenderTargetView(input_.Get(), nullptr, &input_target_))) {
+      return nullptr;
+    }
+    const float black[4] = {0, 0, 0, 1};
+    context_->ClearRenderTargetView(input_target_.Get(), black);
     const D3D11_BOX box{0, 0, 0, std::min(desc.Width, input_width_),
                         std::min(desc.Height, input_height_), 1};
     context_->CopySubresourceRegion(input_.Get(), 0, 0, 0, 0, bgra, 0, &box);

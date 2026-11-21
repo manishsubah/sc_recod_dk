@@ -12,7 +12,7 @@
 
 namespace reclite_engine {
 
-// One monitor captured with Windows Graphics Capture. Frames arrive only when the
+// One monitor or one window captured with Windows Graphics Capture. Frames arrive only when the
 // screen changes (variable frame rate), on a capture thread.
 class ScreenCapture {
  public:
@@ -24,16 +24,25 @@ class ScreenCapture {
 
   static std::unique_ptr<ScreenCapture> Create(HMONITOR monitor, ID3D11Device* device,
                                                std::string* error);
+  static std::unique_ptr<ScreenCapture> CreateForWindow(HWND window, ID3D11Device* device,
+                                                        std::string* error);
   ~ScreenCapture();
 
+  // Size when capture was created; a window may be resized later.
   int width() const { return width_; }
   int height() const { return height_; }
 
-  bool Start(FrameHandler handler, std::string* error);
+  // Called once, on a capture thread, when the captured window closes.
+  void SetClosedHandler(std::function<void()> on_closed);
+
+  bool Start(bool show_cursor, FrameHandler handler, std::string* error);
   void Stop();
 
  private:
   ScreenCapture() = default;
+  static std::unique_ptr<ScreenCapture> CreateFor(
+      const std::function<void(ScreenCapture&)>& make_item, ID3D11Device* device,
+      std::string* error);
 
   struct WinRtState;
   std::unique_ptr<WinRtState> state_;

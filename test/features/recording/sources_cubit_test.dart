@@ -133,4 +133,35 @@ void main() {
       expect: () => [const SourcesLoading(), loaded.withArea(testArea)],
     );
   });
+
+  group('window', () {
+    blocTest<SourcesCubit, SourcesState>(
+      'choosing a window replaces the area, full screen clears it',
+      build: build,
+      seed: () => const SourcesLoaded(
+        displays: testDisplays,
+        selectedId: 1,
+        area: testArea,
+      ),
+      act: (c) {
+        c
+          ..selectWindow(testWindow)
+          ..useFullScreen();
+      },
+      expect: () => [
+        const SourcesLoaded(
+          displays: testDisplays,
+          selectedId: 1,
+          window: testWindow,
+        ),
+        const SourcesLoaded(displays: testDisplays, selectedId: 1),
+      ],
+    );
+
+    test('an engine error lists no windows instead of failing', () async {
+      when(() => repo.listWindows())
+          .thenThrow(const EngineFailure('Screen capture failed.'));
+      expect(await build().availableWindows(), isEmpty);
+    });
+  });
 }

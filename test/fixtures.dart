@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:reclite/features/recording/domain/entities/audio_levels.dart';
 import 'package:reclite/features/recording/domain/entities/capture_area.dart';
 import 'package:reclite/features/recording/domain/entities/capture_display.dart';
+import 'package:reclite/features/recording/domain/entities/capture_window.dart';
 import 'package:reclite/features/recording/domain/entities/engine_info.dart';
 import 'package:reclite/features/recording/domain/entities/recording_config.dart';
 import 'package:reclite/features/recording/domain/entities/recording_interruption.dart';
@@ -40,6 +41,14 @@ extension EngineInfoCopy on EngineInfo {
         engineVersion: engineVersion,
       );
 }
+
+const testWindow = CaptureWindow(
+  id: 7340032,
+  title: 'Quarterly review - Slides',
+  appName: 'chrome',
+  width: 1600,
+  height: 900,
+);
 
 const testDisplays = [
   CaptureDisplay(
@@ -162,6 +171,11 @@ class FakeRecorderRepository implements RecorderRepository {
 
   @override
   Future<List<CaptureDisplay>> listDisplays() async => testDisplays;
+
+  List<CaptureWindow> windows = const [testWindow];
+
+  @override
+  Future<List<CaptureWindow>> listWindows() async => windows;
 
   @override
   Future<void> start(RecordingConfig config) async => startCalls.add(config);

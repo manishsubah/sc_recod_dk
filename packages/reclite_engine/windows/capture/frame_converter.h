@@ -32,6 +32,7 @@ class FrameConverter {
   ComPtr<ID3D11VideoProcessor> processor_;
   ComPtr<ID3D11Texture2D> input_;
   ComPtr<ID3D11VideoProcessorInputView> input_view_;
+  ComPtr<ID3D11RenderTargetView> input_target_;
   UINT input_width_ = 0;
   UINT input_height_ = 0;
   UINT output_width_ = 0;

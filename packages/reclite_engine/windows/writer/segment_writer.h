@@ -56,10 +56,12 @@ class SegmentWriter {
   // Later parts start exactly at the boundary instead of at their first frame.
   void StartSession(int64_t time);
   void AppendVideo(ID3D11Texture2D* nv12, int64_t time);
+  // Repeats the last picture for every slot before `time` (called while the screen is still).
+  void FillUntil(int64_t time);
   void AppendAudio(const std::vector<float>& samples, int64_t time);
   int64_t DurationUntil(int64_t end) const;
 
-  // Repeats the last frame up to `end` (a still screen keeps its length), finalizes
+  // Writes the held last frame lasting until `end` (a still screen keeps its length), finalizes
   // and renames the file. Blocking.
   bool Finish(int64_t end, std::string* error);
 
@@ -68,7 +70,11 @@ class SegmentWriter {
 
  private:
   SegmentWriter() = default;
-  bool WriteVideoSample(ID3D11Texture2D* nv12, int64_t relative_time);
+  int64_t SlotOf(int64_t time) const;
+  int64_t SlotTime(int64_t slot) const;
+  void FillTo(int64_t slot);
+  bool WriteSlot(ID3D11Texture2D* nv12);
+  bool WriteVideoSample(ID3D11Texture2D* nv12, int64_t relative_time, int64_t duration);
   void Fail(const std::string& message, long hr);
 
   int index_ = 0;
@@ -78,10 +84,13 @@ class SegmentWriter {
   ComPtr<IMFSinkWriter> writer_;
   DWORD video_stream_ = 0;
   DWORD audio_stream_ = 0;
-  int64_t frame_duration_ = 0;
   int64_t session_start_ = -1;
   int64_t last_video_time_ = -1;
   int64_t next_audio_time_ = -1;
+  // Media Foundation's H.264 encoder stamps the Nth frame at N / fps whatever time it
+  // is given, so video is written at a constant rate: one frame per slot, with the
+  // last picture repeated for slots where the screen did not change.
+  int64_t next_slot_ = 0;
   ComPtr<ID3D11Texture2D> last_frame_;
   int dropped_frames_ = 0;
   std::string failure_;

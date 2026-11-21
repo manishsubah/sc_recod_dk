@@ -4,11 +4,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:reclite/core/errors/failures.dart';
 import 'package:reclite/features/recording/domain/entities/capture_area.dart';
 import 'package:reclite/features/recording/domain/entities/capture_display.dart';
+import 'package:reclite/features/recording/domain/entities/capture_window.dart';
 import 'package:reclite/features/recording/domain/repositories/recorder_repository.dart';
 
 part 'sources_state.dart';
 
-/// Screen permission gate, display picker and optional area.
+/// Screen permission gate, display picker and optional area or window.
 class SourcesCubit extends Cubit<SourcesState> {
   SourcesCubit(this._recorder) : super(const SourcesLoading());
 
@@ -91,8 +92,23 @@ class SourcesCubit extends Cubit<SourcesState> {
 
   void useFullScreen() {
     final current = state;
-    if (current is SourcesLoaded && current.area != null) {
+    if (current is SourcesLoaded &&
+        (current.area != null || current.window != null)) {
       emit(current.withArea(null));
     }
+  }
+
+  /// Windows to choose from; empty when they can't be listed.
+  Future<List<CaptureWindow>> availableWindows() async {
+    try {
+      return await _recorder.listWindows();
+    } on Failure {
+      return const [];
+    }
+  }
+
+  void selectWindow(CaptureWindow window) {
+    final current = state;
+    if (current is SourcesLoaded) emit(current.withWindow(window));
   }
 }

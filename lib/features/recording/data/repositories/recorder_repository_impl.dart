@@ -3,6 +3,7 @@ import 'package:reclite/core/errors/failures.dart';
 import 'package:reclite/features/recording/domain/entities/audio_levels.dart';
 import 'package:reclite/features/recording/domain/entities/capture_area.dart';
 import 'package:reclite/features/recording/domain/entities/capture_display.dart';
+import 'package:reclite/features/recording/domain/entities/capture_window.dart';
 import 'package:reclite/features/recording/domain/entities/recording_config.dart';
 import 'package:reclite/features/recording/domain/entities/recording_interruption.dart';
 import 'package:reclite/features/recording/domain/entities/recording_result.dart';
@@ -69,6 +70,21 @@ class RecorderRepositoryImpl implements RecorderRepository {
   });
 
   @override
+  Future<List<CaptureWindow>> listWindows() => _guard(() async {
+    final windows = await _engine.listWindows();
+    return [
+      for (final w in windows)
+        CaptureWindow(
+          id: w.id,
+          title: w.title,
+          appName: w.appName,
+          width: w.width,
+          height: w.height,
+        ),
+    ];
+  });
+
+  @override
   Future<void> start(RecordingConfig config) => _guard(
     () => _engine.startRecording(
       EngineRecordingRequest(
@@ -79,6 +95,8 @@ class RecorderRepositoryImpl implements RecorderRepository {
         captureSystemAudio: config.captureSystemAudio,
         captureMicrophone: config.captureMicrophone,
         segmentSeconds: config.segmentDuration.inSeconds,
+        showCursor: config.showCursor,
+        windowId: config.windowId,
         area: switch (config.area) {
           final a? => EngineCaptureArea(
             x: a.x,

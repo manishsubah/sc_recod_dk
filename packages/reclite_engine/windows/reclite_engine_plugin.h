@@ -10,6 +10,9 @@
 
 #include "engine/recording_engine.h"
 #include "messages.g.h"
+#include "ui/global_shortcuts.h"
+#include "ui/tray_icon.h"
+#include "ui/window_controller.h"
 
 namespace reclite_engine {
 
@@ -34,6 +37,8 @@ class RecliteEnginePlugin : public flutter::Plugin, public EngineHostApi {
   std::optional<FlutterError> OpenMicrophoneSettings() override;
   void ListDisplays(
       std::function<void(ErrorOr<flutter::EncodableList> reply)> result) override;
+  void ListWindows(
+      std::function<void(ErrorOr<flutter::EncodableList> reply)> result) override;
   void StartRecording(
       const EngineRecordingRequest& request,
       std::function<void(ErrorOr<EngineRecordingSession> reply)> result) override;
@@ -45,6 +50,13 @@ class RecliteEnginePlugin : public flutter::Plugin, public EngineHostApi {
       const std::string& output_directory,
       std::function<void(ErrorOr<flutter::EncodableList> reply)> result) override;
   std::optional<FlutterError> RevealInFileManager(const std::string& path) override;
+  std::optional<FlutterError> OpenPath(const std::string& path) override;
+  std::optional<FlutterError> MoveToTrash(const std::string& path) override;
+  ErrorOr<flutter::EncodableList> SetGlobalShortcuts(
+      const flutter::EncodableList& shortcuts) override;
+  std::optional<FlutterError> SetMiniWindow(bool mini) override;
+  std::optional<FlutterError> StartWindowDrag() override;
+  std::optional<FlutterError> SetTrayState(const EngineTrayState& state) override;
   void SelectArea(
       int64_t display_id,
       std::function<void(ErrorOr<std::optional<EngineCaptureArea>> reply)>
@@ -52,6 +64,10 @@ class RecliteEnginePlugin : public flutter::Plugin, public EngineHostApi {
 
  private:
   std::unique_ptr<RecordingEngine> engine_;
+  std::unique_ptr<EngineEventsApi> events_;
+  std::unique_ptr<GlobalShortcuts> shortcuts_;
+  std::unique_ptr<WindowController> window_;
+  std::unique_ptr<TrayIcon> tray_;
 };
 
 }  // namespace reclite_engine

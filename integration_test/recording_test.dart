@@ -43,6 +43,7 @@ void main() {
         maxHeight: 1080,
         captureSystemAudio: true,
         captureMicrophone: false,
+        showCursor: true,
         segmentSeconds: 900,
       ),
     );

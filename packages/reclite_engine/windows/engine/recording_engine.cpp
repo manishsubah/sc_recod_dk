@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "../capture/display_catalog.h"
+#include "../capture/window_catalog.h"
 #include "../core/clock.h"
 #include "../core/strings.h"
 #include "../storage/disk_guard.h"
@@ -91,6 +92,19 @@ ErrorOr<flutter::EncodableList> RecordingEngine::ListDisplays() {
   return list;
 }
 
+ErrorOr<flutter::EncodableList> RecordingEngine::ListWindows() {
+  if (!ScreenCapture::IsSupported()) {
+    return Error("unsupported", "This version of Windows can't record the screen.");
+  }
+  flutter::EncodableList list;
+  for (const auto& window : ListCaptureWindows(::GetCurrentProcessId())) {
+    list.push_back(flutter::CustomEncodableValue(EngineWindow(
+        static_cast<int64_t>(reinterpret_cast<intptr_t>(window.hwnd)), window.title,
+        window.app_name, window.width, window.height)));
+  }
+  return list;
+}
+
 void RecordingEngine::SelectArea(
     int64_t display_id,
     std::function<void(ErrorOr<std::optional<EngineCaptureArea>>)> result) {
@@ -123,10 +137,23 @@ void RecordingEngine::Start(const EngineRecordingRequest& request,
     result(Error("unsupported", "This version of Windows can't record the screen."));
     return;
   }
-  const auto display = FindDisplay(request.display_id());
-  if (!display) {
-    result(Error("display_not_found", "The selected display is not available."));
-    return;
+  // A window recording ignores the display and area.
+  const int64_t* window_id = request.window_id();
+  const HWND window =
+      window_id != nullptr ? reinterpret_cast<HWND>(static_cast<intptr_t>(*window_id)) : nullptr;
+  std::optional<DisplayInfo> display;
+  if (window != nullptr) {
+    if (!IsRecordableWindow(window)) {
+      result(Error("window_not_found",
+                   "The selected window was closed or minimized. Pick it again."));
+      return;
+    }
+  } else {
+    display = FindDisplay(request.display_id());
+    if (!display) {
+      result(Error("display_not_found", "The selected display is not available."));
+      return;
+    }
   }
   if (request.capture_microphone() && !WasapiSource::MicrophoneAccessible()) {
     result(Error("microphone_permission_denied",
@@ -136,8 +163,9 @@ void RecordingEngine::Start(const EngineRecordingRequest& request,
   }
 
   // The area is in physical pixels relative to the monitor (what the overlay returns).
-  RECT source{0, 0, display->width(), display->height()};
-  if (const EngineCaptureArea* area = request.area()) {
+  RECT source{0, 0, display ? display->width() : 0, display ? display->height() : 0};
+  const EngineCaptureArea* area = window != nullptr ? nullptr : request.area();
+  if (area != nullptr) {
     RECT wanted{static_cast<LONG>(area->x()), static_cast<LONG>(area->y()),
                 static_cast<LONG>(area->x() + area->width()),
                 static_cast<LONG>(area->y() + area->height())};
@@ -180,10 +208,16 @@ void RecordingEngine::Start(const EngineRecordingRequest& request,
     fail("capture_failed", error);
     return;
   }
-  session->capture = ScreenCapture::Create(display->monitor, session->gpu->device(), &error);
+  session->capture =
+      window != nullptr
+          ? ScreenCapture::CreateForWindow(window, session->gpu->device(), &error)
+          : ScreenCapture::Create(display->monitor, session->gpu->device(), &error);
   if (!session->capture) {
     fail("capture_failed", error);
     return;
+  }
+  if (window != nullptr) {
+    source = {0, 0, session->capture->width(), session->capture->height()};
   }
 
   const int source_width = source.right - source.left;
@@ -262,9 +296,9 @@ void RecordingEngine::Start(const EngineRecordingRequest& request,
   manifest.session_id = WideToUtf8(stamp);
   manifest.started_at = session_naming::UtcNow();
   manifest.status = "recording";
-  manifest.source_type = request.area() ? "area" : "display";
-  manifest.source_name = display->name;
-  if (request.area()) {
+  manifest.source_type = window != nullptr ? "window" : area != nullptr ? "area" : "display";
+  manifest.source_name = window != nullptr ? WindowTitle(window) : display->name;
+  if (area != nullptr) {
     manifest.area = {static_cast<double>(source.left), static_cast<double>(source.top),
                      static_cast<double>(source_width), static_cast<double>(source_height)};
   }
@@ -304,11 +338,23 @@ void RecordingEngine::Start(const EngineRecordingRequest& request,
     return;
   }
 
+  if (window != nullptr) {
+    session->capture->SetClosedHandler([this, alive] {
+      dispatcher_.Post([this, alive] {
+        if (!alive.expired()) {
+          EndAfterFailure("window_closed",
+                          "The recorded window was closed. Everything until then was saved.");
+        }
+      });
+    });
+  }
+
   // Frames: converted on the capture thread (GPU), encoded on the queue.
   session->frames_in_flight = std::make_shared<std::atomic<int>>(0);
   auto converter = session->converter;
   auto in_flight = session->frames_in_flight;
   const bool started = session->capture->Start(
+      request.show_cursor(),
       [converter, recorder, queue, in_flight](ID3D11Texture2D* frame, int64_t time) {
         if (in_flight->load() >= kMaxFramesInFlight) {
           return;  // The encoder is behind: drop rather than queue.
@@ -334,7 +380,7 @@ void RecordingEngine::Start(const EngineRecordingRequest& request,
   if (session->excluded_window != nullptr) {
     ::SetWindowDisplayAffinity(session->excluded_window, WDA_EXCLUDEFROMCAPTURE);
   }
-  if (request.area()) {
+  if (area != nullptr) {
     highlight_.Show(display->monitor, source);
   }
   ::SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);

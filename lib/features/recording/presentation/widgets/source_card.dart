@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reclite/app/theme/app_tokens.dart';
+import 'package:reclite/features/recording/domain/entities/capture_window.dart';
 import 'package:reclite/features/recording/presentation/bloc/recording_bloc.dart';
 import 'package:reclite/features/recording/presentation/bloc/sources_cubit.dart';
 
@@ -121,20 +122,51 @@ class _DisplayPicker extends StatelessWidget {
                         icon: Icon(Icons.highlight_alt),
                         label: Text('Area'),
                       ),
+                      ButtonSegment(
+                        value: _CaptureMode.window,
+                        icon: Icon(Icons.web_asset),
+                        label: Text('Window'),
+                      ),
                     ],
                     selected: {
-                      state.area == null
-                          ? _CaptureMode.fullScreen
-                          : _CaptureMode.area,
+                      state.window != null
+                          ? _CaptureMode.window
+                          : state.area != null
+                          ? _CaptureMode.area
+                          : _CaptureMode.fullScreen,
                     },
                     onSelectionChanged: busy
                         ? null
                         : (selection) => switch (selection.first) {
                             _CaptureMode.fullScreen => cubit.useFullScreen(),
                             _CaptureMode.area => cubit.selectArea(),
+                            _CaptureMode.window => _pickWindow(context),
                           },
                   ),
-                  if (state.area case final area?)
+                  if (state.window case final window?)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxWidth: AppLayout.windowLabelMaxWidth,
+                          ),
+                          child: Text(
+                            window.label,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: busy ? null : () => _pickWindow(context),
+                          icon: const Icon(Icons.edit_outlined),
+                          label: const Text('Change'),
+                        ),
+                      ],
+                    )
+                  else if (state.area case final area?)
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -153,7 +185,8 @@ class _DisplayPicker extends StatelessWidget {
                     )
                   else
                     Text(
-                      'Choose Area to drag a rectangle on the screen.',
+                      'Choose Area to drag a rectangle, or Window to record '
+                      'one app.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -168,7 +201,64 @@ class _DisplayPicker extends StatelessWidget {
   }
 }
 
-enum _CaptureMode { fullScreen, area }
+enum _CaptureMode { fullScreen, area, window }
+
+Future<void> _pickWindow(BuildContext context) async {
+  final cubit = context.read<SourcesCubit>();
+  final windows = await cubit.availableWindows();
+  if (!context.mounted) return;
+  final chosen = await showDialog<CaptureWindow>(
+    context: context,
+    builder: (context) => _WindowPickerDialog(windows: windows),
+  );
+  if (chosen != null) cubit.selectWindow(chosen);
+}
+
+class _WindowPickerDialog extends StatelessWidget {
+  const _WindowPickerDialog({required this.windows});
+
+  final List<CaptureWindow> windows;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return AlertDialog(
+      title: const Text('Record a window'),
+      content: SizedBox(
+        width: AppLayout.windowPickerWidth,
+        child: windows.isEmpty
+            ? const Text(
+                'No windows to record. Open the app you want to record '
+                '(not minimized) and try again.',
+              )
+            : ListView(
+                shrinkWrap: true,
+                children: [
+                  for (final w in windows)
+                    ListTile(
+                      leading: const Icon(Icons.web_asset),
+                      title: Text(w.title, overflow: TextOverflow.ellipsis),
+                      subtitle: Text(
+                        [
+                          if (w.appName.isNotEmpty) w.appName,
+                          '${w.width} × ${w.height}',
+                        ].join(' · '),
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      onTap: () => Navigator.pop(context, w),
+                    ),
+                ],
+              ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+      ],
+    );
+  }
+}
 
 class _RowLabel extends StatelessWidget {
   const _RowLabel({required this.icon, required this.label});

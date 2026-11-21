@@ -1,6 +1,7 @@
 import 'package:reclite/features/recording/domain/entities/audio_levels.dart';
 import 'package:reclite/features/recording/domain/entities/capture_area.dart';
 import 'package:reclite/features/recording/domain/entities/capture_display.dart';
+import 'package:reclite/features/recording/domain/entities/capture_window.dart';
 import 'package:reclite/features/recording/domain/entities/recording_config.dart';
 import 'package:reclite/features/recording/domain/entities/recording_interruption.dart';
 import 'package:reclite/features/recording/domain/entities/recording_result.dart';
@@ -31,6 +32,9 @@ abstract interface class RecorderRepository {
   Future<void> openMicrophoneSettings();
 
   Future<List<CaptureDisplay>> listDisplays();
+
+  /// Open app windows that can be recorded, excluding RecLite's own.
+  Future<List<CaptureWindow>> listWindows();
 
   Future<void> start(RecordingConfig config);
 

@@ -884,7 +884,7 @@ void setupDI() {
 
 **Still to verify:** the 1-hour memory soak test (Phase 4). The real disk-full stop has only been checked through its policy code.
 
-### Phase 2 — Windows recording engine 🔶 Written, awaiting first Windows build (2026-11-19)
+### Phase 2 — Windows recording engine ✅ Built and tested on a Windows PC (2026-11-19)
 
 Same features as macOS Phase 1, written in C++ in `packages/reclite_engine/windows/`:
 
@@ -898,18 +898,20 @@ Same features as macOS Phase 1, written in C++ in `packages/reclite_engine/windo
 - [x] CI: portable C++ unit tests (mixer, timeline, manifest) + Windows release build uploaded as `RecLite-windows-x64`.
 
 **Verified so far:** portable C++ tests pass on macOS (clang) — 14 audio + 12 storage, also with exceptions disabled; the same tests read a real macOS `session.json`.
-**Not verified yet:** the Windows build itself (first compile is in CI) and real recording on a Windows PC.
+**Verified on a Windows 11 PC (Intel Iris Xe):** builds with warnings as errors; portable C++ tests pass with MSVC; full screen, area, system sound, microphone, pause, two monitors and own-window exclusion checked with ffprobe.
+**Fixed during testing:** Media Foundation's H.264 encoder stamps the Nth frame at N/fps and ignores sample times, so video is written at a constant 30 fps (last picture repeated while the screen is still). Laptop panels are named "Built-in Display".
+**Not verified yet on Windows:** 20-second parts, a force-kill recovery, and switching headphones while recording.
 
 ### Phase 3 — Product features (≈ 2 weeks)
 
 > Start only after the Windows test checklist passes ([CONTINUE_ON_WINDOWS.md §3](CONTINUE_ON_WINDOWS.md#3-test-checklist-on-windows)). Build each feature for **both** platforms. Windows is the main target, so test there first.
 
-- [ ] Source picker UI (displays/windows, later thumbnails).
-- [ ] Storage: folder picker, remember folder, free-space display, disk monitor, safe stop.
-- [ ] History screen (manifest scan, play, reveal, trash).
-- [ ] Settings screen.
-- [ ] Global shortcuts (hotkey_manager).
-- [ ] Mini recording indicator + tray/menu-bar icon.
+- [x] Source picker UI: screen, area or one app window (thumbnails later). Engine: `listWindows`, `EngineRecordingRequest.windowId`; a closed window stops and saves the recording.
+- [x] Storage: folder picker (`file_selector`), remembered folder (`shared_preferences`), free-space display, disk monitor, safe stop.
+- [x] History screen (manifest scan, play, reveal, move to Recycle Bin / Trash). Engine calls `openPath` and `moveToTrash`; the Swift side is written but not yet built on a Mac.
+- [x] Settings screen: split length (5/10/15/30/60 min), quality (720/1080/1440p), 30/60 fps, mouse pointer on/off (new `showCursor` engine field), theme.
+- [x] Global shortcuts: Ctrl+Alt+R start/stop, Ctrl+Alt+P pause/resume (⌃⌥R / ⌃⌥P on macOS), on/off in Settings. Built into the engine (Win32 `RegisterHotKey`, Carbon `RegisterEventHotKey`) instead of `hotkey_manager`, whose current version needs a newer Dart and compiles extra C code at build time.
+- [x] Mini recording bar (the main window shrinks to an always-on-top bar while recording; on/off in Settings) + tray / menu-bar icon with Start/Stop, Pause/Resume, Show RecLite. Native: `setMiniWindow`, `startWindowDrag`, `setTrayState`, `onTrayCommand`.
 - [ ] Permission onboarding screens.
 - [ ] Crash recovery on startup.
 - [ ] Friendly error messages for every failure in §19.

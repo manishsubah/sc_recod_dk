@@ -86,6 +86,52 @@ class EngineCaptureArea {
   double height;
 }
 
+/// An app window that can be recorded on its own.
+class EngineWindow {
+  EngineWindow({
+    required this.id,
+    required this.title,
+    required this.appName,
+    required this.width,
+    required this.height,
+  });
+
+  /// HWND on Windows, CGWindowID on macOS; valid while the window is open.
+  int id;
+  String title;
+  String appName;
+
+  /// Pixels.
+  int width;
+  int height;
+}
+
+enum EngineTrayState { idle, recording, paused }
+
+enum EngineTrayCommand { startStop, pauseResume, showWindow }
+
+/// A system-wide key combination, e.g. Ctrl+Alt+R.
+class EngineShortcut {
+  EngineShortcut({
+    required this.key,
+    required this.control,
+    required this.alt,
+    required this.shift,
+    required this.meta,
+  });
+
+  /// "A"-"Z", "0"-"9" or "F1"-"F12".
+  String key;
+  bool control;
+
+  /// Alt on Windows, Option on macOS.
+  bool alt;
+  bool shift;
+
+  /// Windows key on Windows, Command on macOS.
+  bool meta;
+}
+
 class EngineRecordingRequest {
   EngineRecordingRequest({
     required this.displayId,
@@ -95,8 +141,17 @@ class EngineRecordingRequest {
     required this.captureSystemAudio,
     required this.captureMicrophone,
     required this.segmentSeconds,
+    required this.showCursor,
     this.area,
+    this.windowId,
   });
+
+  /// Records only this window (from listWindows); displayId and area are then
+  /// ignored. The video keeps the window's size from when recording started.
+  int? windowId;
+
+  /// Draws the mouse pointer into the video.
+  bool showCursor;
 
   int displayId;
 
@@ -228,6 +283,10 @@ abstract class EngineHostApi {
   @async
   List<EngineDisplay> listDisplays();
 
+  /// Open app windows that can be recorded, excluding RecLite's own.
+  @async
+  List<EngineWindow> listWindows();
+
   @async
   EngineRecordingSession startRecording(EngineRecordingRequest request);
 
@@ -246,6 +305,26 @@ abstract class EngineHostApi {
 
   void revealInFileManager(String path);
 
+  /// Opens a file or folder with its default app (e.g. an MP4 in the video player).
+  void openPath(String path);
+
+  /// Moves a file or folder to the Recycle Bin / Trash, so it can be restored.
+  void moveToTrash(String path);
+
+  /// Replaces all system-wide shortcuts; an empty list turns them off. Returns
+  /// the indexes of shortcuts that another app already uses.
+  List<int> setGlobalShortcuts(List<EngineShortcut> shortcuts);
+
+  /// Shrinks the main window to a small always-on-top bar at the top of its
+  /// screen (true), or restores its earlier size and position (false).
+  void setMiniWindow(bool mini);
+
+  /// Moves the window with the mouse; call while the mouse button is down.
+  void startWindowDrag();
+
+  /// Shows the tray (Windows) / menu-bar (macOS) icon for this state.
+  void setTrayState(EngineTrayState state);
+
   /// Shows a drag-to-select overlay on the display. Null when the user cancels.
   @async
   EngineCaptureArea? selectArea(int displayId);
@@ -260,4 +339,11 @@ abstract class EngineEventsApi {
 
   /// About 15 times per second while recording with audio.
   void onAudioLevels(EngineAudioLevels levels);
+
+  /// A shortcut from setGlobalShortcuts was pressed (index into that list).
+  void onShortcut(int index);
+
+  /// A tray / menu-bar menu item was chosen. For showWindow the engine has
+  /// already brought the window to the front.
+  void onTrayCommand(EngineTrayCommand command);
 }

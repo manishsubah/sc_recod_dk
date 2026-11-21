@@ -71,4 +71,13 @@ void main() {
       ),
     );
   });
+
+  group('fileNameOf', () {
+    test(
+      'posix',
+      () => expect(fileNameOf('/rec/A/A_Part01.mp4'), 'A_Part01.mp4'),
+    );
+    test('windows', () => expect(fileNameOf(r'C:\Videos\RecLite\A'), 'A'));
+    test('trailing separator', () => expect(fileNameOf('/rec/A/'), 'A'));
+  });
 }

@@ -63,6 +63,18 @@ enum class HostPlatform {
   kWindows = 1
 };
 
+enum class EngineTrayState {
+  kIdle = 0,
+  kRecording = 1,
+  kPaused = 2
+};
+
+enum class EngineTrayCommand {
+  kStartStop = 0,
+  kPauseResume = 1,
+  kShowWindow = 2
+};
+
 enum class EngineRecordingPhase {
   kIdle = 0,
   kStarting = 1,
@@ -267,11 +279,113 @@ class EngineCaptureArea {
 };
 
 
+// An app window that can be recorded on its own.
+//
+// Generated class from Pigeon that represents data sent in messages.
+class EngineWindow {
+ public:
+  // Constructs an object setting all fields.
+  explicit EngineWindow(
+    int64_t id,
+    const std::string& title,
+    const std::string& app_name,
+    int64_t width,
+    int64_t height);
+
+  // HWND on Windows, CGWindowID on macOS; valid while the window is open.
+  int64_t id() const;
+  void set_id(int64_t value_arg);
+
+  const std::string& title() const;
+  void set_title(std::string_view value_arg);
+
+  const std::string& app_name() const;
+  void set_app_name(std::string_view value_arg);
+
+  // Pixels.
+  int64_t width() const;
+  void set_width(int64_t value_arg);
+
+  int64_t height() const;
+  void set_height(int64_t value_arg);
+
+  bool operator==(const EngineWindow& other) const;
+  bool operator!=(const EngineWindow& other) const;
+  /// Returns a hash code value for the object. This method is supported for the benefit of hash tables.
+  size_t Hash() const;
+  /// Stream output operator for formatted string representation.
+  friend std::ostream& operator<<(std::ostream& os, const EngineWindow& obj);
+ private:
+  static EngineWindow FromEncodableList(const ::flutter::EncodableList& list);
+  ::flutter::EncodableList ToEncodableList() const;
+  friend class EngineHostApi;
+  friend class EngineEventsApi;
+  friend class PigeonInternalCodecSerializer;
+  int64_t id_;
+  std::string title_;
+  std::string app_name_;
+  int64_t width_;
+  int64_t height_;
+};
+
+
+// A system-wide key combination, e.g. Ctrl+Alt+R.
+//
+// Generated class from Pigeon that represents data sent in messages.
+class EngineShortcut {
+ public:
+  // Constructs an object setting all fields.
+  explicit EngineShortcut(
+    const std::string& key,
+    bool control,
+    bool alt,
+    bool shift,
+    bool meta);
+
+  // "A"-"Z", "0"-"9" or "F1"-"F12".
+  const std::string& key() const;
+  void set_key(std::string_view value_arg);
+
+  bool control() const;
+  void set_control(bool value_arg);
+
+  // Alt on Windows, Option on macOS.
+  bool alt() const;
+  void set_alt(bool value_arg);
+
+  bool shift() const;
+  void set_shift(bool value_arg);
+
+  // Windows key on Windows, Command on macOS.
+  bool meta() const;
+  void set_meta(bool value_arg);
+
+  bool operator==(const EngineShortcut& other) const;
+  bool operator!=(const EngineShortcut& other) const;
+  /// Returns a hash code value for the object. This method is supported for the benefit of hash tables.
+  size_t Hash() const;
+  /// Stream output operator for formatted string representation.
+  friend std::ostream& operator<<(std::ostream& os, const EngineShortcut& obj);
+ private:
+  static EngineShortcut FromEncodableList(const ::flutter::EncodableList& list);
+  ::flutter::EncodableList ToEncodableList() const;
+  friend class EngineHostApi;
+  friend class EngineEventsApi;
+  friend class PigeonInternalCodecSerializer;
+  std::string key_;
+  bool control_;
+  bool alt_;
+  bool shift_;
+  bool meta_;
+};
+
+
 // Generated class from Pigeon that represents data sent in messages.
 class EngineRecordingRequest {
  public:
   // Constructs an object setting all non-nullable fields.
   explicit EngineRecordingRequest(
+    bool show_cursor,
     int64_t display_id,
     bool capture_system_audio,
     bool capture_microphone,
@@ -282,6 +396,8 @@ class EngineRecordingRequest {
 
   // Constructs an object setting all fields.
   explicit EngineRecordingRequest(
+    const int64_t* window_id,
+    bool show_cursor,
     int64_t display_id,
     bool capture_system_audio,
     bool capture_microphone,
@@ -296,6 +412,16 @@ class EngineRecordingRequest {
   EngineRecordingRequest& operator=(const EngineRecordingRequest& other);
   EngineRecordingRequest(EngineRecordingRequest&& other) = default;
   EngineRecordingRequest& operator=(EngineRecordingRequest&& other) noexcept = default;
+  // Records only this window (from listWindows); displayId and area are then
+  // ignored. The video keeps the window's size from when recording started.
+  const int64_t* window_id() const;
+  void set_window_id(const int64_t* value_arg);
+  void set_window_id(int64_t value_arg);
+
+  // Draws the mouse pointer into the video.
+  bool show_cursor() const;
+  void set_show_cursor(bool value_arg);
+
   int64_t display_id() const;
   void set_display_id(int64_t value_arg);
 
@@ -339,6 +465,8 @@ class EngineRecordingRequest {
   friend class EngineHostApi;
   friend class EngineEventsApi;
   friend class PigeonInternalCodecSerializer;
+  std::optional<int64_t> window_id_;
+  bool show_cursor_;
   int64_t display_id_;
   bool capture_system_audio_;
   bool capture_microphone_;
@@ -620,6 +748,8 @@ class EngineHostApi {
   virtual void RequestMicrophonePermission(std::function<void(ErrorOr<bool> reply)> result) = 0;
   virtual std::optional<FlutterError> OpenMicrophoneSettings() = 0;
   virtual void ListDisplays(std::function<void(ErrorOr<::flutter::EncodableList> reply)> result) = 0;
+  // Open app windows that can be recorded, excluding RecLite's own.
+  virtual void ListWindows(std::function<void(ErrorOr<::flutter::EncodableList> reply)> result) = 0;
   virtual void StartRecording(
     const EngineRecordingRequest& request,
     std::function<void(ErrorOr<EngineRecordingSession> reply)> result) = 0;
@@ -633,6 +763,20 @@ class EngineHostApi {
     const std::string& output_directory,
     std::function<void(ErrorOr<::flutter::EncodableList> reply)> result) = 0;
   virtual std::optional<FlutterError> RevealInFileManager(const std::string& path) = 0;
+  // Opens a file or folder with its default app (e.g. an MP4 in the video player).
+  virtual std::optional<FlutterError> OpenPath(const std::string& path) = 0;
+  // Moves a file or folder to the Recycle Bin / Trash, so it can be restored.
+  virtual std::optional<FlutterError> MoveToTrash(const std::string& path) = 0;
+  // Replaces all system-wide shortcuts; an empty list turns them off. Returns
+  // the indexes of shortcuts that another app already uses.
+  virtual ErrorOr<::flutter::EncodableList> SetGlobalShortcuts(const ::flutter::EncodableList& shortcuts) = 0;
+  // Shrinks the main window to a small always-on-top bar at the top of its
+  // screen (true), or restores its earlier size and position (false).
+  virtual std::optional<FlutterError> SetMiniWindow(bool mini) = 0;
+  // Moves the window with the mouse; call while the mouse button is down.
+  virtual std::optional<FlutterError> StartWindowDrag() = 0;
+  // Shows the tray (Windows) / menu-bar (macOS) icon for this state.
+  virtual std::optional<FlutterError> SetTrayState(const EngineTrayState& state) = 0;
   // Shows a drag-to-select overlay on the display. Null when the user cancels.
   virtual void SelectArea(
     int64_t display_id,
@@ -674,6 +818,17 @@ class EngineEventsApi {
   // About 15 times per second while recording with audio.
   void OnAudioLevels(
     const EngineAudioLevels& levels,
+    std::function<void(void)>&& on_success,
+    std::function<void(const FlutterError&)>&& on_error);
+  // A shortcut from setGlobalShortcuts was pressed (index into that list).
+  void OnShortcut(
+    int64_t index,
+    std::function<void(void)>&& on_success,
+    std::function<void(const FlutterError&)>&& on_error);
+  // A tray / menu-bar menu item was chosen. For showWindow the engine has
+  // already brought the window to the front.
+  void OnTrayCommand(
+    const EngineTrayCommand& command,
     std::function<void(void)>&& on_success,
     std::function<void(const FlutterError&)>&& on_error);
  private:

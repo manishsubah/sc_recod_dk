@@ -27,6 +27,8 @@ list(APPEND PLUGIN_SOURCES
   "capture/gpu_device.h"
   "capture/screen_capture.cpp"
   "capture/screen_capture.h"
+  "capture/window_catalog.cpp"
+  "capture/window_catalog.h"
   "core/clock.h"
   "core/platform_dispatcher.cpp"
   "core/platform_dispatcher.h"
@@ -50,6 +52,12 @@ list(APPEND PLUGIN_SOURCES
   "storage/session_storage.h"
   "ui/area_windows.cpp"
   "ui/area_windows.h"
+  "ui/global_shortcuts.cpp"
+  "ui/global_shortcuts.h"
+  "ui/tray_icon.cpp"
+  "ui/tray_icon.h"
+  "ui/window_controller.cpp"
+  "ui/window_controller.h"
   "writer/segment_writer.cpp"
   "writer/segment_writer.h"
   "writer/segmented_recorder.cpp"
@@ -67,15 +75,15 @@ set_target_properties(${PLUGIN_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
 target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_17)
 # Flutter's standard settings disable STL exceptions; C++/WinRT reports errors with them.
 target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL NOMINMAX UNICODE _UNICODE _HAS_EXCEPTIONS=1)
-# /bigobj: C++/WinRT headers. /WX-: warnings stay visible in CI logs but don't block
-# the build while the Windows engine is new; turn back on once it has settled.
-target_compile_options(${PLUGIN_NAME} PRIVATE /bigobj /WX-)
+# /bigobj: C++/WinRT headers.
+target_compile_options(${PLUGIN_NAME} PRIVATE /bigobj)
 target_include_directories(${PLUGIN_NAME} INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE
   flutter
   flutter_wrapper_plugin
   d3d11
+  dwmapi
   dxgi
   mfplat
   mfreadwrite

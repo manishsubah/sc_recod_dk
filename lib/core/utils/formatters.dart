@@ -35,3 +35,31 @@ String formatSegmentLength(Duration d) =>
     d.inMinutes >= 1 && d.inSeconds % 60 == 0
     ? '${d.inMinutes} minutes'
     : '${d.inSeconds} seconds';
+
+/// `19 Nov 2026, 23:06` in local time.
+String formatDateTime(DateTime time) {
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  final local = time.toLocal();
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${local.day} ${months[local.month - 1]} ${local.year}, '
+      '${two(local.hour)}:${two(local.minute)}';
+}
+
+/// Last path segment; accepts `/` and `\` so Windows paths work too.
+String fileNameOf(String path) {
+  final trimmed = path.replaceFirst(RegExp(r'[\\/]+$'), '');
+  return trimmed.substring(trimmed.lastIndexOf(RegExp(r'[\\/]')) + 1);
+}

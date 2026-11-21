@@ -16,16 +16,18 @@ final class ReadinessLoaded extends ReadinessState {
     required this.engine,
     required this.storage,
     required this.issues,
+    this.options = const RecordingOptions(),
   });
 
   final EngineInfo engine;
   final StorageInfo storage;
   final List<ReadinessIssue> issues;
+  final RecordingOptions options;
 
   bool get canRecord => issues.every((i) => !i.isBlocking);
 
   @override
-  List<Object?> get props => [engine, storage, issues];
+  List<Object?> get props => [engine, storage, issues, options];
 }
 
 final class ReadinessFailed extends ReadinessState {

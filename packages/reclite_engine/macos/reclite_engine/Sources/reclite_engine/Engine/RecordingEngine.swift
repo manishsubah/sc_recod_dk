@@ -1,3 +1,4 @@
+import AppKit
 import CoreMedia
 import Foundation
 import ScreenCaptureKit
@@ -57,17 +58,42 @@ final class RecordingEngine {
     var directory: URL?
     do {
       let content = try await DisplayCatalog.shareableContent()
-      guard
-        let display = content.displays.first(where: { Int64($0.displayID) == request.displayId })
-      else { throw EngineErrors.displayNotFound }
-
-      let pixels = DisplayCatalog.pixelSize(of: display)
-      let area = try request.area.map { try Self.validated($0, on: display) }
-      let pixelsPerPoint = Double(pixels.width) / Double(display.width)
-      let sourcePixels =
-        area.map {
-          (Int($0.width * pixelsPerPoint), Int($0.height * pixelsPerPoint))
-        } ?? pixels
+      let filter: SCContentFilter
+      let sourcePixels: (Int, Int)
+      let area: CGRect?
+      let display: SCDisplay?
+      let sourceName: String
+      if let windowId = request.windowId {
+        // A window recording ignores the display and area.
+        guard let window = content.windows.first(where: { Int64($0.windowID) == windowId })
+        else {
+          throw EngineErrors.make(
+            "window_not_found", "The selected window was closed or minimized. Pick it again.")
+        }
+        let scale = Double(NSScreen.main?.backingScaleFactor ?? 2)
+        filter = SCContentFilter(desktopIndependentWindow: window)
+        sourcePixels = (Int(window.frame.width * scale), Int(window.frame.height * scale))
+        area = nil
+        display = nil
+        sourceName = window.title ?? window.owningApplication?.applicationName ?? "Window"
+      } else {
+        guard
+          let found = content.displays.first(where: { Int64($0.displayID) == request.displayId })
+        else { throw EngineErrors.displayNotFound }
+        let pixels = DisplayCatalog.pixelSize(of: found)
+        let validArea = try request.area.map { try Self.validated($0, on: found) }
+        let pixelsPerPoint = Double(pixels.width) / Double(found.width)
+        filter = Self.filter(for: found, in: content)
+        sourcePixels =
+          validArea.map {
+            (Int($0.width * pixelsPerPoint), Int($0.height * pixelsPerPoint))
+          } ?? pixels
+        area = validArea
+        display = found
+        sourceName =
+          DisplayCatalog.screen(for: found.displayID)?.localizedName
+          ?? "Display \(found.displayID)"
+      }
       let size = OutputSize.fit(
         width: sourcePixels.0, height: sourcePixels.1, maxHeight: Int(request.maxHeight))
       let fps = Int(request.framesPerSecond)
@@ -87,10 +113,10 @@ final class RecordingEngine {
             SessionNaming.segmentFileName(startedAt: index == 1 ? startedAt : date, index: index))
         })
       let capture = try CaptureSession(
-        filter: Self.filter(for: display, in: content),
+        filter: filter,
         configuration: Self.configuration(
           width: size.width, height: size.height, fps: fps, sourceRect: area,
-          audio: audioSources),
+          showsCursor: request.showCursor, audio: audioSources),
         settings: settings,
         audioSources: audioSources)
 
@@ -99,9 +125,8 @@ final class RecordingEngine {
         startedAt: startedAt,
         status: .recording,
         source: .init(
-          type: area == nil ? "display" : "area",
-          name: DisplayCatalog.screen(for: display.displayID)?.localizedName
-            ?? "Display \(display.displayID)",
+          type: request.windowId != nil ? "window" : area == nil ? "display" : "area",
+          name: sourceName,
           area: area.map { [$0.minX, $0.minY, $0.width, $0.height] }),
         audio: .init(
           system: audioSources.contains(.system), microphone: audioSources.contains(.microphone)),
@@ -123,7 +148,7 @@ final class RecordingEngine {
       }
       try await capture.start()
 
-      if let area, let screen = DisplayCatalog.screen(for: display.displayID) {
+      if let area, let display, let screen = DisplayCatalog.screen(for: display.displayID) {
         highlight.show(area, on: screen)
       }
 
@@ -370,7 +395,8 @@ final class RecordingEngine {
   }
 
   private static func configuration(
-    width: Int, height: Int, fps: Int, sourceRect: CGRect?, audio: [AudioSource]
+    width: Int, height: Int, fps: Int, sourceRect: CGRect?, showsCursor: Bool,
+    audio: [AudioSource]
   ) -> SCStreamConfiguration {
     let config = SCStreamConfiguration()
     config.width = width
@@ -381,7 +407,7 @@ final class RecordingEngine {
     config.colorMatrix = CGDisplayStream.yCbCrMatrix_ITU_R_709_2
     config.colorSpaceName = CGColorSpace.sRGB
     config.queueDepth = 5
-    config.showsCursor = true
+    config.showsCursor = showsCursor
     config.capturesAudio = audio.contains(.system)
     config.sampleRate = Int(AudioPipeline.sampleRate)
     config.channelCount = 2

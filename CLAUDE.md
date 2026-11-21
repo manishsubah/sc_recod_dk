@@ -6,8 +6,10 @@ Lightweight desktop screen recorder: Flutter UI + native engines (Swift on macOS
 
 ## Current state (2026-11-19)
 - macOS engine: Phase 1 done and tested on a real Mac (screen/area, system sound + mic, parts, pause, crash recovery).
-- Windows engine (`packages/reclite_engine/windows/`): same features, written on the Mac, **not yet compiled or run on Windows**. First job on a Windows PC: build, fix compile errors, run the checklist in CONTINUE_ON_WINDOWS.md §3.
-- Windows is the user's main platform.
+- Windows engine: builds (warnings as errors) and records correctly on the user's Windows PC; 20-second parts, force-kill recovery and headphone switching are not yet checked there.
+- Phase 3 started: save folder, History screen, Settings (split length, quality, frame rate, mouse pointer, theme) and global shortcuts (Ctrl+Alt+R / Ctrl+Alt+P, own engine code, not hotkey_manager), mini recording bar, tray icon and single-window recording are done. Phase 3 is complete; next is Phase 4 (long soak test, A/V sync, signing, installer).
+- macOS Swift for Phase 3 (openPath, moveToTrash, showCursor, GlobalShortcuts, WindowController, TrayIcon, WindowCatalog) is written but not yet built on a Mac.
+- Windows is the user's main platform. Use Flutter 3.47.1 (`C:\Users\manis\DevFlutter\flutter_3.47.1`); the older 3.32.7 on PATH can't resolve this project.
 
 ## Rules
 - Code style and architecture: `.app-rules/rules/*.mdc` (domain is pure Dart, cubits talk to repositories only, design tokens from `lib/app/theme/app_tokens.dart`, `package:` imports, minimal comments).

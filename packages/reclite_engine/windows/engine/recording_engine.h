@@ -36,6 +36,7 @@ class RecordingEngine {
   RecordingEngine& operator=(const RecordingEngine&) = delete;
 
   ErrorOr<flutter::EncodableList> ListDisplays();
+  ErrorOr<flutter::EncodableList> ListWindows();
   void SelectArea(int64_t display_id,
                   std::function<void(ErrorOr<std::optional<EngineCaptureArea>>)> result);
   void Start(const EngineRecordingRequest& request,

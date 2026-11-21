@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:reclite/core/errors/failures.dart';
 import 'package:reclite/features/recording/domain/entities/engine_info.dart';
+import 'package:reclite/features/recording/domain/entities/recording_options.dart';
 import 'package:reclite/features/recording/domain/entities/storage_info.dart';
 import 'package:reclite/features/recording/domain/repositories/engine_repository.dart';
 import 'package:reclite/features/recording/presentation/bloc/readiness_cubit.dart';
@@ -95,5 +96,24 @@ void main() {
       const ReadinessLoading(),
       const ReadinessFailed('engine down'),
     ],
+  );
+
+  blocTest<ReadinessCubit, ReadinessState>(
+    'new recording options apply without re-checking the engine',
+    setUp: stub,
+    build: build,
+    act: (c) async {
+      await c.load();
+      c.changeOptions(const RecordingOptions(framesPerSecond: 60));
+    },
+    skip: 2,
+    expect: () => [
+      isA<ReadinessLoaded>().having(
+        (s) => s.options.framesPerSecond,
+        'framesPerSecond',
+        60,
+      ),
+    ],
+    verify: (_) => verify(() => repo.getEngineInfo()).called(1),
   );
 }

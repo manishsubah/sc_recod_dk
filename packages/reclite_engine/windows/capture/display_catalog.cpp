@@ -20,7 +20,14 @@ int64_t DisplayNumber(const wchar_t* device) {
   return i < name.size() ? std::wcstoll(name.c_str() + i, nullptr, 10) : 0;
 }
 
-// GDI device name -> monitor's friendly name (e.g. "DELL U2720Q").
+bool IsBuiltIn(DISPLAYCONFIG_VIDEO_OUTPUT_TECHNOLOGY technology) {
+  return technology == DISPLAYCONFIG_OUTPUT_TECHNOLOGY_INTERNAL ||
+         technology == DISPLAYCONFIG_OUTPUT_TECHNOLOGY_DISPLAYPORT_EMBEDDED ||
+         technology == DISPLAYCONFIG_OUTPUT_TECHNOLOGY_UDI_EMBEDDED;
+}
+
+// GDI device name -> monitor's friendly name (e.g. "DELL U2720Q"); laptop panels
+// usually report none, so they are named "Built-in Display".
 std::map<std::wstring, std::wstring> FriendlyNames() {
   std::map<std::wstring, std::wstring> names;
   UINT32 path_count = 0;
@@ -48,9 +55,13 @@ std::map<std::wstring, std::wstring> FriendlyNames() {
     target.header.adapterId = paths[i].targetInfo.adapterId;
     target.header.id = paths[i].targetInfo.id;
 
-    if (::DisplayConfigGetDeviceInfo(&source.header) == ERROR_SUCCESS &&
-        ::DisplayConfigGetDeviceInfo(&target.header) == ERROR_SUCCESS &&
-        target.monitorFriendlyDeviceName[0] != L'\0') {
+    if (::DisplayConfigGetDeviceInfo(&source.header) != ERROR_SUCCESS ||
+        ::DisplayConfigGetDeviceInfo(&target.header) != ERROR_SUCCESS) {
+      continue;
+    }
+    if (IsBuiltIn(paths[i].targetInfo.outputTechnology)) {
+      names[source.viewGdiDeviceName] = L"Built-in Display";
+    } else if (target.monitorFriendlyDeviceName[0] != L'\0') {
       names[source.viewGdiDeviceName] = target.monitorFriendlyDeviceName;
     }
   }

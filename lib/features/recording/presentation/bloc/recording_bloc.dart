@@ -39,7 +39,7 @@ class RecordingBloc extends Bloc<RecordingEvent, RecordingState> {
     RecordingStartRequested event,
     Emitter<RecordingState> emit,
   ) async {
-    if (state is! RecordingIdle && state is! RecordingFailed) return;
+    if (state.isBusy) return;
     emit(const RecordingStarting());
     try {
       await _recorder.start(event.config);

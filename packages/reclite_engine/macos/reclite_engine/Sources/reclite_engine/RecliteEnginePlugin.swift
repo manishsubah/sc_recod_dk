@@ -4,10 +4,23 @@ import Foundation
 
 public final class RecliteEnginePlugin: NSObject, FlutterPlugin, EngineHostApi {
   private let engine: RecordingEngine
+  private let shortcuts: GlobalShortcuts
+  private let windowController: WindowController
+  private let tray: TrayIcon
 
   @MainActor
   private init(messenger: FlutterBinaryMessenger) {
-    engine = RecordingEngine(events: EngineEventsApi(binaryMessenger: messenger))
+    let events = EngineEventsApi(binaryMessenger: messenger)
+    engine = RecordingEngine(events: events)
+    shortcuts = GlobalShortcuts { index in
+      Task { try? await events.onShortcut(index: Int64(index)) }
+    }
+    let windowController = WindowController()
+    self.windowController = windowController
+    tray = TrayIcon { command in
+      if command == .showWindow { windowController.bringToFront() }
+      Task { try? await events.onTrayCommand(command: command) }
+    }
   }
 
   public static func register(with registrar: FlutterPluginRegistrar) {
@@ -56,6 +69,15 @@ public final class RecliteEnginePlugin: NSObject, FlutterPlugin, EngineHostApi {
     }
   }
 
+  func listWindows() async throws -> [EngineWindow] {
+    guard ScreenCapturePermission.isGranted else { throw EngineErrors.permissionDenied }
+    do {
+      return try await WindowCatalog.windows()
+    } catch {
+      throw EngineErrors.captureFailed(error)
+    }
+  }
+
   func startRecording(request: EngineRecordingRequest) async throws -> EngineRecordingSession {
     try await engine.start(request)
   }
@@ -76,6 +98,22 @@ public final class RecliteEnginePlugin: NSObject, FlutterPlugin, EngineHostApi {
     await engine.recoverSessions(in: outputDirectory)
   }
 
+  func setGlobalShortcuts(shortcuts list: [EngineShortcut]) throws -> [Int64] {
+    MainActor.assumeIsolated { shortcuts.set(list) }
+  }
+
+  func setMiniWindow(mini: Bool) throws {
+    MainActor.assumeIsolated { windowController.setMini(mini) }
+  }
+
+  func startWindowDrag() throws {
+    MainActor.assumeIsolated { windowController.startDrag() }
+  }
+
+  func setTrayState(state: EngineTrayState) throws {
+    MainActor.assumeIsolated { tray.setState(state) }
+  }
+
   func selectArea(displayId: Int64) async throws -> EngineCaptureArea? {
     try await engine.selectArea(displayId: displayId)
   }
@@ -86,5 +124,25 @@ public final class RecliteEnginePlugin: NSObject, FlutterPlugin, EngineHostApi {
       throw EngineErrors.make("invalid_path", "Path does not exist: \(path)")
     }
     NSWorkspace.shared.activateFileViewerSelecting([url])
+  }
+
+  func openPath(path: String) throws {
+    guard FileManager.default.fileExists(atPath: path) else {
+      throw EngineErrors.make("invalid_path", "Path does not exist: \(path)")
+    }
+    guard NSWorkspace.shared.open(URL(fileURLWithPath: path)) else {
+      throw EngineErrors.make("open_failed", "No app could open \(path)")
+    }
+  }
+
+  func moveToTrash(path: String) throws {
+    guard FileManager.default.fileExists(atPath: path) else {
+      throw EngineErrors.make("invalid_path", "Path does not exist: \(path)")
+    }
+    do {
+      try FileManager.default.trashItem(at: URL(fileURLWithPath: path), resultingItemURL: nil)
+    } catch {
+      throw EngineErrors.make("trash_failed", "Could not move to the Trash: \(path)")
+    }
   }
 }

@@ -21,7 +21,19 @@ void RecliteEnginePlugin::RegisterWithRegistrar(
 }
 
 RecliteEnginePlugin::RecliteEnginePlugin(flutter::PluginRegistrarWindows* registrar)
-    : engine_(std::make_unique<RecordingEngine>(registrar)) {}
+    : engine_(std::make_unique<RecordingEngine>(registrar)),
+      events_(std::make_unique<EngineEventsApi>(registrar->messenger())) {
+  shortcuts_ = std::make_unique<GlobalShortcuts>([this](int index) {
+    events_->OnShortcut(index, [] {}, [](const FlutterError&) {});
+  });
+  window_ = std::make_unique<WindowController>(registrar);
+  tray_ = std::make_unique<TrayIcon>([this](EngineTrayCommand command) {
+    if (command == EngineTrayCommand::kShowWindow) {
+      window_->BringToFront();
+    }
+    events_->OnTrayCommand(command, [] {}, [](const FlutterError&) {});
+  });
+}
 
 RecliteEnginePlugin::~RecliteEnginePlugin() = default;
 
@@ -63,6 +75,11 @@ void RecliteEnginePlugin::ListDisplays(
   result(engine_->ListDisplays());
 }
 
+void RecliteEnginePlugin::ListWindows(
+    std::function<void(ErrorOr<flutter::EncodableList> reply)> result) {
+  result(engine_->ListWindows());
+}
+
 void RecliteEnginePlugin::StartRecording(
     const EngineRecordingRequest& request,
     std::function<void(ErrorOr<EngineRecordingSession> reply)> result) {
@@ -96,6 +113,66 @@ std::optional<FlutterError> RecliteEnginePlugin::RevealInFileManager(
   }
   const std::wstring args = L"/select,\"" + wide + L"\"";
   ::ShellExecuteW(nullptr, L"open", L"explorer.exe", args.c_str(), nullptr, SW_SHOWNORMAL);
+  return std::nullopt;
+}
+
+std::optional<FlutterError> RecliteEnginePlugin::OpenPath(const std::string& path) {
+  const std::wstring wide = Utf8ToWide(path);
+  if (wide.empty() || ::GetFileAttributesW(wide.c_str()) == INVALID_FILE_ATTRIBUTES) {
+    return FlutterError("invalid_path", "Path does not exist: " + path);
+  }
+  const auto status = reinterpret_cast<INT_PTR>(
+      ::ShellExecuteW(nullptr, L"open", wide.c_str(), nullptr, nullptr, SW_SHOWNORMAL));
+  if (status <= 32) {  // ShellExecute reports failure as a value of 32 or less.
+    return FlutterError("open_failed", "No app could open " + path);
+  }
+  return std::nullopt;
+}
+
+std::optional<FlutterError> RecliteEnginePlugin::MoveToTrash(const std::string& path) {
+  const std::wstring wide = Utf8ToWide(path);
+  if (wide.empty() || ::GetFileAttributesW(wide.c_str()) == INVALID_FILE_ATTRIBUTES) {
+    return FlutterError("invalid_path", "Path does not exist: " + path);
+  }
+  std::wstring from = wide;
+  from.push_back(L'\0');  // pFrom is a list ending in two nulls.
+  SHFILEOPSTRUCTW operation{};
+  operation.wFunc = FO_DELETE;
+  operation.pFrom = from.c_str();
+  operation.fFlags = FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT;
+  if (::SHFileOperationW(&operation) != 0 || operation.fAnyOperationsAborted) {
+    return FlutterError("trash_failed", "Could not move to the Recycle Bin: " + path);
+  }
+  return std::nullopt;
+}
+
+ErrorOr<flutter::EncodableList> RecliteEnginePlugin::SetGlobalShortcuts(
+    const flutter::EncodableList& shortcuts) {
+  std::vector<GlobalShortcuts::Shortcut> keys;
+  for (const auto& value : shortcuts) {
+    const auto& s =
+        std::any_cast<const EngineShortcut&>(std::get<flutter::CustomEncodableValue>(value));
+    keys.push_back({s.key(), s.control(), s.alt(), s.shift(), s.meta()});
+  }
+  flutter::EncodableList failed;
+  for (const int index : shortcuts_->Set(keys)) {
+    failed.push_back(flutter::EncodableValue(static_cast<int64_t>(index)));
+  }
+  return failed;
+}
+
+std::optional<FlutterError> RecliteEnginePlugin::SetMiniWindow(bool mini) {
+  window_->SetMini(mini);
+  return std::nullopt;
+}
+
+std::optional<FlutterError> RecliteEnginePlugin::StartWindowDrag() {
+  window_->StartDrag();
+  return std::nullopt;
+}
+
+std::optional<FlutterError> RecliteEnginePlugin::SetTrayState(const EngineTrayState& state) {
+  tray_->SetState(state);
   return std::nullopt;
 }
 

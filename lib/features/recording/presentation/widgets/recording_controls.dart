@@ -4,25 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reclite/app/theme/app_tokens.dart';
-import 'package:reclite/core/constants/recording_defaults.dart';
 import 'package:reclite/core/utils/formatters.dart';
-import 'package:reclite/features/recording/domain/entities/recording_config.dart';
 import 'package:reclite/features/recording/domain/entities/recording_result.dart';
 import 'package:reclite/features/recording/domain/entities/recording_status.dart';
-import 'package:reclite/features/recording/presentation/bloc/audio_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/recording_bloc.dart';
 import 'package:reclite/features/recording/presentation/bloc/sources_cubit.dart';
+import 'package:reclite/features/recording/presentation/recording_start.dart';
 
 /// Start button, live recording indicator, or the "saved" summary.
 class RecordingControls extends StatelessWidget {
-  const RecordingControls({
-    super.key,
-    required this.canRecord,
-    required this.outputFolder,
-  });
+  const RecordingControls({super.key, required this.canRecord});
 
   final bool canRecord;
-  final String outputFolder;
 
   @override
   Widget build(BuildContext context) {
@@ -33,16 +26,13 @@ class RecordingControls extends StatelessWidget {
           b is RecordingFailed ||
           b is RecordingFinished,
       builder: (context, state) => switch (state) {
-        RecordingIdle() => _StartButton(
-          canRecord: canRecord,
-          outputFolder: outputFolder,
-        ),
+        RecordingIdle() => _StartButton(canRecord: canRecord),
         RecordingFailed(:final message) => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _ErrorBanner(message: message),
             const SizedBox(height: AppSpacing.md),
-            _StartButton(canRecord: canRecord, outputFolder: outputFolder),
+            _StartButton(canRecord: canRecord),
           ],
         ),
         RecordingStarting() => const _BusyButton(label: 'Starting…'),
@@ -54,39 +44,28 @@ class RecordingControls extends StatelessWidget {
 }
 
 class _StartButton extends StatelessWidget {
-  const _StartButton({required this.canRecord, required this.outputFolder});
+  const _StartButton({required this.canRecord});
 
   final bool canRecord;
-  final String outputFolder;
 
   @override
   Widget build(BuildContext context) {
-    final source = context.select<SourcesCubit, SourcesLoaded?>(
-      (c) => switch (c.state) {
-        final SourcesLoaded loaded => loaded,
-        _ => null,
-      },
+    final hasSource = context.select<SourcesCubit, bool>(
+      (c) => c.state is SourcesLoaded,
     );
-    final audio = context.watch<AudioCubit>().state;
-    final enabled = canRecord && source != null;
+    final enabled = canRecord && hasSource;
 
     return Center(
       child: FilledButton.icon(
         onPressed: enabled
-            ? () => context.read<RecordingBloc>().add(
-                RecordingStartRequested(
-                  RecordingConfig(
-                    displayId: source.selectedId,
-                    area: source.area,
-                    captureSystemAudio: audio.systemAudio,
-                    captureMicrophone: audio.microphone,
-                    segmentDuration: RecordingDefaults.segmentDuration,
-                    outputFolder: outputFolder,
-                    framesPerSecond: RecordingDefaults.framesPerSecond,
-                    maxHeight: RecordingDefaults.maxOutputHeight,
-                  ),
-                ),
-              )
+            ? () {
+                final config = currentRecordingConfig(context);
+                if (config != null) {
+                  context.read<RecordingBloc>().add(
+                    RecordingStartRequested(config),
+                  );
+                }
+              }
             : null,
         icon: const Icon(Icons.fiber_manual_record, color: AppColors.recording),
         label: const Text('Start Recording'),
@@ -289,12 +268,12 @@ class _SavedCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.xs),
             if (parts > 1)
               SelectableText(
-                result.sessionDirectory.split(Platform.pathSeparator).last,
+                fileNameOf(result.sessionDirectory),
                 style: theme.textTheme.bodyMedium,
               )
             else if (file != null)
               SelectableText(
-                file.split(Platform.pathSeparator).last,
+                fileNameOf(file),
                 style: theme.textTheme.bodyMedium,
               ),
             Text(
