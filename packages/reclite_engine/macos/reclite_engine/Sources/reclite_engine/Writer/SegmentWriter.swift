@@ -196,6 +196,6 @@ final class SegmentWriter {
   /// ~0.08 bits per pixel per frame (≈5 Mbps at 1080p30), clamped for tiny/huge outputs.
   static func bitrate(width: Int, height: Int, fps: Int) -> Int {
     let raw = Double(width * height * fps) * 0.08
-    return Int(min(max(raw, 1_500_000), 16_000_000))
+    return Int(min(max(raw, 400_000), 16_000_000))
   }
 }

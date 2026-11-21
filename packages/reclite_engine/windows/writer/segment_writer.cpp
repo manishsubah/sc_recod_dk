@@ -18,10 +18,11 @@ constexpr UINT32 kSampleRate = 48'000;
 constexpr UINT32 kChannels = 2;
 constexpr UINT32 kAudioBitrateBytes = 20'000;  // 160 kbps AAC
 
-// ~0.08 bits per pixel per frame (≈5 Mbps at 1080p30), clamped — same as macOS.
+// ~0.08 bits per pixel per frame (≈5 Mbps at 1080p30, ≈0.55 Mbps at 360p30),
+// clamped — same as macOS.
 UINT32 VideoBitrate(int width, int height, int fps) {
   const double raw = static_cast<double>(width) * height * fps * 0.08;
-  return static_cast<UINT32>(std::clamp(raw, 1'500'000.0, 16'000'000.0));
+  return static_cast<UINT32>(std::clamp(raw, 400'000.0, 16'000'000.0));
 }
 
 HRESULT AddVideoStream(IMFSinkWriter* writer, const SegmentWriter::Format& f,

@@ -8,14 +8,11 @@ import 'package:reclite/core/utils/formatters.dart';
 import 'package:reclite/features/recording/domain/entities/recording_result.dart';
 import 'package:reclite/features/recording/domain/entities/recording_status.dart';
 import 'package:reclite/features/recording/presentation/bloc/recording_bloc.dart';
-import 'package:reclite/features/recording/presentation/bloc/sources_cubit.dart';
-import 'package:reclite/features/recording/presentation/recording_start.dart';
 
-/// Start button, live recording indicator, or the "saved" summary.
+/// Live recording indicator, the "saved" summary or a failure message. Nothing
+/// while idle: recording starts from the page's top-right button.
 class RecordingControls extends StatelessWidget {
-  const RecordingControls({super.key, required this.canRecord});
-
-  final bool canRecord;
+  const RecordingControls({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -26,70 +23,11 @@ class RecordingControls extends StatelessWidget {
           b is RecordingFailed ||
           b is RecordingFinished,
       builder: (context, state) => switch (state) {
-        RecordingIdle() => _StartButton(canRecord: canRecord),
-        RecordingFailed(:final message) => Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _ErrorBanner(message: message),
-            const SizedBox(height: AppSpacing.md),
-            _StartButton(canRecord: canRecord),
-          ],
-        ),
-        RecordingStarting() => const _BusyButton(label: 'Starting…'),
+        RecordingIdle() || RecordingStarting() => const SizedBox.shrink(),
+        RecordingFailed(:final message) => _ErrorBanner(message: message),
         RecordingActive() || RecordingStopping() => const _RecordingIndicator(),
         RecordingFinished(:final result) => _SavedCard(result: result),
       },
-    );
-  }
-}
-
-class _StartButton extends StatelessWidget {
-  const _StartButton({required this.canRecord});
-
-  final bool canRecord;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasSource = context.select<SourcesCubit, bool>(
-      (c) => c.state is SourcesLoaded,
-    );
-    final enabled = canRecord && hasSource;
-
-    return Center(
-      child: FilledButton.icon(
-        onPressed: enabled
-            ? () {
-                final config = currentRecordingConfig(context);
-                if (config != null) {
-                  context.read<RecordingBloc>().add(
-                    RecordingStartRequested(config),
-                  );
-                }
-              }
-            : null,
-        icon: const Icon(Icons.fiber_manual_record, color: AppColors.recording),
-        label: const Text('Start Recording'),
-      ),
-    );
-  }
-}
-
-class _BusyButton extends StatelessWidget {
-  const _BusyButton({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: FilledButton.icon(
-        onPressed: null,
-        icon: const SizedBox.square(
-          dimension: AppSize.inlineProgress,
-          child: CircularProgressIndicator(strokeWidth: AppSize.progressStroke),
-        ),
-        label: Text(label),
-      ),
     );
   }
 }

@@ -3,9 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:reclite/app/theme/app_tokens.dart';
 
 class PageScaffold extends StatelessWidget {
-  const PageScaffold({super.key, required this.title, required this.child});
+  const PageScaffold({
+    super.key,
+    required this.title,
+    required this.child,
+    this.action,
+  });
 
   final String title;
+
+  /// Shown at the right of the title, e.g. the page's main button.
+  final Widget? action;
   final Widget child;
 
   static const double maxContentWidth = AppLayout.contentMaxWidth;
@@ -25,7 +33,17 @@ class PageScaffold extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(title, style: Theme.of(context).textTheme.headlineSmall),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                  ),
+                  ?action,
+                ],
+              ),
               const SizedBox(height: AppSpacing.lg),
               child,
             ],

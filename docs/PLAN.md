@@ -924,7 +924,9 @@ Same features as macOS Phase 1, written in C++ in `packages/reclite_engine/windo
 - [ ] Long recording tests (4–8 h).
 - [ ] Crash/kill tests, disk-full tests, device-swap tests.
 - [ ] Cross-platform QA on different hardware (Intel/Apple Silicon Mac; NVIDIA/Intel/AMD PCs).
-- [ ] App icon, signing, notarisation, installer.
+- [x] App icon: RecLite icon (from `assets/reelyte_icon.svg`) on Windows (`app_icon.ico`, 16-256 px, cropped to the card) and macOS (`AppIcon.appiconset`, Apple margins).
+- [ ] Signing, notarisation, installer.
+- Release build on Windows (2026-11-21): 28 MB folder (21 MB is Flutter's engine); idle 177 MB private memory, 0.1% CPU, 32 threads.
 
 **Done when:** All acceptance criteria (§26) pass.
 

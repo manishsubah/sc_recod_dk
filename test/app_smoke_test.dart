@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reclite/app/app.dart';
 import 'package:reclite/app/di.dart';
+import 'package:reclite/core/widgets/page_scaffold.dart';
 import 'package:reclite/features/desktop/domain/entities/tray.dart';
 import 'package:reclite/features/desktop/domain/repositories/desktop_repository.dart';
 import 'package:reclite/features/desktop/presentation/bloc/window_mode_cubit.dart';
@@ -183,9 +184,19 @@ void main() {
     await pumpApp(tester);
 
     expect(find.text('Ready to Record'), findsOneWidget);
-    expect(find.text('macOS 15.1.0'), findsOneWidget);
-    expect(find.text('H.264 · HEVC'), findsOneWidget);
-    expect(find.text('48.0 GB · about 40 h'), findsOneWidget);
+    expect(find.text('Hardware encoding'), findsNothing);
+    expect(find.text('Free space'), findsNothing);
+    final title = tester.getCenter(
+      find
+          .descendant(
+            of: find.byType(PageScaffold),
+            matching: find.text('Record'),
+          )
+          .first,
+    );
+    final start = tester.getCenter(find.text('Start Recording'));
+    expect(start.dy, closeTo(title.dy, 24), reason: 'in the title row');
+    expect(start.dx, greaterThan(title.dx), reason: 'on the right');
     expect(
       find.text('Built-in Retina Display (3024 × 1964) · Main'),
       findsOneWidget,
@@ -199,7 +210,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Save recordings to'), findsOneWidget);
     expect(find.text('15 minutes'), findsOneWidget);
-    expect(find.text('1440p'), findsOneWidget);
+    for (final q in ['360p', '480p', '720p', '1080p', '1440p']) {
+      expect(find.text(q), findsOneWidget);
+    }
     expect(find.text('Keyboard shortcuts'), findsOneWidget);
     expect(find.text('/rec'), findsOneWidget);
   });

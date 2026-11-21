@@ -11,16 +11,6 @@ String formatBytes(int bytes) {
   return '${value.toStringAsFixed(digits)} ${units[unit]}';
 }
 
-String formatRecordingTimeLeft(
-  int freeBytes, {
-  required int estimatedBytesPerHour,
-}) {
-  final hours = freeBytes / estimatedBytesPerHour;
-  if (hours >= 1) return 'about ${hours.floor()} h';
-  final minutes = (hours * 60).floor();
-  return minutes <= 0 ? 'no space' : 'about $minutes min';
-}
-
 /// `05:07` under an hour, `1:05:07` after.
 String formatElapsed(Duration d) {
   String two(int n) => n.toString().padLeft(2, '0');

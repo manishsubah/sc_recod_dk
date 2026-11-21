@@ -16,11 +16,8 @@ abstract final class RecordingDefaults {
   }
 
   static const List<int> segmentMinuteChoices = [5, 10, 15, 30, 60];
-  static const List<int> maxHeightChoices = [720, 1080, 1440];
+  static const List<int> maxHeightChoices = [360, 480, 720, 1080, 1440];
   static const List<int> framesPerSecondChoices = [30, 60];
-
-  // Rough 1080p30 H.264 bitrate for the "time left" hint only.
-  static const int estimatedBytesPerHour = 1200 * 1000 * 1000;
 
   static const int minFreeBytesToStart = 1000 * 1000 * 1000;
 

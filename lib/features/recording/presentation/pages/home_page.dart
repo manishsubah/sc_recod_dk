@@ -2,17 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reclite/app/theme/app_tokens.dart';
-import 'package:reclite/core/constants/recording_defaults.dart';
-import 'package:reclite/core/utils/formatters.dart';
 import 'package:reclite/core/widgets/page_scaffold.dart';
 import 'package:reclite/features/recording/presentation/bloc/readiness_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/recording_bloc.dart';
 import 'package:reclite/features/recording/presentation/widgets/audio_card.dart';
-import 'package:reclite/features/recording/presentation/widgets/info_row.dart';
 import 'package:reclite/features/recording/presentation/widgets/readiness_header.dart';
 import 'package:reclite/features/recording/presentation/widgets/recording_controls.dart';
 import 'package:reclite/features/recording/presentation/widgets/recovery_banner.dart';
 import 'package:reclite/features/recording/presentation/widgets/source_card.dart';
+import 'package:reclite/features/recording/presentation/widgets/start_recording_button.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -21,6 +19,7 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return PageScaffold(
       title: 'Record',
+      action: const StartRecordingButton(),
       child: BlocBuilder<ReadinessCubit, ReadinessState>(
         builder: (context, state) => switch (state) {
           ReadinessLoading() => const Padding(
@@ -43,17 +42,17 @@ class _LoadedView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final engine = state.engine;
-    final storage = state.storage;
-    final encoders = [
-      if (engine.hasHardwareH264Encoder) 'H.264',
-      if (engine.hasHardwareHevcEncoder) 'HEVC',
-    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const RecoveryBanner(),
         ReadinessHeader(canRecord: state.canRecord, issues: state.issues),
+        BlocListener<RecordingBloc, RecordingState>(
+          listenWhen: (_, s) => s is RecordingFinished || s is RecordingFailed,
+          listener: (context, _) => context.read<ReadinessCubit>().refresh(),
+          child: const _Spaced(child: RecordingControls()),
+        ),
         const SizedBox(height: AppSpacing.md),
         if (engine.supportsRecording) ...[
           const SourceCard(),
@@ -61,63 +60,7 @@ class _LoadedView extends StatelessWidget {
           AudioCard(
             microphoneSupported: engine.supportsMicrophoneViaScreenCapture,
           ),
-          const SizedBox(height: AppSpacing.md),
         ],
-        BlocListener<RecordingBloc, RecordingState>(
-          listenWhen: (_, s) => s is RecordingFinished || s is RecordingFailed,
-          listener: (context, _) => context.read<ReadinessCubit>().refresh(),
-          child: RecordingControls(canRecord: state.canRecord),
-        ),
-        const SizedBox(height: AppSpacing.xxl),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.xs,
-            ),
-            child: Column(
-              children: [
-                InfoRow(
-                  icon: Icons.computer_outlined,
-                  label: 'System',
-                  value: '${engine.platformName} ${engine.osVersion}',
-                ),
-                InfoRow(
-                  icon: Icons.memory_outlined,
-                  label: 'Hardware encoding',
-                  value: encoders.isEmpty
-                      ? 'Not available (software fallback)'
-                      : encoders.join(' · '),
-                ),
-                InfoRow(
-                  icon: Icons.volume_up_outlined,
-                  label: 'System audio',
-                  value: engine.supportsSystemAudio
-                      ? 'Supported'
-                      : 'Not supported',
-                ),
-                InfoRow(
-                  icon: Icons.folder_outlined,
-                  label: 'Save to',
-                  value: storage.path,
-                ),
-                InfoRow(
-                  icon: Icons.storage_outlined,
-                  label: 'Free space',
-                  value:
-                      '${formatBytes(storage.freeBytes)} · '
-                      '${formatRecordingTimeLeft(storage.freeBytes, estimatedBytesPerHour: RecordingDefaults.estimatedBytesPerHour)}',
-                ),
-                InfoRow(
-                  icon: Icons.content_cut_outlined,
-                  label: 'Split every',
-                  value: formatSegmentLength(state.options.segmentDuration),
-                  showDivider: false,
-                ),
-              ],
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -152,5 +95,25 @@ class _FailedView extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Adds the gap above the recording status only when there is a status to show.
+class _Spaced extends StatelessWidget {
+  const _Spaced({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final idle = context.select<RecordingBloc, bool>(
+      (b) => b.state is RecordingIdle || b.state is RecordingStarting,
+    );
+    return idle
+        ? child
+        : Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.md),
+            child: child,
+          );
   }
 }
