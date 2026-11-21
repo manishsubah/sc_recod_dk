@@ -2,6 +2,8 @@
 
 #include "../core/win.h"
 
+#include <shlobj.h>
+
 #include <mfapi.h>
 #include <mfidl.h>
 #include <mfreadwrite.h>
@@ -41,32 +43,27 @@ std::wstring Stamp(double seconds_from_now) {
   return text;
 }
 
-std::optional<fs::path> CreateSessionDirectory(const fs::path& parent,
-                                               const std::wstring& stamp,
-                                               std::string* error) {
+std::wstring UniqueBaseName(const fs::path& folder, const fs::path& sessions,
+                            const std::wstring& stamp) {
   std::error_code ec;
-  fs::create_directories(parent, ec);
-  const std::wstring base = L"RecLite_" + stamp;
-  for (int attempt = 1; attempt < 1000; ++attempt) {
-    const fs::path candidate =
-        parent / (attempt == 1 ? base : base + L"_" + std::to_wstring(attempt));
-    if (::CreateDirectoryW(candidate.c_str(), nullptr)) {
-      return candidate;
-    }
-    if (::GetLastError() != ERROR_ALREADY_EXISTS) {
-      *error = "Could not create the recording folder (" +
-               HresultMessage(HRESULT_FROM_WIN32(::GetLastError())) + ").";
-      return std::nullopt;
+  const std::wstring first = L"RecLite_" + stamp;
+  for (int n = 1; n < 1000; ++n) {
+    const std::wstring base = n == 1 ? first : first + L"_" + std::to_wstring(n);
+    const bool taken = fs::exists(folder / (base + L".mp4"), ec) ||
+                       fs::exists(folder / (base + L"_Part01.mp4"), ec) ||
+                       fs::exists(folder / (base + L"_Part01.mp4.part"), ec) ||
+                       fs::exists(sessions / (base + L".json"), ec);
+    if (!taken) {
+      return base;
     }
   }
-  *error = "Could not create a new recording folder.";
-  return std::nullopt;
+  return first + L"_" + Stamp();  // Practically unreachable.
 }
 
-std::wstring SegmentFileName(const std::wstring& stamp, int index) {
+std::wstring SegmentFileName(const std::wstring& base, int index) {
   wchar_t part[16];
   std::swprintf(part, 16, L"_Part%02d.mp4", index);
-  return L"RecLite_" + stamp + part;
+  return base + part;
 }
 
 std::string UtcNow() {
@@ -80,8 +77,19 @@ std::string UtcNow() {
 
 }  // namespace session_naming
 
-bool WriteManifest(const SessionManifest& manifest, const fs::path& directory) {
-  const fs::path target = directory / SessionManifest::kFileName;
+fs::path SessionsDirectory() {
+  PWSTR local = nullptr;
+  if (FAILED(::SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &local))) {
+    return {};
+  }
+  fs::path sessions = fs::path(local) / L"RecLite" / L"Sessions";
+  ::CoTaskMemFree(local);
+  std::error_code ec;
+  fs::create_directories(sessions, ec);
+  return ec ? fs::path() : sessions;
+}
+
+bool WriteManifest(const SessionManifest& manifest, const fs::path& target) {
   fs::path temporary = target;
   temporary += L".tmp";
   {
@@ -98,8 +106,8 @@ bool WriteManifest(const SessionManifest& manifest, const fs::path& directory) {
                        MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
 }
 
-std::optional<SessionManifest> ReadManifest(const fs::path& directory) {
-  std::ifstream in(directory / SessionManifest::kFileName, std::ios::binary);
+std::optional<SessionManifest> ReadManifest(const fs::path& file) {
+  std::ifstream in(file, std::ios::binary);
   if (!in) {
     return std::nullopt;
   }
@@ -184,21 +192,28 @@ int PartIndex(const std::wstring& name, int fallback) {
   return static_cast<int>(std::wcstol(name.c_str() + at + 5, nullptr, 10));
 }
 
-std::optional<RecoveredSession> RecoverSession(const fs::path& directory) {
+bool StartsWith(const std::wstring& text, const std::wstring& prefix) {
+  return text.compare(0, prefix.size(), prefix) == 0;
+}
+
+std::optional<RecoveredSession> RecoverSession(const fs::path& manifest_file) {
+  auto manifest = ReadManifest(manifest_file);
+  if (!manifest || manifest->status != "recording" || manifest->directory.empty()) {
+    return std::nullopt;
+  }
+  const fs::path directory(Utf8ToWide(manifest->directory));
+  const std::wstring parts_prefix = manifest_file.stem().wstring() + L"_Part";
+
   std::error_code ec;
   std::vector<fs::path> partials;
   for (const auto& entry : fs::directory_iterator(directory, ec)) {
     const std::wstring name = entry.path().filename().wstring();
-    if (name.size() > 9 && name.compare(name.size() - 9, 9, L".mp4.part") == 0) {
+    if (StartsWith(name, parts_prefix) && name.size() > 9 &&
+        name.compare(name.size() - 9, 9, L".mp4.part") == 0) {
       partials.push_back(entry.path());
     }
   }
   std::sort(partials.begin(), partials.end());
-  auto manifest = ReadManifest(directory);
-  const bool interrupted = !partials.empty() || (manifest && manifest->status == "recording");
-  if (!interrupted) {
-    return std::nullopt;
-  }
 
   for (const fs::path& partial : partials) {
     const auto size = fs::file_size(partial, ec);
@@ -219,39 +234,32 @@ std::optional<RecoveredSession> RecoverSession(const fs::path& directory) {
       ::MoveFileExW(target.c_str(), UniquePath(unplayable).c_str(), 0);
       continue;
     }
-    if (manifest) {
-      SessionManifest::Segment segment;
-      segment.index = PartIndex(target.filename().wstring(),
-                                static_cast<int>(manifest->segments.size()) + 1);
-      segment.file = WideToUtf8(target.filename().wstring());
-      segment.duration_ms = static_cast<int64_t>(*seconds * 1000);
-      segment.bytes = static_cast<int64_t>(size);
-      segment.status = "recovered";
-      manifest->AddSegment(segment);
-    }
+    SessionManifest::Segment segment;
+    segment.index = PartIndex(target.filename().wstring(),
+                              static_cast<int>(manifest->segments.size()) + 1);
+    segment.file = WideToUtf8(target.filename().wstring());
+    segment.duration_ms = static_cast<int64_t>(*seconds * 1000);
+    segment.bytes = static_cast<int64_t>(size);
+    segment.status = "recovered";
+    manifest->AddSegment(segment);
   }
+
+  manifest->status = "recovered";
+  if (manifest->ended_at.empty()) {
+    manifest->ended_at = session_naming::UtcNow();
+  }
+  TidySinglePart(&*manifest);
+  WriteManifest(*manifest, manifest_file);
 
   RecoveredSession result;
   result.directory = directory;
-  for (const auto& entry : fs::directory_iterator(directory, ec)) {
-    if (entry.path().extension() == L".mp4") {
-      result.files.push_back(entry.path());
+  for (const auto& segment : manifest->segments) {
+    const fs::path file = directory / Utf8ToWide(segment.file);
+    if (fs::exists(file, ec)) {
+      result.files.push_back(file);
     }
   }
-  std::sort(result.files.begin(), result.files.end());
-
-  if (manifest) {
-    manifest->status = "recovered";
-    if (manifest->ended_at.empty()) {
-      manifest->ended_at = session_naming::UtcNow();
-    }
-    WriteManifest(*manifest, directory);
-    result.duration_ms = manifest->TotalDurationMs();
-  } else {
-    for (const auto& file : result.files) {
-      result.duration_ms += static_cast<int64_t>(PlayableSeconds(file).value_or(0) * 1000);
-    }
-  }
+  result.duration_ms = manifest->TotalDurationMs();
   if (result.files.empty()) {
     return std::nullopt;
   }
@@ -260,22 +268,45 @@ std::optional<RecoveredSession> RecoverSession(const fs::path& directory) {
 
 }  // namespace
 
-std::vector<RecoveredSession> RecoverSessions(const fs::path& parent, const fs::path& active) {
+fs::path TidySinglePart(SessionManifest* manifest) {
+  if (manifest->segments.empty()) {
+    return {};
+  }
+  const fs::path directory(Utf8ToWide(manifest->directory));
+  SessionManifest::Segment& only = manifest->segments.front();
+  const fs::path current = directory / Utf8ToWide(only.file);
+  if (manifest->segments.size() != 1) {
+    return current;
+  }
+  const std::wstring name = current.filename().wstring();
+  const auto at = name.rfind(L"_Part01.mp4");
+  if (at == std::wstring::npos || at + 11 != name.size()) {
+    return current;
+  }
+  const fs::path single = directory / (name.substr(0, at) + L".mp4");
+  // MOVEFILE flags 0: never replace an existing file.
+  if (!::MoveFileExW(current.c_str(), single.c_str(), 0)) {
+    return current;
+  }
+  only.file = WideToUtf8(single.filename().wstring());
+  return single;
+}
+
+std::vector<RecoveredSession> RecoverSessions(const fs::path& sessions, const fs::path& active) {
   std::vector<RecoveredSession> results;
   std::error_code ec;
-  std::vector<fs::path> directories;
-  for (const auto& entry : fs::directory_iterator(parent, ec)) {
-    const std::wstring name = entry.path().filename().wstring();
-    if (entry.is_directory(ec) && name.rfind(L"RecLite_", 0) == 0) {
-      directories.push_back(entry.path());
+  std::vector<fs::path> manifests;
+  for (const auto& entry : fs::directory_iterator(sessions, ec)) {
+    if (entry.path().extension() == L".json") {
+      manifests.push_back(entry.path());
     }
   }
-  std::sort(directories.begin(), directories.end());
-  for (const fs::path& directory : directories) {
-    if (!active.empty() && fs::equivalent(directory, active, ec)) {
+  std::sort(manifests.begin(), manifests.end());
+  for (const fs::path& manifest : manifests) {
+    if (!active.empty() && fs::equivalent(manifest, active, ec)) {
       continue;
     }
-    if (auto recovered = RecoverSession(directory)) {
+    if (auto recovered = RecoverSession(manifest)) {
       results.push_back(std::move(*recovered));
     }
   }

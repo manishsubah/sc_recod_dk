@@ -44,12 +44,13 @@ class RecordingEngine {
   std::optional<FlutterError> Pause();
   std::optional<FlutterError> Resume();
   void Stop(std::function<void(ErrorOr<EngineRecordingResult>)> result);
-  void RecoverSessions(const std::string& output_directory,
+  void RecoverSessions(
                        std::function<void(ErrorOr<flutter::EncodableList>)> result);
 
  private:
   struct Session {
-    std::filesystem::path directory;
+    std::filesystem::path folder;         // The user's save folder.
+    std::filesystem::path manifest_file;  // In SessionsDirectory().
     SessionManifest manifest;
     std::unique_ptr<GpuDevice> gpu;
     std::unique_ptr<ScreenCapture> capture;

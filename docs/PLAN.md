@@ -395,17 +395,23 @@ These are estimates; real numbers will be measured in Phase 4 and used for the "
 
 Recording starts at 10:00:00:
 
+The save folder the user chose holds only videos (changed 2026-11-21; earlier
+versions made a folder per recording with `session.json` inside):
+
 ```
-Recordings/
-└── RecLite_2026-11-19_10-00-00/
-    ├── RecLite_2026-11-19_10-00-00_Part01.mp4
-    ├── RecLite_2026-11-19_10-15-00_Part02.mp4
-    ├── RecLite_2026-11-19_10-30-00_Part03.mp4
-    ├── RecLite_2026-11-19_10-45-00_Part04.mp4
-    └── session.json
+Videos/RecLite/                                   ← the save folder
+├── RecLite_2026-11-19_09-12-05.mp4               ← a short recording: one file
+├── RecLite_2026-11-19_10-00-00_Part01.mp4        ← a long one: parts share the
+├── RecLite_2026-11-19_10-00-00_Part02.mp4           start time, so they sort together
+└── RecLite_2026-11-19_10-00-00_Part03.mp4
 ```
 
-If the user pauses for 5 minutes during Part02, Part03 starts at about 10:35 (the name uses the real clock time when that part started).
+The manifest (§16.2) lives in the app's own data folder, one file per recording:
+`%LOCALAPPDATA%\RecLite\Sessions\RecLite_2026-11-19_10-00-00.json` (Windows),
+`~/Library/Application Support/RecLite/Sessions/…` (macOS). It records the save
+folder in `"directory"`. A recording that ends as a single part is renamed from
+`_Part01.mp4` to `.mp4`; a name already in use gets `_2`, `_3`… so nothing is
+ever overwritten.
 
 ### 9.2 How the switch works (technical)
 
@@ -695,8 +701,11 @@ void setupDI() {
 
 ### 17.1 How it works
 
-- Scan the output folder for `session.json` files (no database).
-- Recordings without a manifest (older/manual files) are listed as plain MP4 files.
+- Read the manifests in the app's Sessions folder (no database), so recordings
+  from every save folder the user has used are listed. Manifests whose videos were
+  deleted are skipped.
+- Older recordings (a folder per recording with `session.json` inside) are still
+  found in the current save folder.
 - Show per session: date, total duration, number of parts, total size, location, status badge (e.g., "Recovered").
 - Expand a session to see its parts.
 

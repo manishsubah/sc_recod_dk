@@ -36,7 +36,7 @@ class HistoryCubit extends Cubit<HistoryState> {
       _act(() => _history.reveal(recording.files.first));
 
   Future<void> moveToTrash(SavedRecording recording) => _act(() async {
-    await _history.moveToTrash(recording.sessionDirectory);
+    await _history.moveToTrash(recording);
     final current = state;
     if (current is HistoryLoaded) {
       emit(

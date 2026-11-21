@@ -14,13 +14,12 @@ void main() {
 
   setUp(() => repo = MockRecorderRepository());
 
-  RecoveryCubit build() => RecoveryCubit(repo, outputFolder: '/rec');
+  RecoveryCubit build() => RecoveryCubit(repo);
 
   blocTest<RecoveryCubit, RecoveryState>(
     'reports recovered recordings',
     setUp: () =>
-        when(() => repo.recover('/rec'))
-            .thenAnswer((_) async => [testRecovered]),
+        when(() => repo.recover()).thenAnswer((_) async => [testRecovered]),
     build: build,
     act: (c) => c.check(),
     expect: () => [
@@ -30,7 +29,7 @@ void main() {
 
   blocTest<RecoveryCubit, RecoveryState>(
     'stays quiet when nothing was interrupted',
-    setUp: () => when(() => repo.recover('/rec')).thenAnswer((_) async => []),
+    setUp: () => when(() => repo.recover()).thenAnswer((_) async => []),
     build: build,
     act: (c) => c.check(),
     expect: () => <RecoveryState>[],
@@ -39,7 +38,7 @@ void main() {
   blocTest<RecoveryCubit, RecoveryState>(
     'engine failure is not shown (next launch retries)',
     setUp: () =>
-        when(() => repo.recover('/rec')).thenThrow(const StorageFailure('no')),
+        when(() => repo.recover()).thenThrow(const StorageFailure('no')),
     build: build,
     act: (c) => c.check(),
     expect: () => <RecoveryState>[],

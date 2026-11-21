@@ -144,7 +144,7 @@ class _FakeHistoryRepository implements HistoryRepository {
   Future<void> reveal(String path) async {}
 
   @override
-  Future<void> moveToTrash(String sessionDirectory) async {}
+  Future<void> moveToTrash(SavedRecording recording) async {}
 }
 
 void main() {
@@ -166,9 +166,7 @@ void main() {
       ..registerFactory<AudioCubit>(() => AudioCubit(recorder))
       ..registerFactory<AudioLevelsCubit>(() => AudioLevelsCubit(recorder))
       ..registerFactory<RecordingBloc>(() => RecordingBloc(recorder))
-      ..registerFactory<RecoveryCubit>(
-        () => RecoveryCubit(recorder, outputFolder: '/rec'),
-      )
+      ..registerFactory<RecoveryCubit>(() => RecoveryCubit(recorder))
       ..registerFactory<SettingsCubit>(() => SettingsCubit(settings))
       ..registerFactory<ShortcutsCubit>(() => ShortcutsCubit(shortcuts))
       ..registerFactory<WindowModeCubit>(() => WindowModeCubit(desktop))
@@ -248,7 +246,7 @@ void main() {
     await tester.tap(find.text('Stop'));
     await tester.pumpAndSettle();
     expect(find.text('Recording saved'), findsOneWidget);
-    expect(find.text('RecLite_2026-11-19_10-00-00_Part01.mp4'), findsOneWidget);
+    expect(find.text('RecLite_2026-11-19_10-00-00.mp4'), findsOneWidget);
 
     await tester.tap(find.text('New recording'));
     await tester.pumpAndSettle();
@@ -512,7 +510,7 @@ void main() {
     await tester.tap(find.text('Stop'));
     await tester.pumpAndSettle();
     expect(find.text('20:00 · 900 MB · 2 parts'), findsOneWidget);
-    expect(find.text('RecLite_2026-11-19_10-00-00'), findsOneWidget);
+    expect(find.text('RecLite_2026-11-19_10-00-00_Part01.mp4'), findsOneWidget);
   });
 
   testWidgets('shows the recovery banner after an interrupted recording', (

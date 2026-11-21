@@ -74,7 +74,7 @@ flutter run -d windows
 **Ready-made build from CI** (no Flutter needed): GitHub → **Actions** → latest run → **Artifacts** → `RecLite-windows-x64` → unzip → run `RecLite.exe`.
 If it says `VCRUNTIME140.dll` is missing, install the "Microsoft Visual C++ Redistributable (x64)".
 
-Recordings are saved to `%USERPROFILE%\Videos\RecLite\RecLite_<date>_<time>\`.
+Recordings are saved straight into the save folder (default `%USERPROFILE%\Videos\RecLite`) as `RecLite_<date>_<time>.mp4`, or `…_Part01.mp4`, `_Part02.mp4`… for long ones. Their manifests are in `%LOCALAPPDATA%\RecLite\Sessions`.
 
 ---
 

@@ -1,7 +1,8 @@
 import Foundation
 
-/// `session.json` in each recording folder: what was recorded and which parts exist.
-/// History reads it; crash recovery repairs it. See docs/PLAN.md §16.2.
+/// What was recorded and which parts exist, kept in the app's own data folder
+/// (`SessionNaming.sessionsDirectory()`), not next to the videos. History reads
+/// it; crash recovery repairs it. See docs/PLAN.md §16.2.
 struct SessionManifest: Codable, Equatable {
   enum Status: String, Codable {
     case recording, completed, recovered, failed
@@ -35,11 +36,12 @@ struct SessionManifest: Codable, Equatable {
     var fps: Int
   }
 
-  static let fileName = "session.json"
-
   var app = "RecLite"
   var version = 1
   var sessionId: String
+  /// Folder holding the videos (the user's save folder). Nil in old manifests,
+  /// which sat inside a per-recording folder next to their videos.
+  var directory: String?
   var startedAt: Date
   var endedAt: Date?
   var status: Status
@@ -52,18 +54,15 @@ struct SessionManifest: Codable, Equatable {
   var totalDurationMs: Int64 { segments.reduce(0) { $0 + $1.durationMs } }
 
   /// Atomic: a crash mid-write leaves the previous version intact.
-  func write(to directory: URL) throws {
+  func write(to file: URL) throws {
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
     encoder.dateEncodingStrategy = .iso8601
-    try encoder.encode(self).write(
-      to: directory.appendingPathComponent(Self.fileName), options: .atomic)
+    try encoder.encode(self).write(to: file, options: .atomic)
   }
 
-  static func read(from directory: URL) -> SessionManifest? {
-    guard let data = try? Data(contentsOf: directory.appendingPathComponent(fileName)) else {
-      return nil
-    }
+  static func read(from file: URL) -> SessionManifest? {
+    guard let data = try? Data(contentsOf: file) else { return nil }
     let decoder = JSONDecoder()
     decoder.dateDecodingStrategy = .iso8601
     return try? decoder.decode(SessionManifest.self, from: data)

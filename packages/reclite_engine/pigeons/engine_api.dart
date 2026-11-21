@@ -182,6 +182,7 @@ class EngineRecordingSession {
     required this.height,
   });
 
+  /// The save folder that holds the recording's video files.
   String sessionDirectory;
   int width;
   int height;
@@ -197,6 +198,7 @@ class EngineRecoveredSession {
     required this.durationMs,
   });
 
+  /// The save folder that holds the recording's video files.
   String sessionDirectory;
   List<String> files;
   int durationMs;
@@ -228,6 +230,7 @@ class EngineRecordingResult {
     required this.bytesWritten,
   });
 
+  /// The save folder that holds the recording's video files.
   String sessionDirectory;
   List<String> files;
   int durationMs;
@@ -298,10 +301,14 @@ abstract class EngineHostApi {
   @async
   EngineRecordingResult stopRecording();
 
-  /// Finds unfinished recordings in [outputDirectory], keeps every playable
-  /// part and marks the session as recovered. Skips the active recording.
+  /// Finds recordings cut off by a crash (in any save folder), keeps every
+  /// playable part and marks them recovered. Skips the active recording.
   @async
-  List<EngineRecoveredSession> recoverSessions(String outputDirectory);
+  List<EngineRecoveredSession> recoverSessions();
+
+  /// Where recording manifests (`<name>.json`) are kept: the app's own data
+  /// folder, so the save folder holds only videos.
+  String getSessionsDirectory();
 
   void revealInFileManager(String path);
 

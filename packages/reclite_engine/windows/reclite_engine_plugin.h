@@ -47,8 +47,8 @@ class RecliteEnginePlugin : public flutter::Plugin, public EngineHostApi {
   void StopRecording(
       std::function<void(ErrorOr<EngineRecordingResult> reply)> result) override;
   void RecoverSessions(
-      const std::string& output_directory,
       std::function<void(ErrorOr<flutter::EncodableList> reply)> result) override;
+  ErrorOr<std::string> GetSessionsDirectory() override;
   std::optional<FlutterError> RevealInFileManager(const std::string& path) override;
   std::optional<FlutterError> OpenPath(const std::string& path) override;
   std::optional<FlutterError> MoveToTrash(const std::string& path) override;

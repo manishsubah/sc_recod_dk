@@ -44,8 +44,8 @@ abstract interface class RecorderRepository {
 
   Future<RecordingResult> stop();
 
-  /// Repairs recordings in [folder] that were interrupted by a crash or power loss.
-  Future<List<RecoveredRecording>> recover(String folder);
+  /// Repairs recordings interrupted by a crash or power loss, in any save folder.
+  Future<List<RecoveredRecording>> recover();
 
   Future<void> reveal(String path);
 

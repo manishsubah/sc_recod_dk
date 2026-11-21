@@ -221,7 +221,6 @@ class _FeatureLinksState extends State<_FeatureLinks> {
           listener: (context, state) {
             final folder = state.outputFolder;
             context.read<ReadinessCubit>().changeFolder(folder);
-            context.read<RecoveryCubit>().check(folder: folder);
             context.read<HistoryCubit>().load(folder);
           },
         ),

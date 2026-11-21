@@ -10,9 +10,9 @@ import 'package:flutter/services.dart';
 import 'package:meta/meta.dart' show immutable, protected, visibleForTesting;
 
 Object? _extractReplyValueOrThrow(
-  List<Object?>? replyList,
-  String channelName, {
-  required bool isNullValid,
+    List<Object?>? replyList,
+    String channelName, {
+    required bool isNullValid,
 }) {
   if (replyList == null) {
     throw PlatformException(
@@ -34,11 +34,8 @@ Object? _extractReplyValueOrThrow(
   return replyList.firstOrNull;
 }
 
-List<Object?> wrapResponse({
-  Object? result,
-  PlatformException? error,
-  bool empty = false,
-}) {
+
+List<Object?> wrapResponse({Object? result, PlatformException? error, bool empty = false}) {
   if (empty) {
     return <Object?>[];
   }
@@ -47,7 +44,6 @@ List<Object?> wrapResponse({
   }
   return <Object?>[error.code, error.message, error.details];
 }
-
 bool _deepEquals(Object? a, Object? b) {
   if (identical(a, b)) {
     return true;
@@ -60,9 +56,8 @@ bool _deepEquals(Object? a, Object? b) {
   }
   if (a is List && b is List) {
     return a.length == b.length &&
-        a.indexed.every(
-          ((int, dynamic) item) => _deepEquals(item.$2, b[item.$1]),
-        );
+        a.indexed
+            .every(((int, dynamic) item) => _deepEquals(item.$2, b[item.$1]));
   }
   if (a is Map && b is Map) {
     if (a.length != b.length) {
@@ -111,13 +106,31 @@ int _deepHash(Object? value) {
   return value.hashCode;
 }
 
-enum HostPlatform { macos, windows }
 
-enum EngineTrayState { idle, recording, paused }
+enum HostPlatform {
+  macos,
+  windows;
+}
 
-enum EngineTrayCommand { startStop, pauseResume, showWindow }
+enum EngineTrayState {
+  idle,
+  recording,
+  paused;
+}
 
-enum EngineRecordingPhase { idle, starting, recording, paused, stopping }
+enum EngineTrayCommand {
+  startStop,
+  pauseResume,
+  showWindow;
+}
+
+enum EngineRecordingPhase {
+  idle,
+  starting,
+  recording,
+  paused,
+  stopping;
+}
 
 class EngineCapabilities {
   EngineCapabilities({
@@ -170,8 +183,7 @@ class EngineCapabilities {
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static EngineCapabilities decode(Object result) {
     result as List<Object?>;
@@ -198,19 +210,7 @@ class EngineCapabilities {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(platform, other.platform) &&
-        _deepEquals(osVersion, other.osVersion) &&
-        _deepEquals(minimumOsVersion, other.minimumOsVersion) &&
-        _deepEquals(meetsMinimumOs, other.meetsMinimumOs) &&
-        _deepEquals(supportsRecording, other.supportsRecording) &&
-        _deepEquals(supportsSystemAudio, other.supportsSystemAudio) &&
-        _deepEquals(
-          supportsMicrophoneViaScreenCapture,
-          other.supportsMicrophoneViaScreenCapture,
-        ) &&
-        _deepEquals(hasHardwareH264Encoder, other.hasHardwareH264Encoder) &&
-        _deepEquals(hasHardwareHevcEncoder, other.hasHardwareHevcEncoder) &&
-        _deepEquals(engineVersion, other.engineVersion);
+    return _deepEquals(platform, other.platform) && _deepEquals(osVersion, other.osVersion) && _deepEquals(minimumOsVersion, other.minimumOsVersion) && _deepEquals(meetsMinimumOs, other.meetsMinimumOs) && _deepEquals(supportsRecording, other.supportsRecording) && _deepEquals(supportsSystemAudio, other.supportsSystemAudio) && _deepEquals(supportsMicrophoneViaScreenCapture, other.supportsMicrophoneViaScreenCapture) && _deepEquals(hasHardwareH264Encoder, other.hasHardwareH264Encoder) && _deepEquals(hasHardwareHevcEncoder, other.hasHardwareHevcEncoder) && _deepEquals(engineVersion, other.engineVersion);
   }
 
   @override
@@ -224,19 +224,24 @@ class EngineCapabilities {
 }
 
 class DiskSpace {
-  DiskSpace({required this.freeBytes, required this.totalBytes});
+  DiskSpace({
+    required this.freeBytes,
+    required this.totalBytes,
+  });
 
   int freeBytes;
 
   int totalBytes;
 
   List<Object?> _toList() {
-    return <Object?>[freeBytes, totalBytes];
+    return <Object?>[
+      freeBytes,
+      totalBytes,
+    ];
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static DiskSpace decode(Object result) {
     result as List<Object?>;
@@ -255,8 +260,7 @@ class DiskSpace {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(freeBytes, other.freeBytes) &&
-        _deepEquals(totalBytes, other.totalBytes);
+    return _deepEquals(freeBytes, other.freeBytes) && _deepEquals(totalBytes, other.totalBytes);
   }
 
   @override
@@ -290,12 +294,17 @@ class EngineDisplay {
   bool isMain;
 
   List<Object?> _toList() {
-    return <Object?>[id, name, width, height, isMain];
+    return <Object?>[
+      id,
+      name,
+      width,
+      height,
+      isMain,
+    ];
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static EngineDisplay decode(Object result) {
     result as List<Object?>;
@@ -317,11 +326,7 @@ class EngineDisplay {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(id, other.id) &&
-        _deepEquals(name, other.name) &&
-        _deepEquals(width, other.width) &&
-        _deepEquals(height, other.height) &&
-        _deepEquals(isMain, other.isMain);
+    return _deepEquals(id, other.id) && _deepEquals(name, other.name) && _deepEquals(width, other.width) && _deepEquals(height, other.height) && _deepEquals(isMain, other.isMain);
   }
 
   @override
@@ -353,12 +358,16 @@ class EngineCaptureArea {
   double height;
 
   List<Object?> _toList() {
-    return <Object?>[x, y, width, height];
+    return <Object?>[
+      x,
+      y,
+      width,
+      height,
+    ];
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static EngineCaptureArea decode(Object result) {
     result as List<Object?>;
@@ -379,10 +388,7 @@ class EngineCaptureArea {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(x, other.x) &&
-        _deepEquals(y, other.y) &&
-        _deepEquals(width, other.width) &&
-        _deepEquals(height, other.height);
+    return _deepEquals(x, other.x) && _deepEquals(y, other.y) && _deepEquals(width, other.width) && _deepEquals(height, other.height);
   }
 
   @override
@@ -418,12 +424,17 @@ class EngineWindow {
   int height;
 
   List<Object?> _toList() {
-    return <Object?>[id, title, appName, width, height];
+    return <Object?>[
+      id,
+      title,
+      appName,
+      width,
+      height,
+    ];
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static EngineWindow decode(Object result) {
     result as List<Object?>;
@@ -445,11 +456,7 @@ class EngineWindow {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(id, other.id) &&
-        _deepEquals(title, other.title) &&
-        _deepEquals(appName, other.appName) &&
-        _deepEquals(width, other.width) &&
-        _deepEquals(height, other.height);
+    return _deepEquals(id, other.id) && _deepEquals(title, other.title) && _deepEquals(appName, other.appName) && _deepEquals(width, other.width) && _deepEquals(height, other.height);
   }
 
   @override
@@ -486,12 +493,17 @@ class EngineShortcut {
   bool meta;
 
   List<Object?> _toList() {
-    return <Object?>[key, control, alt, shift, meta];
+    return <Object?>[
+      key,
+      control,
+      alt,
+      shift,
+      meta,
+    ];
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static EngineShortcut decode(Object result) {
     result as List<Object?>;
@@ -513,11 +525,7 @@ class EngineShortcut {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(key, other.key) &&
-        _deepEquals(control, other.control) &&
-        _deepEquals(alt, other.alt) &&
-        _deepEquals(shift, other.shift) &&
-        _deepEquals(meta, other.meta);
+    return _deepEquals(key, other.key) && _deepEquals(control, other.control) && _deepEquals(alt, other.alt) && _deepEquals(shift, other.shift) && _deepEquals(meta, other.meta);
   }
 
   @override
@@ -589,8 +597,7 @@ class EngineRecordingRequest {
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static EngineRecordingRequest decode(Object result) {
     result as List<Object?>;
@@ -617,16 +624,7 @@ class EngineRecordingRequest {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(windowId, other.windowId) &&
-        _deepEquals(showCursor, other.showCursor) &&
-        _deepEquals(displayId, other.displayId) &&
-        _deepEquals(captureSystemAudio, other.captureSystemAudio) &&
-        _deepEquals(captureMicrophone, other.captureMicrophone) &&
-        _deepEquals(segmentSeconds, other.segmentSeconds) &&
-        _deepEquals(area, other.area) &&
-        _deepEquals(outputDirectory, other.outputDirectory) &&
-        _deepEquals(framesPerSecond, other.framesPerSecond) &&
-        _deepEquals(maxHeight, other.maxHeight);
+    return _deepEquals(windowId, other.windowId) && _deepEquals(showCursor, other.showCursor) && _deepEquals(displayId, other.displayId) && _deepEquals(captureSystemAudio, other.captureSystemAudio) && _deepEquals(captureMicrophone, other.captureMicrophone) && _deepEquals(segmentSeconds, other.segmentSeconds) && _deepEquals(area, other.area) && _deepEquals(outputDirectory, other.outputDirectory) && _deepEquals(framesPerSecond, other.framesPerSecond) && _deepEquals(maxHeight, other.maxHeight);
   }
 
   @override
@@ -646,6 +644,7 @@ class EngineRecordingSession {
     required this.height,
   });
 
+  /// The save folder that holds the recording's video files.
   String sessionDirectory;
 
   int width;
@@ -653,12 +652,15 @@ class EngineRecordingSession {
   int height;
 
   List<Object?> _toList() {
-    return <Object?>[sessionDirectory, width, height];
+    return <Object?>[
+      sessionDirectory,
+      width,
+      height,
+    ];
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static EngineRecordingSession decode(Object result) {
     result as List<Object?>;
@@ -678,9 +680,7 @@ class EngineRecordingSession {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(sessionDirectory, other.sessionDirectory) &&
-        _deepEquals(width, other.width) &&
-        _deepEquals(height, other.height);
+    return _deepEquals(sessionDirectory, other.sessionDirectory) && _deepEquals(width, other.width) && _deepEquals(height, other.height);
   }
 
   @override
@@ -701,6 +701,7 @@ class EngineRecoveredSession {
     required this.durationMs,
   });
 
+  /// The save folder that holds the recording's video files.
   String sessionDirectory;
 
   List<String> files;
@@ -708,12 +709,15 @@ class EngineRecoveredSession {
   int durationMs;
 
   List<Object?> _toList() {
-    return <Object?>[sessionDirectory, files, durationMs];
+    return <Object?>[
+      sessionDirectory,
+      files,
+      durationMs,
+    ];
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static EngineRecoveredSession decode(Object result) {
     result as List<Object?>;
@@ -733,9 +737,7 @@ class EngineRecoveredSession {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(sessionDirectory, other.sessionDirectory) &&
-        _deepEquals(files, other.files) &&
-        _deepEquals(durationMs, other.durationMs);
+    return _deepEquals(sessionDirectory, other.sessionDirectory) && _deepEquals(files, other.files) && _deepEquals(durationMs, other.durationMs);
   }
 
   @override
@@ -779,8 +781,7 @@ class EngineRecordingStatus {
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static EngineRecordingStatus decode(Object result) {
     result as List<Object?>;
@@ -802,11 +803,7 @@ class EngineRecordingStatus {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(phase, other.phase) &&
-        _deepEquals(elapsedMs, other.elapsedMs) &&
-        _deepEquals(segmentIndex, other.segmentIndex) &&
-        _deepEquals(bytesWritten, other.bytesWritten) &&
-        _deepEquals(droppedFrames, other.droppedFrames);
+    return _deepEquals(phase, other.phase) && _deepEquals(elapsedMs, other.elapsedMs) && _deepEquals(segmentIndex, other.segmentIndex) && _deepEquals(bytesWritten, other.bytesWritten) && _deepEquals(droppedFrames, other.droppedFrames);
   }
 
   @override
@@ -827,6 +824,7 @@ class EngineRecordingResult {
     required this.bytesWritten,
   });
 
+  /// The save folder that holds the recording's video files.
   String sessionDirectory;
 
   List<String> files;
@@ -836,12 +834,16 @@ class EngineRecordingResult {
   int bytesWritten;
 
   List<Object?> _toList() {
-    return <Object?>[sessionDirectory, files, durationMs, bytesWritten];
+    return <Object?>[
+      sessionDirectory,
+      files,
+      durationMs,
+      bytesWritten,
+    ];
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static EngineRecordingResult decode(Object result) {
     result as List<Object?>;
@@ -862,10 +864,7 @@ class EngineRecordingResult {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(sessionDirectory, other.sessionDirectory) &&
-        _deepEquals(files, other.files) &&
-        _deepEquals(durationMs, other.durationMs) &&
-        _deepEquals(bytesWritten, other.bytesWritten);
+    return _deepEquals(sessionDirectory, other.sessionDirectory) && _deepEquals(files, other.files) && _deepEquals(durationMs, other.durationMs) && _deepEquals(bytesWritten, other.bytesWritten);
   }
 
   @override
@@ -880,19 +879,24 @@ class EngineRecordingResult {
 
 /// Peak level since the previous event, 0 (silent) to 1 (full scale).
 class EngineAudioLevels {
-  EngineAudioLevels({required this.system, required this.microphone});
+  EngineAudioLevels({
+    required this.system,
+    required this.microphone,
+  });
 
   double system;
 
   double microphone;
 
   List<Object?> _toList() {
-    return <Object?>[system, microphone];
+    return <Object?>[
+      system,
+      microphone,
+    ];
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static EngineAudioLevels decode(Object result) {
     result as List<Object?>;
@@ -911,8 +915,7 @@ class EngineAudioLevels {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(system, other.system) &&
-        _deepEquals(microphone, other.microphone);
+    return _deepEquals(system, other.system) && _deepEquals(microphone, other.microphone);
   }
 
   @override
@@ -940,12 +943,15 @@ class EngineError {
   bool isFatal;
 
   List<Object?> _toList() {
-    return <Object?>[code, message, isFatal];
+    return <Object?>[
+      code,
+      message,
+      isFatal,
+    ];
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static EngineError decode(Object result) {
     result as List<Object?>;
@@ -965,9 +971,7 @@ class EngineError {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(code, other.code) &&
-        _deepEquals(message, other.message) &&
-        _deepEquals(isFatal, other.isFatal);
+    return _deepEquals(code, other.code) && _deepEquals(message, other.message) && _deepEquals(isFatal, other.isFatal);
   }
 
   @override
@@ -980,6 +984,7 @@ class EngineError {
   }
 }
 
+
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
   @override
@@ -987,55 +992,55 @@ class _PigeonCodec extends StandardMessageCodec {
     if (value is int) {
       buffer.putUint8(4);
       buffer.putInt64(value);
-    } else if (value is HostPlatform) {
+    }    else if (value is HostPlatform) {
       buffer.putUint8(129);
       writeValue(buffer, value.index);
-    } else if (value is EngineTrayState) {
+    }    else if (value is EngineTrayState) {
       buffer.putUint8(130);
       writeValue(buffer, value.index);
-    } else if (value is EngineTrayCommand) {
+    }    else if (value is EngineTrayCommand) {
       buffer.putUint8(131);
       writeValue(buffer, value.index);
-    } else if (value is EngineRecordingPhase) {
+    }    else if (value is EngineRecordingPhase) {
       buffer.putUint8(132);
       writeValue(buffer, value.index);
-    } else if (value is EngineCapabilities) {
+    }    else if (value is EngineCapabilities) {
       buffer.putUint8(133);
       writeValue(buffer, value.encode());
-    } else if (value is DiskSpace) {
+    }    else if (value is DiskSpace) {
       buffer.putUint8(134);
       writeValue(buffer, value.encode());
-    } else if (value is EngineDisplay) {
+    }    else if (value is EngineDisplay) {
       buffer.putUint8(135);
       writeValue(buffer, value.encode());
-    } else if (value is EngineCaptureArea) {
+    }    else if (value is EngineCaptureArea) {
       buffer.putUint8(136);
       writeValue(buffer, value.encode());
-    } else if (value is EngineWindow) {
+    }    else if (value is EngineWindow) {
       buffer.putUint8(137);
       writeValue(buffer, value.encode());
-    } else if (value is EngineShortcut) {
+    }    else if (value is EngineShortcut) {
       buffer.putUint8(138);
       writeValue(buffer, value.encode());
-    } else if (value is EngineRecordingRequest) {
+    }    else if (value is EngineRecordingRequest) {
       buffer.putUint8(139);
       writeValue(buffer, value.encode());
-    } else if (value is EngineRecordingSession) {
+    }    else if (value is EngineRecordingSession) {
       buffer.putUint8(140);
       writeValue(buffer, value.encode());
-    } else if (value is EngineRecoveredSession) {
+    }    else if (value is EngineRecoveredSession) {
       buffer.putUint8(141);
       writeValue(buffer, value.encode());
-    } else if (value is EngineRecordingStatus) {
+    }    else if (value is EngineRecordingStatus) {
       buffer.putUint8(142);
       writeValue(buffer, value.encode());
-    } else if (value is EngineRecordingResult) {
+    }    else if (value is EngineRecordingResult) {
       buffer.putUint8(143);
       writeValue(buffer, value.encode());
-    } else if (value is EngineAudioLevels) {
+    }    else if (value is EngineAudioLevels) {
       buffer.putUint8(144);
       writeValue(buffer, value.encode());
-    } else if (value is EngineError) {
+    }    else if (value is EngineError) {
       buffer.putUint8(145);
       writeValue(buffer, value.encode());
     } else {
@@ -1098,21 +1103,20 @@ class EngineHostApi {
   /// available for dependency injection. If it is left null, the default
   /// BinaryMessenger will be used which routes to the host platform.
   EngineHostApi({
-    BinaryMessenger? binaryMessenger,
-    String messageChannelSuffix = '',
-  }) : pigeonVar_binaryMessenger = binaryMessenger,
-       pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty
-           ? '.$messageChannelSuffix'
-           : '';
+      BinaryMessenger? binaryMessenger, 
+      String messageChannelSuffix = '', 
+      })
+      : pigeonVar_binaryMessenger = binaryMessenger,
+        pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
 
   final BinaryMessenger? pigeonVar_binaryMessenger;
   static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
 
   final String pigeonVar_messageChannelSuffix;
 
+
   Future<EngineCapabilities> getCapabilities() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.getCapabilities$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.getCapabilities$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1121,36 +1125,34 @@ class EngineHostApi {
     final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as EngineCapabilities;
   }
 
   Future<DiskSpace> getDiskSpace(String path) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.getDiskSpace$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.getDiskSpace$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[path],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[path]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as DiskSpace;
   }
 
   Future<bool> hasScreenCapturePermission() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.hasScreenCapturePermission$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.hasScreenCapturePermission$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1159,17 +1161,17 @@ class EngineHostApi {
     final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as bool;
   }
 
   /// Shows the system prompt the first time; afterwards only Settings can grant it.
   Future<bool> requestScreenCapturePermission() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.requestScreenCapturePermission$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.requestScreenCapturePermission$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1178,16 +1180,16 @@ class EngineHostApi {
     final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as bool;
   }
 
   Future<void> openScreenCaptureSettings() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.openScreenCaptureSettings$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.openScreenCaptureSettings$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1196,15 +1198,15 @@ class EngineHostApi {
     final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   Future<bool> hasMicrophonePermission() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.hasMicrophonePermission$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.hasMicrophonePermission$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1213,17 +1215,17 @@ class EngineHostApi {
     final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as bool;
   }
 
   /// Shows the system prompt the first time; afterwards only Settings can grant it.
   Future<bool> requestMicrophonePermission() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.requestMicrophonePermission$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.requestMicrophonePermission$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1232,16 +1234,16 @@ class EngineHostApi {
     final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as bool;
   }
 
   Future<void> openMicrophoneSettings() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.openMicrophoneSettings$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.openMicrophoneSettings$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1250,15 +1252,15 @@ class EngineHostApi {
     final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   Future<List<EngineDisplay>> listDisplays() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.listDisplays$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.listDisplays$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1267,17 +1269,17 @@ class EngineHostApi {
     final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return (pigeonVar_replyValue! as List<Object?>).cast<EngineDisplay>();
   }
 
   /// Open app windows that can be recorded, excluding RecLite's own.
   Future<List<EngineWindow>> listWindows() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.listWindows$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.listWindows$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1286,39 +1288,35 @@ class EngineHostApi {
     final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return (pigeonVar_replyValue! as List<Object?>).cast<EngineWindow>();
   }
 
-  Future<EngineRecordingSession> startRecording(
-    EngineRecordingRequest request,
-  ) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.startRecording$pigeonVar_messageChannelSuffix';
+  Future<EngineRecordingSession> startRecording(EngineRecordingRequest request) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.startRecording$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[request],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[request]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as EngineRecordingSession;
   }
 
   /// Keeps capturing but stops writing; paused time is not part of the video.
   Future<void> pauseRecording() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.pauseRecording$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.pauseRecording$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1327,15 +1325,15 @@ class EngineHostApi {
     final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   Future<void> resumeRecording() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.resumeRecording$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.resumeRecording$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1344,15 +1342,15 @@ class EngineHostApi {
     final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   Future<EngineRecordingResult> stopRecording() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.stopRecording$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.stopRecording$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1361,164 +1359,167 @@ class EngineHostApi {
     final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as EngineRecordingResult;
   }
 
-  /// Finds unfinished recordings in [outputDirectory], keeps every playable
-  /// part and marks the session as recovered. Skips the active recording.
-  Future<List<EngineRecoveredSession>> recoverSessions(
-    String outputDirectory,
-  ) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.recoverSessions$pigeonVar_messageChannelSuffix';
+  /// Finds recordings cut off by a crash (in any save folder), keeps every
+  /// playable part and marks them recovered. Skips the active recording.
+  Future<List<EngineRecoveredSession>> recoverSessions() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.recoverSessions$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[outputDirectory],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return (pigeonVar_replyValue! as List<Object?>).cast<EngineRecoveredSession>();
+  }
+
+  /// Where recording manifests (`<name>.json`) are kept: the app's own data
+  /// folder, so the save folder holds only videos.
+  Future<String> getSessionsDirectory() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.getSessionsDirectory$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
-      isNullValid: false,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
     );
-    return (pigeonVar_replyValue! as List<Object?>)
-        .cast<EngineRecoveredSession>();
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as String;
   }
 
   Future<void> revealInFileManager(String path) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.revealInFileManager$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.revealInFileManager$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[path],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[path]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   /// Opens a file or folder with its default app (e.g. an MP4 in the video player).
   Future<void> openPath(String path) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.openPath$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.openPath$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[path],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[path]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   /// Moves a file or folder to the Recycle Bin / Trash, so it can be restored.
   Future<void> moveToTrash(String path) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.moveToTrash$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.moveToTrash$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[path],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[path]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   /// Opens an https:, http: or mailto: link in the default browser / mail app.
   Future<void> openUrl(String url) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.openUrl$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.openUrl$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[url],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[url]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   /// Replaces all system-wide shortcuts; an empty list turns them off. Returns
   /// the indexes of shortcuts that another app already uses.
   Future<List<int>> setGlobalShortcuts(List<EngineShortcut> shortcuts) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.setGlobalShortcuts$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.setGlobalShortcuts$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[shortcuts],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[shortcuts]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return (pigeonVar_replyValue! as List<Object?>).cast<int>();
   }
 
   /// Shrinks the main window to a small always-on-top bar at the top of its
   /// screen (true), or restores its earlier size and position (false).
   Future<void> setMiniWindow(bool mini) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.setMiniWindow$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.setMiniWindow$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[mini],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[mini]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   /// Moves the window with the mouse; call while the mouse button is down.
   Future<void> startWindowDrag() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.startWindowDrag$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.startWindowDrag$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1527,50 +1528,47 @@ class EngineHostApi {
     final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   /// Shows the tray (Windows) / menu-bar (macOS) icon for this state.
   Future<void> setTrayState(EngineTrayState state) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.setTrayState$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.setTrayState$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[state],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[state]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   /// Shows a drag-to-select overlay on the display. Null when the user cancels.
   Future<EngineCaptureArea?> selectArea(int displayId) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.reclite_engine.EngineHostApi.selectArea$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.reclite_engine.EngineHostApi.selectArea$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[displayId],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[displayId]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
     return pigeonVar_replyValue as EngineCaptureArea?;
   }
 }
@@ -1593,46 +1591,37 @@ abstract class EngineEventsApi {
   /// already brought the window to the front.
   void onTrayCommand(EngineTrayCommand command);
 
-  static void setUp(
-    EngineEventsApi? api, {
+  static void setUp(EngineEventsApi? api, {
     BinaryMessenger? binaryMessenger,
     String messageChannelSuffix = '',
-  }) {
-    messageChannelSuffix = messageChannelSuffix.isNotEmpty
-        ? '.$messageChannelSuffix'
-        : '';
+  }) 
+{
+    messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
     {
       final pigeonVar_channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.reclite_engine.EngineEventsApi.onStatus$messageChannelSuffix',
-        pigeonChannelCodec,
-        binaryMessenger: binaryMessenger,
-      );
+          'dev.flutter.pigeon.reclite_engine.EngineEventsApi.onStatus$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
         pigeonVar_channel.setMessageHandler((Object? message) async {
           final List<Object?> args = message! as List<Object?>;
-          final EngineRecordingStatus arg_status =
-              args[0]! as EngineRecordingStatus;
+          final EngineRecordingStatus arg_status = args[0]! as EngineRecordingStatus;
           try {
             api.onStatus(arg_status);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
-          } catch (e) {
-            return wrapResponse(
-              error: PlatformException(code: 'error', message: e.toString()),
-            );
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
           }
         });
       }
     }
     {
       final pigeonVar_channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.reclite_engine.EngineEventsApi.onError$messageChannelSuffix',
-        pigeonChannelCodec,
-        binaryMessenger: binaryMessenger,
-      );
+          'dev.flutter.pigeon.reclite_engine.EngineEventsApi.onError$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
@@ -1644,20 +1633,16 @@ abstract class EngineEventsApi {
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
-          } catch (e) {
-            return wrapResponse(
-              error: PlatformException(code: 'error', message: e.toString()),
-            );
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
           }
         });
       }
     }
     {
       final pigeonVar_channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.reclite_engine.EngineEventsApi.onAudioLevels$messageChannelSuffix',
-        pigeonChannelCodec,
-        binaryMessenger: binaryMessenger,
-      );
+          'dev.flutter.pigeon.reclite_engine.EngineEventsApi.onAudioLevels$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
@@ -1669,20 +1654,16 @@ abstract class EngineEventsApi {
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
-          } catch (e) {
-            return wrapResponse(
-              error: PlatformException(code: 'error', message: e.toString()),
-            );
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
           }
         });
       }
     }
     {
       final pigeonVar_channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.reclite_engine.EngineEventsApi.onShortcut$messageChannelSuffix',
-        pigeonChannelCodec,
-        binaryMessenger: binaryMessenger,
-      );
+          'dev.flutter.pigeon.reclite_engine.EngineEventsApi.onShortcut$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
@@ -1694,20 +1675,16 @@ abstract class EngineEventsApi {
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
-          } catch (e) {
-            return wrapResponse(
-              error: PlatformException(code: 'error', message: e.toString()),
-            );
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
           }
         });
       }
     }
     {
       final pigeonVar_channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.reclite_engine.EngineEventsApi.onTrayCommand$messageChannelSuffix',
-        pigeonChannelCodec,
-        binaryMessenger: binaryMessenger,
-      );
+          'dev.flutter.pigeon.reclite_engine.EngineEventsApi.onTrayCommand$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
@@ -1719,10 +1696,8 @@ abstract class EngineEventsApi {
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
-          } catch (e) {
-            return wrapResponse(
-              error: PlatformException(code: 'error', message: e.toString()),
-            );
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
           }
         });
       }

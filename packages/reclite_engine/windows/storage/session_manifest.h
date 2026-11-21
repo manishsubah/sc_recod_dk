@@ -8,8 +8,9 @@
 
 namespace reclite_engine {
 
-// session.json — same fields as the macOS manifest (docs/PLAN.md §16.2), so
-// History can read recordings from either platform. Strings are UTF-8.
+// The recording's metadata — same fields as the macOS manifest (docs/PLAN.md
+// §16.2), so History can read recordings from either platform. Kept in the app's
+// own data folder, not next to the videos. Strings are UTF-8.
 // Platform-independent (unit-tested on any OS); file I/O is in session_storage.
 struct SessionManifest {
   struct Segment {
@@ -20,9 +21,10 @@ struct SessionManifest {
     std::string status = "complete";  // or "recovered"
   };
 
-  static constexpr char kFileName[] = "session.json";
-
   std::string session_id;
+  // Folder holding the videos (the user's save folder). Empty in old manifests,
+  // which sat inside a per-recording folder next to their videos.
+  std::string directory;
   std::string started_at;  // ISO 8601, UTC
   std::string ended_at;
   std::string status = "recording";  // recording | completed | recovered | failed

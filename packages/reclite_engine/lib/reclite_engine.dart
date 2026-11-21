@@ -86,10 +86,12 @@ class RecliteEngine {
 
   Future<EngineRecordingResult> stopRecording() => _api.stopRecording();
 
-  /// Repairs recordings interrupted by a crash or power loss in [outputDirectory].
-  Future<List<EngineRecoveredSession>> recoverSessions(
-    String outputDirectory,
-  ) => _api.recoverSessions(outputDirectory);
+  /// Repairs recordings interrupted by a crash or power loss, in any save folder.
+  Future<List<EngineRecoveredSession>> recoverSessions() =>
+      _api.recoverSessions();
+
+  /// Where recording manifests are kept (the app's own data folder).
+  Future<String> getSessionsDirectory() => _api.getSessionsDirectory();
 
   Future<void> revealInFileManager(String path) =>
       _api.revealInFileManager(path);

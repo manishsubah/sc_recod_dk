@@ -257,6 +257,9 @@ std::string SessionManifest::ToJson() const {
   out << "  \"app\" : \"RecLite\",\n";
   out << "  \"audio\" : { \"microphone\" : " << (microphone ? "true" : "false")
       << ", \"system\" : " << (system_audio ? "true" : "false") << " },\n";
+  if (!directory.empty()) {
+    out << "  \"directory\" : " << Quote(directory) << ",\n";
+  }
   if (!ended_at.empty()) {
     out << "  \"endedAt\" : " << Quote(ended_at) << ",\n";
   }
@@ -293,6 +296,7 @@ std::optional<SessionManifest> SessionManifest::FromJson(const std::string& json
   }
   SessionManifest m;
   m.session_id = StringOr(root, "sessionId", "");
+  m.directory = StringOr(root, "directory", "");
   m.started_at = StringOr(root, "startedAt", "");
   m.ended_at = StringOr(root, "endedAt", "");
   m.status = StringOr(root, "status", "recording");

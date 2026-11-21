@@ -22,7 +22,7 @@ class RecoveryBanner extends StatelessWidget {
             Duration.zero,
             (sum, r) => sum + r.duration,
           ),
-          folder: recordings.last.sessionDirectory,
+          folder: recordings.last.files.first,
         ),
       },
     );

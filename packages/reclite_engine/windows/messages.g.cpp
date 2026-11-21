@@ -2382,14 +2382,7 @@ void EngineHostApi::SetUp(
     if (api != nullptr) {
       channel.SetMessageHandler([api](const EncodableValue& message, const ::flutter::MessageReply<EncodableValue>& reply) {
         try {
-          const auto& args = std::get<EncodableList>(message);
-          const auto& encodable_output_directory_arg = args.at(0);
-          if (encodable_output_directory_arg.IsNull()) {
-            reply(WrapError("output_directory_arg unexpectedly null."));
-            return;
-          }
-          const auto& output_directory_arg = std::get<std::string>(encodable_output_directory_arg);
-          api->RecoverSessions(output_directory_arg, [reply](ErrorOr<EncodableList>&& output) {
+          api->RecoverSessions([reply](ErrorOr<EncodableList>&& output) {
             if (output.has_error()) {
               reply(WrapError(output.error()));
               return;
@@ -2398,6 +2391,27 @@ void EngineHostApi::SetUp(
             wrapped.push_back(EncodableValue(std::move(output).TakeValue()));
             reply(EncodableValue(std::move(wrapped)));
           });
+        } catch (const std::exception& exception) {
+          reply(WrapError(exception.what()));
+        }
+      });
+    } else {
+      channel.SetMessageHandler(nullptr);
+    }
+  }
+  {
+    BasicMessageChannel<> channel(binary_messenger, "dev.flutter.pigeon.reclite_engine.EngineHostApi.getSessionsDirectory" + prepended_suffix, &GetCodec());
+    if (api != nullptr) {
+      channel.SetMessageHandler([api](const EncodableValue& message, const ::flutter::MessageReply<EncodableValue>& reply) {
+        try {
+          ErrorOr<std::string> output = api->GetSessionsDirectory();
+          if (output.has_error()) {
+            reply(WrapError(output.error()));
+            return;
+          }
+          EncodableList wrapped;
+          wrapped.push_back(EncodableValue(std::move(output).TakeValue()));
+          reply(EncodableValue(std::move(wrapped)));
         } catch (const std::exception& exception) {
           reply(WrapError(exception.what()));
         }

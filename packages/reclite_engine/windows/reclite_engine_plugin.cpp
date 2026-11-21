@@ -10,6 +10,7 @@
 #include "core/strings.h"
 #include "engine/capabilities_probe.h"
 #include "storage/disk_space_probe.h"
+#include "storage/session_storage.h"
 
 namespace reclite_engine {
 
@@ -100,9 +101,16 @@ void RecliteEnginePlugin::StopRecording(
 }
 
 void RecliteEnginePlugin::RecoverSessions(
-    const std::string& output_directory,
     std::function<void(ErrorOr<flutter::EncodableList> reply)> result) {
-  engine_->RecoverSessions(output_directory, std::move(result));
+  engine_->RecoverSessions(std::move(result));
+}
+
+ErrorOr<std::string> RecliteEnginePlugin::GetSessionsDirectory() {
+  const auto sessions = SessionsDirectory();
+  if (sessions.empty()) {
+    return FlutterError("storage_unavailable", "Could not open RecLite's data folder.");
+  }
+  return WideToUtf8(sessions.wstring());
 }
 
 std::optional<FlutterError> RecliteEnginePlugin::RevealInFileManager(

@@ -185,23 +185,30 @@ void RecordingEngine::Start(const EngineRecordingRequest& request,
   const auto fail = [&](const std::string& code, const std::string& message) {
     if (session->capture) session->capture->Stop();
     for (auto& source_audio : session->audio) source_audio->Stop();
-    if (!session->directory.empty()) {
+    if (!session->manifest_file.empty()) {
       std::error_code ec;
-      fs::remove(session->directory / SessionManifest::kFileName, ec);
-      fs::remove(session->directory, ec);  // Only succeeds when the folder is empty.
+      fs::remove(session->manifest_file, ec);
     }
     SetPhase(EngineRecordingPhase::kIdle);
     result(Error(code, message));
   };
 
-  const std::wstring stamp = session_naming::Stamp();
-  const auto directory = session_naming::CreateSessionDirectory(
-      fs::path(Utf8ToWide(request.output_directory())), stamp, &error);
-  if (!directory) {
-    fail("writer_failed", error);
-    return;
+  // Videos go straight into the save folder; the manifest into the app's data folder.
+  const fs::path folder(Utf8ToWide(request.output_directory()));
+  const fs::path sessions = SessionsDirectory();
+  {
+    std::error_code ec;
+    fs::create_directories(folder, ec);
+    if (ec || sessions.empty()) {
+      fail("writer_failed", ec ? "Could not create the save folder (" + ec.message() + ")."
+                               : "Could not open RecLite's data folder.");
+      return;
+    }
   }
-  session->directory = *directory;
+  const std::wstring base = session_naming::UniqueBaseName(folder, sessions,
+                                                           session_naming::Stamp());
+  session->folder = folder;
+  session->manifest_file = sessions / (base + L".json");
 
   session->gpu = GpuDevice::Create(&error);
   if (!session->gpu) {
@@ -250,11 +257,8 @@ void RecordingEngine::Start(const EngineRecordingRequest& request,
   settings.format.height = height;
   settings.format.frames_per_second = fps;
   settings.audio_sources = audio_sources;
-  const fs::path session_directory = session->directory;
-  settings.make_path = [session_directory, stamp](int index, double starts_in_seconds) {
-    return session_directory /
-           session_naming::SegmentFileName(
-               index == 1 ? stamp : session_naming::Stamp(starts_in_seconds), index);
+  settings.make_path = [folder, base](int index, double) {
+    return folder / session_naming::SegmentFileName(base, index);
   };
 
   // Writers are created and used on the recording queue (MTA + Media Foundation).
@@ -293,7 +297,8 @@ void RecordingEngine::Start(const EngineRecordingRequest& request,
 
   // session.json: written now, updated as each part closes.
   SessionManifest& manifest = session->manifest;
-  manifest.session_id = WideToUtf8(stamp);
+  manifest.session_id = WideToUtf8(base.substr(8));  // Without "RecLite_".
+  manifest.directory = WideToUtf8(folder.wstring());
   manifest.started_at = session_naming::UtcNow();
   manifest.status = "recording";
   manifest.source_type = window != nullptr ? "window" : area != nullptr ? "area" : "display";
@@ -308,7 +313,7 @@ void RecordingEngine::Start(const EngineRecordingRequest& request,
   manifest.height = height;
   manifest.fps = fps;
   manifest.segment_seconds = static_cast<int>(settings.segment_duration / kTicksPerSecond);
-  WriteManifest(manifest, session->directory);
+  WriteManifest(manifest, session->manifest_file);
 
   // Audio sources feed the recorder through the queue.
   std::shared_ptr<SegmentedRecorder> recorder = session->recorder;
@@ -392,7 +397,7 @@ void RecordingEngine::Start(const EngineRecordingRequest& request,
     dispatcher_.StartTimer(kLevelsTimer, 66, [this] { SendLevels(); });
   }
 
-  const std::string directory_utf8 = WideToUtf8(session->directory.wstring());
+  const std::string directory_utf8 = WideToUtf8(session->folder.wstring());
   session_ = std::move(session);
   SetPhase(EngineRecordingPhase::kRecording);
   result(EngineRecordingSession(directory_utf8, width, height));
@@ -475,9 +480,12 @@ void RecordingEngine::OnStopped(std::vector<SegmentedRecorder::Part> parts, std:
   Session& session = *session_;
   session.manifest.status = parts.empty() ? "failed" : "completed";
   session.manifest.ended_at = session_naming::UtcNow();
-  WriteManifest(session.manifest, session.directory);
+  if (parts.size() == 1) {
+    parts.front().path = TidySinglePart(&session.manifest);
+  }
+  WriteManifest(session.manifest, session.manifest_file);
 
-  const std::string directory = WideToUtf8(session.directory.wstring());
+  const std::string directory = WideToUtf8(session.folder.wstring());
   flutter::EncodableList files;
   int64_t duration_ms = 0;
   int64_t bytes = 0;
@@ -522,7 +530,7 @@ void RecordingEngine::RecordPart(const SegmentedRecorder::Part& part) {
   const size_t before = session_->manifest.segments.size();
   session_->manifest.AddSegment(segment);
   if (session_->manifest.segments.size() != before) {
-    WriteManifest(session_->manifest, session_->directory);
+    WriteManifest(session_->manifest, session_->manifest_file);
   }
 }
 
@@ -538,7 +546,7 @@ void RecordingEngine::Tick() {
 }
 
 void RecordingEngine::CheckDiskSpace(const SegmentedRecorder::Stats& stats) {
-  auto space = QueryDiskSpace(WideToUtf8(session_->directory.wstring()));
+  auto space = QueryDiskSpace(WideToUtf8(session_->folder.wstring()));
   if (space.has_error()) {
     return;
   }
@@ -603,13 +611,12 @@ void RecordingEngine::SendLevels() {
 }
 
 void RecordingEngine::RecoverSessions(
-    const std::string& output_directory,
     std::function<void(ErrorOr<flutter::EncodableList>)> result) {
-  const fs::path parent(Utf8ToWide(output_directory));
-  const fs::path active = session_ ? session_->directory : fs::path();
+  const fs::path sessions = SessionsDirectory();
+  const fs::path active = session_ ? session_->manifest_file : fs::path();
   std::weak_ptr<bool> alive = alive_;
-  queue_->Post([this, alive, parent, active, result] {
-    auto recovered = ::reclite_engine::RecoverSessions(parent, active);
+  queue_->Post([this, alive, sessions, active, result] {
+    auto recovered = ::reclite_engine::RecoverSessions(sessions, active);
     dispatcher_.Post([alive, recovered = std::move(recovered), result] {
       if (alive.expired()) return;
       flutter::EncodableList list;

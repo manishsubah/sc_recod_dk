@@ -117,12 +117,12 @@ class RecorderRepositoryImpl implements RecorderRepository {
   Future<void> resume() => _guard(_engine.resumeRecording);
 
   @override
-  Future<List<RecoveredRecording>> recover(String folder) => _guard(() async {
-    final sessions = await _engine.recoverSessions(folder);
+  Future<List<RecoveredRecording>> recover() => _guard(() async {
+    final sessions = await _engine.recoverSessions();
     return [
       for (final s in sessions)
         RecoveredRecording(
-          sessionDirectory: s.sessionDirectory,
+          folder: s.sessionDirectory,
           files: s.files,
           duration: Duration(milliseconds: s.durationMs),
         ),
@@ -133,7 +133,7 @@ class RecorderRepositoryImpl implements RecorderRepository {
   Future<RecordingResult> stop() => _guard(() async {
     final r = await _engine.stopRecording();
     return RecordingResult(
-      sessionDirectory: r.sessionDirectory,
+      folder: r.sessionDirectory,
       files: r.files,
       duration: Duration(milliseconds: r.durationMs),
       bytesWritten: r.bytesWritten,

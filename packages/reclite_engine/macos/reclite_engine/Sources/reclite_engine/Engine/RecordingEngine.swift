@@ -8,18 +8,22 @@ import ScreenCaptureKit
 final class RecordingEngine {
   private final class ActiveSession {
     let capture: CaptureSession
+    /// The user's save folder.
     let directory: URL
+    /// In `SessionNaming.sessionsDirectory()`.
+    let manifestFile: URL
     var manifest: SessionManifest
     let sleepGuard: NSObjectProtocol
     var lowSpaceWarned = false
     var ticks = 0
 
     init(
-      capture: CaptureSession, directory: URL, manifest: SessionManifest,
+      capture: CaptureSession, directory: URL, manifestFile: URL, manifest: SessionManifest,
       sleepGuard: NSObjectProtocol
     ) {
       self.capture = capture
       self.directory = directory
+      self.manifestFile = manifestFile
       self.manifest = manifest
       self.sleepGuard = sleepGuard
     }
@@ -55,7 +59,7 @@ final class RecordingEngine {
     let audioSources = try Self.audioSources(for: request)
 
     setPhase(.starting)
-    var directory: URL?
+    var writtenManifest: URL?
     do {
       let content = try await DisplayCatalog.shareableContent()
       let filter: SCContentFilter
@@ -100,17 +104,22 @@ final class RecordingEngine {
       let segmentSeconds = max(request.segmentSeconds, Self.minimumSegmentSeconds)
 
       let startedAt = Date()
-      let sessionDirectory = try SessionNaming.createSessionDirectory(
-        in: URL(fileURLWithPath: request.outputDirectory, isDirectory: true), startedAt: startedAt)
-      directory = sessionDirectory
+      // Videos go straight into the save folder; the manifest into the app's data folder.
+      let sessionDirectory = URL(fileURLWithPath: request.outputDirectory, isDirectory: true)
+      try FileManager.default.createDirectory(
+        at: sessionDirectory, withIntermediateDirectories: true)
+      let sessions = try SessionNaming.sessionsDirectory()
+      let base = SessionNaming.uniqueBaseName(
+        in: sessionDirectory, sessions: sessions, startedAt: startedAt)
+      let manifestFile = sessions.appendingPathComponent("\(base).json")
 
       let settings = SegmentedRecorder.Settings(
         segmentDuration: CMTime(value: segmentSeconds, timescale: 1),
         width: size.width, height: size.height, framesPerSecond: fps,
         audioSourceCount: audioSources.count,
-        makeURL: { index, date in
+        makeURL: { index, _ in
           sessionDirectory.appendingPathComponent(
-            SessionNaming.segmentFileName(startedAt: index == 1 ? startedAt : date, index: index))
+            SessionNaming.segmentFileName(base: base, index: index))
         })
       let capture = try CaptureSession(
         filter: filter,
@@ -121,7 +130,8 @@ final class RecordingEngine {
         audioSources: audioSources)
 
       let manifest = SessionManifest(
-        sessionId: SessionNaming.stamp(startedAt),
+        sessionId: String(base.dropFirst(SessionNaming.prefix.count + 1)),
+        directory: sessionDirectory.path,
         startedAt: startedAt,
         status: .recording,
         source: .init(
@@ -133,7 +143,8 @@ final class RecordingEngine {
         video: .init(codec: "h264", width: size.width, height: size.height, fps: fps),
         segmentSeconds: Int(segmentSeconds),
         segments: [])
-      try manifest.write(to: sessionDirectory)
+      try manifest.write(to: manifestFile)
+      writtenManifest = manifestFile
 
       capture.onStreamStopped = { [weak self] error in self?.handleStreamStopped(error) }
       capture.onPartFinished = { [weak self] part in self?.record(part) }
@@ -153,7 +164,8 @@ final class RecordingEngine {
       }
 
       session = ActiveSession(
-        capture: capture, directory: sessionDirectory, manifest: manifest,
+        capture: capture, directory: sessionDirectory, manifestFile: manifestFile,
+        manifest: manifest,
         sleepGuard: ProcessInfo.processInfo.beginActivity(
           options: [.userInitiated, .idleSystemSleepDisabled],
           reason: "RecLite is recording the screen"))
@@ -164,7 +176,7 @@ final class RecordingEngine {
         sessionDirectory: sessionDirectory.path, width: Int64(size.width),
         height: Int64(size.height))
     } catch {
-      if let directory { Self.removeIfUnused(directory) }
+      if let writtenManifest { try? FileManager.default.removeItem(at: writtenManifest) }
       setPhase(.idle)
       throw error is PigeonError ? error : EngineErrors.captureFailed(error)
     }
@@ -189,9 +201,10 @@ final class RecordingEngine {
     return try await finish(session, streamAlreadyStopped: false)
   }
 
-  func recoverSessions(in outputDirectory: String) async -> [EngineRecoveredSession] {
+  func recoverSessions() async -> [EngineRecoveredSession] {
+    guard let sessions = try? SessionNaming.sessionsDirectory() else { return [] }
     let recovered = await SessionRecovery.recover(
-      in: URL(fileURLWithPath: outputDirectory, isDirectory: true), skipping: session?.directory)
+      sessions: sessions, skipping: session?.manifestFile)
     return recovered.map {
       EngineRecoveredSession(
         sessionDirectory: $0.directory.path, files: $0.files.map(\.path),
@@ -218,7 +231,11 @@ final class RecordingEngine {
     for part in parts { record(part, in: active) }
     active.manifest.status = parts.isEmpty ? .failed : .completed
     active.manifest.endedAt = Date()
-    try? active.manifest.write(to: active.directory)
+    var files = parts.map(\.url)
+    if files.count == 1, let single = SessionNaming.tidySinglePart(&active.manifest) {
+      files = [single]
+    }
+    try? active.manifest.write(to: active.manifestFile)
 
     guard !parts.isEmpty else {
       throw error.map { $0 is PigeonError ? $0 : EngineErrors.writerFailed($0) }
@@ -226,7 +243,7 @@ final class RecordingEngine {
     }
     return EngineRecordingResult(
       sessionDirectory: active.directory.path,
-      files: parts.map(\.url.path),
+      files: files.map(\.path),
       durationMs: parts.reduce(0) { $0 + Int64(CMTimeGetSeconds($1.duration) * 1000) },
       bytesWritten: parts.reduce(0) { $0 + $1.bytes })
   }
@@ -257,7 +274,7 @@ final class RecordingEngine {
     record(part, in: session)
   }
 
-  /// Adds a finished part to session.json (once) and saves it, so a crash loses nothing listed.
+  /// Adds a finished part to the manifest (once) and saves it, so a crash loses nothing listed.
   private func record(_ part: SegmentedRecorder.Part, in active: ActiveSession) {
     guard !active.manifest.segments.contains(where: { $0.index == part.index }) else { return }
     active.manifest.segments.append(
@@ -266,7 +283,7 @@ final class RecordingEngine {
         durationMs: Int64(CMTimeGetSeconds(part.duration) * 1000), bytes: part.bytes,
         status: "complete"))
     active.manifest.segments.sort { $0.index < $1.index }
-    try? active.manifest.write(to: active.directory)
+    try? active.manifest.write(to: active.manifestFile)
   }
 
   private func startTicker() {
@@ -418,13 +435,6 @@ final class RecordingEngine {
     return config
   }
 
-  /// Removes a session folder that holds nothing but its (just created) manifest.
-  private static func removeIfUnused(_ directory: URL) {
-    let contents = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
-    if contents.allSatisfy({ $0 == SessionManifest.fileName }) {
-      try? FileManager.default.removeItem(at: directory)
-    }
-  }
 }
 
 enum OutputSize {

@@ -487,6 +487,7 @@ class EngineRecordingSession {
     int64_t width,
     int64_t height);
 
+  // The save folder that holds the recording's video files.
   const std::string& session_directory() const;
   void set_session_directory(std::string_view value_arg);
 
@@ -525,6 +526,7 @@ class EngineRecoveredSession {
     const ::flutter::EncodableList& files,
     int64_t duration_ms);
 
+  // The save folder that holds the recording's video files.
   const std::string& session_directory() const;
   void set_session_directory(std::string_view value_arg);
 
@@ -609,6 +611,7 @@ class EngineRecordingResult {
     int64_t duration_ms,
     int64_t bytes_written);
 
+  // The save folder that holds the recording's video files.
   const std::string& session_directory() const;
   void set_session_directory(std::string_view value_arg);
 
@@ -757,11 +760,12 @@ class EngineHostApi {
   virtual std::optional<FlutterError> PauseRecording() = 0;
   virtual std::optional<FlutterError> ResumeRecording() = 0;
   virtual void StopRecording(std::function<void(ErrorOr<EngineRecordingResult> reply)> result) = 0;
-  // Finds unfinished recordings in [outputDirectory], keeps every playable
-  // part and marks the session as recovered. Skips the active recording.
-  virtual void RecoverSessions(
-    const std::string& output_directory,
-    std::function<void(ErrorOr<::flutter::EncodableList> reply)> result) = 0;
+  // Finds recordings cut off by a crash (in any save folder), keeps every
+  // playable part and marks them recovered. Skips the active recording.
+  virtual void RecoverSessions(std::function<void(ErrorOr<::flutter::EncodableList> reply)> result) = 0;
+  // Where recording manifests (`<name>.json`) are kept: the app's own data
+  // folder, so the save folder holds only videos.
+  virtual ErrorOr<std::string> GetSessionsDirectory() = 0;
   virtual std::optional<FlutterError> RevealInFileManager(const std::string& path) = 0;
   // Opens a file or folder with its default app (e.g. an MP4 in the video player).
   virtual std::optional<FlutterError> OpenPath(const std::string& path) = 0;

@@ -10,19 +10,24 @@ enum RecordingOutcome {
   interrupted,
 }
 
-/// One past recording, read from its folder's `session.json`.
+/// One past recording, read from its manifest.
 class SavedRecording extends Equatable {
   const SavedRecording({
-    required this.sessionDirectory,
+    required this.manifestPath,
     required this.startedAt,
     required this.duration,
     required this.bytes,
     required this.files,
     required this.sourceName,
     required this.outcome,
+    this.inOwnFolder = false,
   });
 
-  final String sessionDirectory;
+  /// The recording's metadata file (in RecLite's data folder).
+  final String manifestPath;
+
+  /// Recordings from before the flat layout live in a folder of their own.
+  final bool inOwnFolder;
   final DateTime startedAt;
   final Duration duration;
   final int bytes;
@@ -34,7 +39,8 @@ class SavedRecording extends Equatable {
 
   @override
   List<Object?> get props => [
-    sessionDirectory,
+    manifestPath,
+    inOwnFolder,
     startedAt,
     duration,
     bytes,

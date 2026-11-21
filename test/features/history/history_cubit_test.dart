@@ -9,30 +9,32 @@ import 'package:reclite/features/history/presentation/bloc/history_cubit.dart';
 class MockHistoryRepository extends Mock implements HistoryRepository {}
 
 final _older = SavedRecording(
-  sessionDirectory: '/rec/RecLite_2026-11-19_09-00-00',
+  manifestPath: '/data/Sessions/RecLite_2026-11-19_09-00-00.json',
   startedAt: DateTime.utc(2026, 11, 19, 9),
   duration: const Duration(minutes: 20),
   bytes: 900000000,
   files: const [
-    '/rec/RecLite_2026-11-19_09-00-00/Part01.mp4',
-    '/rec/RecLite_2026-11-19_09-00-00/Part02.mp4',
+    '/rec/RecLite_2026-11-19_09-00-00_Part01.mp4',
+    '/rec/RecLite_2026-11-19_09-00-00_Part02.mp4',
   ],
   sourceName: 'Built-in Display',
   outcome: RecordingOutcome.recovered,
 );
 
 final _newer = SavedRecording(
-  sessionDirectory: '/rec/RecLite_2026-11-19_10-00-00',
+  manifestPath: '/data/Sessions/RecLite_2026-11-19_10-00-00.json',
   startedAt: DateTime.utc(2026, 11, 19, 10),
   duration: const Duration(seconds: 30),
   bytes: 20000000,
-  files: const ['/rec/RecLite_2026-11-19_10-00-00/Part01.mp4'],
+  files: const ['/rec/RecLite_2026-11-19_10-00-00.mp4'],
   sourceName: 'Built-in Display',
   outcome: RecordingOutcome.completed,
 );
 
 void main() {
   late MockHistoryRepository repo;
+
+  setUpAll(() => registerFallbackValue(_newer));
 
   setUp(() {
     repo = MockHistoryRepository();
@@ -99,8 +101,7 @@ void main() {
     expect: () => [
       HistoryLoaded(folder: '/rec', recordings: [_newer]),
     ],
-    verify: (_) =>
-        verify(() => repo.moveToTrash(_older.sessionDirectory)).called(1),
+    verify: (_) => verify(() => repo.moveToTrash(_older)).called(1),
   );
 
   blocTest<HistoryCubit, HistoryState>(

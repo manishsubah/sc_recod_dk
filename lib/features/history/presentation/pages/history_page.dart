@@ -52,9 +52,11 @@ class _LoadedView extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                state.recordings.isEmpty
-                    ? state.folder
-                    : '${state.recordings.length} in ${state.folder}',
+                switch (state.recordings.length) {
+                  0 => '',
+                  1 => '1 recording',
+                  final n => '$n recordings',
+                },
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),

@@ -79,7 +79,7 @@ void configureDependencies(SharedPreferences prefs) {
       () => AudioLevelsCubit(getIt<RecorderRepository>()),
     )
     ..registerFactory<RecoveryCubit>(
-      () => RecoveryCubit(getIt<RecorderRepository>(), outputFolder: folder()),
+      () => RecoveryCubit(getIt<RecorderRepository>()),
     )
     ..registerFactory<RecordingBloc>(
       () => RecordingBloc(getIt<RecorderRepository>()),

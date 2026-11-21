@@ -11,35 +11,35 @@ enum SessionRecovery {
   /// Unfinished parts shorter than this are noise (a part opened just before the crash).
   static let minimumPlayableSeconds = 0.25
 
-  /// Scans `parent` for `RecLite_*` folders left mid-recording, skipping `active`.
-  /// Playable `.mp4.part` files become `.mp4`; empty ones are deleted; unreadable ones
-  /// are kept as `.unplayable` so no data is ever thrown away silently.
-  static func recover(in parent: URL, skipping active: URL?) async -> [Recovered] {
-    let fileManager = FileManager.default
-    guard
-      let entries = try? fileManager.contentsOfDirectory(
-        at: parent, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles])
-    else { return [] }
+  /// Repairs recordings whose manifest in `sessions` is still marked recording,
+  /// skipping the `active` manifest. Playable `.mp4.part` files become `.mp4`; empty
+  /// ones are deleted; unreadable ones are kept as `.unplayable` so no data is ever
+  /// thrown away silently.
+  static func recover(sessions: URL, skipping active: URL?) async -> [Recovered] {
+    let manifests = ((try? FileManager.default.contentsOfDirectory(
+      at: sessions, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? [])
+      .filter { $0.pathExtension == "json" }
+      .sorted { $0.lastPathComponent < $1.lastPathComponent }
 
     var results: [Recovered] = []
-    for directory in entries.sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
-    where directory.lastPathComponent.hasPrefix(SessionNaming.prefix + "_") {
-      guard (try? directory.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true,
-        directory.standardizedFileURL != active?.standardizedFileURL
-      else { continue }
-      if let recovered = await recoverSession(at: directory) {
+    for file in manifests where file.standardizedFileURL != active?.standardizedFileURL {
+      if let recovered = await recoverSession(manifestFile: file) {
         results.append(recovered)
       }
     }
     return results
   }
 
-  private static func recoverSession(at directory: URL) async -> Recovered? {
+  private static func recoverSession(manifestFile: URL) async -> Recovered? {
+    guard var manifest = SessionManifest.read(from: manifestFile),
+      manifest.status == .recording, let folder = manifest.directory
+    else { return nil }
     let fileManager = FileManager.default
+    let directory = URL(fileURLWithPath: folder, isDirectory: true)
+    let partsPrefix = manifestFile.deletingPathExtension().lastPathComponent + "_Part"
     let names = (try? fileManager.contentsOfDirectory(atPath: directory.path)) ?? []
-    let partials = names.filter { $0.hasSuffix(".mp4.part") }.sorted()
-    var manifest = SessionManifest.read(from: directory)
-    guard !partials.isEmpty || manifest?.status == .recording else { return nil }
+    let partials = names.filter { $0.hasPrefix(partsPrefix) && $0.hasSuffix(".mp4.part") }
+      .sorted()
 
     for name in partials {
       let partial = directory.appendingPathComponent(name)
@@ -60,9 +60,8 @@ enum SessionRecovery {
         try? fileManager.moveItem(at: target, to: uniqueURL(for: partial.appendingPathExtension("unplayable")))
         continue
       }
-      let index =
-        partIndex(in: target.lastPathComponent) ?? (manifest?.segments.count ?? 0) + 1
-      manifest?.segments.append(
+      let index = partIndex(in: target.lastPathComponent) ?? manifest.segments.count + 1
+      manifest.segments.append(
         SessionManifest.Segment(
           index: index,
           file: target.lastPathComponent,
@@ -71,27 +70,16 @@ enum SessionRecovery {
           status: "recovered"))
     }
 
-    let files = ((try? fileManager.contentsOfDirectory(atPath: directory.path)) ?? [])
-      .filter { $0.hasSuffix(".mp4") }
-      .sorted()
-      .map { directory.appendingPathComponent($0) }
-
-    if var repaired = manifest {
-      repaired.segments.sort { $0.index < $1.index }
-      repaired.status = .recovered
-      repaired.endedAt = repaired.endedAt ?? lastModified(files) ?? Date()
-      try? repaired.write(to: directory)
-      manifest = repaired
-    }
+    manifest.segments.sort { $0.index < $1.index }
+    manifest.status = .recovered
+    SessionNaming.tidySinglePart(&manifest)
+    let files = manifest.segments
+      .map { directory.appendingPathComponent($0.file) }
+      .filter { fileManager.fileExists(atPath: $0.path) }
+    manifest.endedAt = manifest.endedAt ?? lastModified(files) ?? Date()
+    try? manifest.write(to: manifestFile)
     guard !files.isEmpty else { return nil }
-
-    var durationMs = manifest?.totalDurationMs ?? 0
-    if manifest == nil {
-      for file in files {
-        durationMs += Int64((await playableSeconds(of: file) ?? 0) * 1000)
-      }
-    }
-    return Recovered(directory: directory, files: files, durationMs: durationMs)
+    return Recovered(directory: directory, files: files, durationMs: manifest.totalDurationMs)
   }
 
   static func playableSeconds(of url: URL) async -> Double? {

@@ -94,8 +94,16 @@ public final class RecliteEnginePlugin: NSObject, FlutterPlugin, EngineHostApi {
     try await engine.stop()
   }
 
-  func recoverSessions(outputDirectory: String) async throws -> [EngineRecoveredSession] {
-    await engine.recoverSessions(in: outputDirectory)
+  func recoverSessions() async throws -> [EngineRecoveredSession] {
+    await engine.recoverSessions()
+  }
+
+  func getSessionsDirectory() throws -> String {
+    do {
+      return try SessionNaming.sessionsDirectory().path
+    } catch {
+      throw EngineErrors.make("storage_unavailable", "Could not open RecLite's data folder.")
+    }
   }
 
   func setGlobalShortcuts(shortcuts list: [EngineShortcut]) throws -> [Int64] {

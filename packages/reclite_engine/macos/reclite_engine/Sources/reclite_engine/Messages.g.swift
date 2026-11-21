@@ -653,6 +653,7 @@ struct EngineRecordingRequest: Hashable, CustomStringConvertible {
 
 /// Generated class from Pigeon that represents data sent in messages.
 struct EngineRecordingSession: Hashable, CustomStringConvertible {
+  /// The save folder that holds the recording's video files.
   var sessionDirectory: String
   var width: Int64
   var height: Int64
@@ -700,6 +701,7 @@ struct EngineRecordingSession: Hashable, CustomStringConvertible {
 ///
 /// Generated class from Pigeon that represents data sent in messages.
 struct EngineRecoveredSession: Hashable, CustomStringConvertible {
+  /// The save folder that holds the recording's video files.
   var sessionDirectory: String
   var files: [String]
   var durationMs: Int64
@@ -801,6 +803,7 @@ struct EngineRecordingStatus: Hashable, CustomStringConvertible {
 
 /// Generated class from Pigeon that represents data sent in messages.
 struct EngineRecordingResult: Hashable, CustomStringConvertible {
+  /// The save folder that holds the recording's video files.
   var sessionDirectory: String
   var files: [String]
   var durationMs: Int64
@@ -1094,9 +1097,12 @@ protocol EngineHostApi {
   func pauseRecording() throws
   func resumeRecording() throws
   func stopRecording() async throws -> EngineRecordingResult
-  /// Finds unfinished recordings in [outputDirectory], keeps every playable
-  /// part and marks the session as recovered. Skips the active recording.
-  func recoverSessions(outputDirectory: String) async throws -> [EngineRecoveredSession]
+  /// Finds recordings cut off by a crash (in any save folder), keeps every
+  /// playable part and marks them recovered. Skips the active recording.
+  func recoverSessions() async throws -> [EngineRecoveredSession]
+  /// Where recording manifests (`<name>.json`) are kept: the app's own data
+  /// folder, so the save folder holds only videos.
+  func getSessionsDirectory() throws -> String
   func revealInFileManager(path: String) throws
   /// Opens a file or folder with its default app (e.g. an MP4 in the video player).
   func openPath(path: String) throws
@@ -1324,16 +1330,14 @@ class EngineHostApiSetup {
     } else {
       stopRecordingChannel.setMessageHandler(nil)
     }
-    /// Finds unfinished recordings in [outputDirectory], keeps every playable
-    /// part and marks the session as recovered. Skips the active recording.
+    /// Finds recordings cut off by a crash (in any save folder), keeps every
+    /// playable part and marks them recovered. Skips the active recording.
     let recoverSessionsChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.recoverSessions\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
-      recoverSessionsChannel.setMessageHandler { message, reply in
-        let args = message as! [Any?]
-        let outputDirectoryArg = args[0] as! String
+      recoverSessionsChannel.setMessageHandler { _, reply in
         Task { @MainActor in
           do {
-            let result = try await api.recoverSessions(outputDirectory: outputDirectoryArg)
+            let result = try await api.recoverSessions()
             reply(wrapResult(result))
           } catch {
             reply(wrapError(error))
@@ -1342,6 +1346,21 @@ class EngineHostApiSetup {
       }
     } else {
       recoverSessionsChannel.setMessageHandler(nil)
+    }
+    /// Where recording manifests (`<name>.json`) are kept: the app's own data
+    /// folder, so the save folder holds only videos.
+    let getSessionsDirectoryChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.getSessionsDirectory\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getSessionsDirectoryChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.getSessionsDirectory()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      getSessionsDirectoryChannel.setMessageHandler(nil)
     }
     let revealInFileManagerChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reclite_engine.EngineHostApi.revealInFileManager\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {

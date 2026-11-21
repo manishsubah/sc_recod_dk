@@ -22,6 +22,7 @@ int main(int argc, char** argv) {
   m.status = "recording";
   m.source_type = "area";
   m.source_name = "DELL \"U2720Q\"";
+  m.directory = "C:\\Users\\Ann\xC3\xA9" "e\\Videos\\RecLite";  // "Année", UTF-8
   m.area = {100, 80, 1280, 720};
   m.system_audio = true;
   m.width = 1280; m.height = 720; m.fps = 30; m.segment_seconds = 900;
@@ -36,6 +37,9 @@ int main(int argc, char** argv) {
   Check(back && back->area.size() == 4 && back->area[2] == 1280, "area kept");
   Check(back && back->system_audio && !back->microphone && back->fps == 30, "audio + video fields");
   Check(back && back->TotalDurationMs() == 1800000, "total duration");
+  Check(back && back->directory == m.directory, "save folder kept (backslashes, accents)");
+  Check(SessionManifest::FromJson("{\"sessionId\":\"x\",\"startedAt\":\"t\"}")->directory.empty(),
+        "old manifest without a folder still reads");
   Check(!SessionManifest::FromJson("{not json").has_value(), "garbage is rejected");
 
   if (argc > 1) {  // A session.json written by the macOS app.

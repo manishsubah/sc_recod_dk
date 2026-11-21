@@ -185,7 +185,7 @@ class _SavedCard extends StatelessWidget {
     final bloc = context.read<RecordingBloc>();
     final parts = result.files.length;
     final file = result.files.isEmpty ? null : result.files.first;
-    final revealTarget = parts > 1 ? result.sessionDirectory : file;
+    final revealTarget = file;
     final revealLabel = Platform.isMacOS
         ? 'Show in Finder'
         : 'Show in Explorer';
@@ -204,12 +204,7 @@ class _SavedCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.xs),
-            if (parts > 1)
-              SelectableText(
-                fileNameOf(result.sessionDirectory),
-                style: theme.textTheme.bodyMedium,
-              )
-            else if (file != null)
+            if (file != null)
               SelectableText(
                 fileNameOf(file),
                 style: theme.textTheme.bodyMedium,

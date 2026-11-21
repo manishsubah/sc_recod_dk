@@ -10,6 +10,6 @@ abstract interface class HistoryRepository {
 
   Future<void> reveal(String path);
 
-  /// Recycle Bin on Windows, Trash on macOS.
-  Future<void> moveToTrash(String sessionDirectory);
+  /// Its videos go to the Recycle Bin (Windows) / Trash (macOS).
+  Future<void> moveToTrash(SavedRecording recording);
 }

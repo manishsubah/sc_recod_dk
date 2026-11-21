@@ -77,10 +77,8 @@ const testConfig = RecordingConfig(
 );
 
 const testResult = RecordingResult(
-  sessionDirectory: '/rec/RecLite_2026-11-19_10-00-00',
-  files: [
-    '/rec/RecLite_2026-11-19_10-00-00/RecLite_2026-11-19_10-00-00_Part01.mp4',
-  ],
+  folder: '/rec',
+  files: ['/rec/RecLite_2026-11-19_10-00-00.mp4'],
   duration: Duration(seconds: 65),
   bytesWritten: 42000000,
 );
@@ -97,20 +95,18 @@ RecordingStatus testStatus(
 );
 
 const testMultiPartResult = RecordingResult(
-  sessionDirectory: '/rec/RecLite_2026-11-19_10-00-00',
+  folder: '/rec',
   files: [
-    '/rec/RecLite_2026-11-19_10-00-00/RecLite_2026-11-19_10-00-00_Part01.mp4',
-    '/rec/RecLite_2026-11-19_10-00-00/RecLite_2026-11-19_10-15-00_Part02.mp4',
+    '/rec/RecLite_2026-11-19_10-00-00_Part01.mp4',
+    '/rec/RecLite_2026-11-19_10-00-00_Part02.mp4',
   ],
   duration: Duration(minutes: 20),
   bytesWritten: 900000000,
 );
 
 const testRecovered = RecoveredRecording(
-  sessionDirectory: '/rec/RecLite_2026-11-19_09-00-00',
-  files: [
-    '/rec/RecLite_2026-11-19_09-00-00/RecLite_2026-11-19_09-00-00_Part01.mp4',
-  ],
+  folder: '/rec',
+  files: ['/rec/RecLite_2026-11-19_09-00-00.mp4'],
   duration: Duration(minutes: 3, seconds: 12),
 );
 
@@ -190,7 +186,7 @@ class FakeRecorderRepository implements RecorderRepository {
   Future<void> resume() async => resumeCalls++;
 
   @override
-  Future<List<RecoveredRecording>> recover(String folder) async => recoverable;
+  Future<List<RecoveredRecording>> recover() async => recoverable;
 
   @override
   Future<void> reveal(String path) async {}
