@@ -187,8 +187,8 @@ class _GuideCard extends StatelessWidget {
       ),
       (
         'Where recordings are saved',
-        'In the folder set in Settings, one folder per recording. '
-            'History lists them with Play and Show in folder.',
+        'As MP4 files in the folder set in Settings. History lists them '
+            'with Play and Show in folder.',
       ),
       (
         'Why a recording has several files',

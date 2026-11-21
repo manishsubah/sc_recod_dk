@@ -79,7 +79,7 @@ class _SaveFolderCard extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.xxs),
                 Text(
-                  'Each recording gets its own folder here.',
+                  'Recordings are saved here as MP4 files.',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
