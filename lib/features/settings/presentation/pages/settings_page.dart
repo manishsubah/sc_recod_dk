@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reclite/app/theme/app_tokens.dart';
+import 'package:reclite/app/theme/reclite_theme.dart';
 import 'package:reclite/core/constants/recording_defaults.dart';
 import 'package:reclite/core/widgets/page_scaffold.dart';
+import 'package:reclite/core/widgets/pane.dart';
+import 'package:reclite/core/widgets/select_box.dart';
 import 'package:reclite/features/recording/domain/entities/recording_options.dart';
 import 'package:reclite/features/settings/domain/entities/app_theme_mode.dart';
 import 'package:reclite/features/settings/presentation/bloc/settings_cubit.dart';
@@ -11,7 +14,8 @@ import 'package:reclite/features/settings/presentation/bloc/settings_cubit.dart'
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key, this.extraSections = const []});
 
-  /// Cards from other features (e.g. keyboard shortcuts), added by the app shell.
+  /// Panes from other features (e.g. keyboard shortcuts), added by the app
+  /// shell.
   final List<Widget> extraSections;
 
   @override
@@ -26,17 +30,15 @@ class SettingsPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const _SaveFolderCard(),
-            const SizedBox(height: AppSpacing.md),
-            const _RecordingCard(),
-            const SizedBox(height: AppSpacing.md),
-            const _AppearanceCard(),
+            const _StoragePane(),
+            const SizedBox(height: AppSpacing.xl),
+            const _RecordingPane(),
+            const SizedBox(height: AppSpacing.xl),
+            const _AppearancePane(),
             for (final section in extraSections) ...[
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.xl),
               section,
             ],
-            const SizedBox(height: AppSpacing.md),
-            const _ComingNextCard(),
           ],
         ),
       ),
@@ -44,102 +46,73 @@ class SettingsPage extends StatelessWidget {
   }
 }
 
-class _SaveFolderCard extends StatelessWidget {
-  const _SaveFolderCard();
+class _StoragePane extends StatelessWidget {
+  const _StoragePane();
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: BlocBuilder<SettingsCubit, SettingsState>(
-          builder: (context, state) {
-            final cubit = context.read<SettingsCubit>();
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.folder_outlined,
-                      color: theme.colorScheme.primary,
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Text(
-                      'Save recordings to',
-                      style: theme.textTheme.titleMedium,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                SelectableText(
-                  state.outputFolder,
-                  style: theme.textTheme.bodyMedium,
-                ),
-                const SizedBox(height: AppSpacing.xxs),
-                Text(
-                  'Recordings are saved here as MP4 files.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.xs,
-                  children: [
-                    FilledButton.tonalIcon(
-                      onPressed: cubit.chooseFolder,
-                      icon: const Icon(Icons.drive_folder_upload_outlined),
-                      label: const Text('Change folder…'),
-                    ),
-                    if (!state.usesDefaultFolder)
-                      TextButton(
-                        onPressed: cubit.useDefaultFolder,
-                        child: const Text('Use default folder'),
-                      ),
-                  ],
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class _ComingNextCard extends StatelessWidget {
-  const _ComingNextCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Row(
+    return BlocBuilder<SettingsCubit, SettingsState>(
+      builder: (context, state) {
+        final cubit = context.read<SettingsCubit>();
+        return Pane(
+          title: 'Storage',
           children: [
-            Icon(Icons.tune, color: theme.colorScheme.onSurfaceVariant),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Text(
-                'Recording a single app window is coming next.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+            PaneRow(
+              icon: Icons.folder_outlined,
+              label: 'Save recordings to',
+              description: const Text(
+                'Recordings are saved here as MP4 files.',
+              ),
+              control: OutlinedButton(
+                onPressed: cubit.chooseFolder,
+                child: const Text('Change folder…'),
+              ),
+              below: Padding(
+                padding: const EdgeInsets.only(
+                  left: AppSize.iconLg + AppSpacing.sm,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xs,
+                  ),
+                  decoration: BoxDecoration(
+                    color: t.pane,
+                    borderRadius: BorderRadius.circular(t.controlRadius),
+                    border: Border.all(color: t.seam),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SelectableText(
+                          state.outputFolder,
+                          maxLines: 1,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: t.ink,
+                          ),
+                        ),
+                      ),
+                      if (!state.usesDefaultFolder)
+                        TextButton(
+                          onPressed: cubit.useDefaultFolder,
+                          child: const Text('Use default folder'),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }
 
-class _RecordingCard extends StatelessWidget {
-  const _RecordingCard();
+class _RecordingPane extends StatelessWidget {
+  const _RecordingPane();
 
   @override
   Widget build(BuildContext context) {
@@ -154,18 +127,19 @@ class _RecordingCard extends StatelessWidget {
         ? segment.inMinutes
         : null;
 
-    return _SettingsCard(
-      icon: Icons.videocam_outlined,
+    return Pane(
       title: 'Recording',
       footer: 'Changes apply to the next recording.',
       children: [
-        _SettingRow(
+        PaneRow(
           label: 'Split every',
-          description: segmentMinutes == null
-              ? 'Test mode: ${segment.inSeconds} s parts '
-                    '(RECLITE_SEGMENT_SECONDS).'
-              : 'Long recordings are saved as parts of this length.',
-          control: DropdownButton<int>(
+          description: Text(
+            segmentMinutes == null
+                ? 'Test mode: ${segment.inSeconds} s parts '
+                      '(RECLITE_SEGMENT_SECONDS).'
+                : 'Long recordings are saved as parts of this length.',
+          ),
+          control: SelectBox<int>(
             value: segmentMinutes,
             onChanged: (m) {
               if (m != null) cubit.setSegmentMinutes(m);
@@ -176,9 +150,11 @@ class _RecordingCard extends StatelessWidget {
             ],
           ),
         ),
-        _SettingRow(
+        PaneRow(
           label: 'Quality',
-          description: 'Bigger screens are scaled down to this height.',
+          description: const Text(
+            'Bigger screens are scaled down to this height.',
+          ),
           control: SegmentedButton<int>(
             showSelectedIcon: false,
             segments: [
@@ -189,9 +165,9 @@ class _RecordingCard extends StatelessWidget {
             onSelectionChanged: (s) => cubit.setMaxHeight(s.single),
           ),
         ),
-        _SettingRow(
+        PaneRow(
           label: 'Frame rate',
-          description: '60 fps is smoother but makes bigger files.',
+          description: const Text('60 fps is smoother but makes bigger files.'),
           control: SegmentedButton<int>(
             showSelectedIcon: false,
             segments: [
@@ -202,19 +178,20 @@ class _RecordingCard extends StatelessWidget {
             onSelectionChanged: (s) => cubit.setFramesPerSecond(s.single),
           ),
         ),
-        _SettingRow(
+        PaneRow(
           label: 'Mouse pointer',
-          description: 'Show the pointer in the video.',
+          description: const Text('Show the pointer in the video.'),
           control: Switch(
             value: options.showCursor,
             onChanged: (show) => cubit.setShowCursor(show: show),
           ),
         ),
-        _SettingRow(
+        PaneRow(
           label: 'Mini bar while recording',
-          description:
-              'Shrink RecLite to a small bar at the top of the screen. '
-              'The tray icon also controls the recording.',
+          description: const Text(
+            'Shrink RecLite to a small bar at the top of the screen. '
+            'The tray icon also controls the recording.',
+          ),
           control: Switch(
             value: context.select<SettingsCubit, bool>(
               (c) => c.state.miniBarWhileRecording,
@@ -227,19 +204,18 @@ class _RecordingCard extends StatelessWidget {
   }
 }
 
-class _AppearanceCard extends StatelessWidget {
-  const _AppearanceCard();
+class _AppearancePane extends StatelessWidget {
+  const _AppearancePane();
 
   @override
   Widget build(BuildContext context) {
     final mode = context.select<SettingsCubit, AppThemeMode>(
       (c) => c.state.themeMode,
     );
-    return _SettingsCard(
-      icon: Icons.palette_outlined,
+    return Pane(
       title: 'Appearance',
       children: [
-        _SettingRow(
+        PaneRow(
           label: 'Theme',
           control: SegmentedButton<AppThemeMode>(
             showSelectedIcon: false,
@@ -254,94 +230,6 @@ class _AppearanceCard extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _SettingsCard extends StatelessWidget {
-  const _SettingsCard({
-    required this.icon,
-    required this.title,
-    required this.children,
-    this.footer,
-  });
-
-  final IconData icon;
-  final String title;
-  final List<Widget> children;
-  final String? footer;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: theme.colorScheme.primary),
-                const SizedBox(width: AppSpacing.sm),
-                Text(title, style: theme.textTheme.titleMedium),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            ...children,
-            if (footer case final footer?) ...[
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                footer,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SettingRow extends StatelessWidget {
-  const _SettingRow({
-    required this.label,
-    required this.control,
-    this.description,
-  });
-
-  final String label;
-  final String? description;
-  final Widget control;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: theme.textTheme.bodyLarge),
-                if (description case final description?)
-                  Text(
-                    description,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          control,
-        ],
-      ),
     );
   }
 }

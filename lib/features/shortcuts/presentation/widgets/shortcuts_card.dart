@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reclite/app/theme/app_tokens.dart';
+import 'package:reclite/app/theme/reclite_theme.dart';
+import 'package:reclite/core/widgets/pane.dart';
 import 'package:reclite/features/shortcuts/domain/entities/key_combo.dart';
 import 'package:reclite/features/shortcuts/presentation/bloc/shortcuts_cubit.dart';
 
@@ -27,6 +29,23 @@ String formatKeyCombo(KeyCombo combo, {required bool mac}) {
   ].join('+');
 }
 
+/// The keys of a combo as separate caps: `Ctrl` `Alt` `R`, or `⌃` `⌥` `R`.
+List<String> keyComboParts(KeyCombo combo, {required bool mac}) => mac
+    ? [
+        if (combo.control) '⌃',
+        if (combo.alt) '⌥',
+        if (combo.shift) '⇧',
+        if (combo.meta) '⌘',
+        combo.key,
+      ]
+    : [
+        if (combo.control) 'Ctrl',
+        if (combo.alt) 'Alt',
+        if (combo.shift) 'Shift',
+        if (combo.meta) 'Win',
+        combo.key,
+      ];
+
 class ShortcutsCard extends StatelessWidget {
   const ShortcutsCard({super.key});
 
@@ -37,73 +56,89 @@ class ShortcutsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final muted = theme.textTheme.bodySmall?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-    );
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: BlocBuilder<ShortcutsCubit, ShortcutsState>(
-          builder: (context, state) => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.keyboard_outlined,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      'Keyboard shortcuts',
-                      style: theme.textTheme.titleMedium,
-                    ),
-                  ),
-                  Switch(
-                    value: state.enabled,
-                    onChanged: (on) =>
-                        context.read<ShortcutsCubit>().setEnabled(enabled: on),
-                  ),
-                ],
-              ),
-              Text(
-                'Work even when RecLite is in the background.',
-                style: muted,
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              for (final MapEntry(key: action, value: combo)
-                  in state.combos.entries)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
+    final t = context.tokens;
+    return BlocBuilder<ShortcutsCubit, ShortcutsState>(
+      builder: (context, state) => Pane(
+        title: 'Keyboard shortcuts',
+        children: [
+          PaneRow(
+            icon: Icons.keyboard_outlined,
+            label: 'Use keyboard shortcuts',
+            description: const Text(
+              'Work even when RecLite is in the background.',
+            ),
+            control: Switch(
+              value: state.enabled,
+              onChanged: (on) =>
+                  context.read<ShortcutsCubit>().setEnabled(enabled: on),
+            ),
+          ),
+          for (final MapEntry(key: action, value: combo)
+              in state.combos.entries)
+            PaneRow(
+              label: _labels[action]!,
+              enabled: state.enabled,
+              description: state.enabled && state.unavailable.contains(action)
+                  ? Text(
+                      'Used by another app',
+                      style: TextStyle(color: t.danger),
+                    )
+                  : null,
+              control: Semantics(
+                label: formatKeyCombo(combo, mac: Platform.isMacOS),
+                child: ExcludeSemantics(
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: Text(
-                          _labels[action]!,
-                          style: state.enabled ? null : muted,
-                        ),
-                      ),
-                      if (state.enabled && state.unavailable.contains(action))
-                        Padding(
-                          padding: const EdgeInsets.only(right: AppSpacing.sm),
-                          child: Text(
-                            'Used by another app',
-                            style: muted?.copyWith(
-                              color: theme.colorScheme.error,
-                            ),
-                          ),
-                        ),
-                      Text(
-                        formatKeyCombo(combo, mac: Platform.isMacOS),
-                        style: theme.textTheme.labelLarge,
-                      ),
+                      for (final key in keyComboParts(
+                        combo,
+                        mac: Platform.isMacOS,
+                      ))
+                        _KeyCap(label: key, enabled: state.enabled),
                     ],
                   ),
                 ),
-            ],
-          ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KeyCap extends StatelessWidget {
+  const _KeyCap({required this.label, required this.enabled});
+
+  final String label;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final theme = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.only(left: AppSpacing.xxs),
+      constraints: const BoxConstraints(minWidth: AppSize.keyCap),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xs,
+        vertical: 2,
+      ),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: t.pane,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border(
+          top: BorderSide(color: t.seamStrong),
+          left: BorderSide(color: t.seamStrong),
+          right: BorderSide(color: t.seamStrong),
+          bottom: BorderSide(color: t.seamStrong, width: 2),
+        ),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelLarge?.copyWith(
+          color: enabled ? t.ink : t.inkFaint,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );

@@ -5,7 +5,7 @@ class RecordingOptions extends Equatable {
   const RecordingOptions({
     this.segmentDuration = const Duration(minutes: 15),
     this.framesPerSecond = 30,
-    this.maxHeight = 1440,
+    this.maxHeight = 720,
     this.showCursor = true,
   });
 

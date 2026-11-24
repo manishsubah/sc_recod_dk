@@ -53,6 +53,9 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_APP_ICON            ICON                    "resources\\app_icon.ico"
+IDI_TRAY_IDLE           ICON                    "resources\\tray_idle.ico"
+IDI_TRAY_RECORDING      ICON                    "resources\\tray_recording.ico"
+IDI_TRAY_PAUSED         ICON                    "resources\\tray_paused.ico"
 
 
 /////////////////////////////////////////////////////////////////////////////

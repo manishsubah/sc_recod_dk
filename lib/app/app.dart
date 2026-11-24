@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:reclite/app/di.dart';
+import 'package:reclite/app/router/app_shell.dart';
+import 'package:reclite/app/theme/reclite_theme.dart';
 import 'package:reclite/features/settings/domain/entities/app_theme_mode.dart';
 import 'package:reclite/features/settings/presentation/bloc/settings_cubit.dart';
-
-import 'router/app_shell.dart';
-import 'theme/app_theme.dart';
 
 class RecLiteApp extends StatelessWidget {
   const RecLiteApp({super.key});

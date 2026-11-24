@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reclite/app/theme/app_tokens.dart';
+import 'package:reclite/core/widgets/level_meter.dart';
+import 'package:reclite/core/widgets/pane.dart';
 import 'package:reclite/features/recording/domain/entities/audio_levels.dart';
 import 'package:reclite/features/recording/presentation/bloc/audio_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/audio_levels_cubit.dart';
@@ -19,119 +21,88 @@ class AudioCard extends StatelessWidget {
     final busy = context.select<RecordingBloc, bool>((b) => b.state.isBusy);
     final cubit = context.read<AudioCubit>();
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.xs,
-        ),
-        child: BlocBuilder<AudioCubit, AudioState>(
-          builder: (context, state) => Column(
-            children: [
-              _AudioRow(
-                icon: Icons.volume_up_outlined,
-                label: 'System sound',
-                value: state.systemAudio,
-                onChanged: busy ? null : cubit.setSystemAudio,
-                meter: _Meter(
-                  active: state.systemAudio,
-                  select: (levels) => levels.system,
-                ),
+    return BlocBuilder<AudioCubit, AudioState>(
+      builder: (context, state) => Pane(
+        title: 'Audio',
+        children: [
+          PaneRow(
+            icon: Icons.volume_up_outlined,
+            label: 'System sound',
+            enabled: !busy,
+            control: _Control(
+              value: state.systemAudio,
+              onChanged: busy ? null : cubit.setSystemAudio,
+              meter: _Meter(
+                active: state.systemAudio,
+                select: (levels) => levels.system,
               ),
-              const Divider(),
-              _AudioRow(
-                icon: Icons.mic_none_outlined,
-                label: 'Microphone',
-                value: state.microphone,
-                onChanged: busy || !microphoneSupported
-                    ? null
-                    : cubit.setMicrophone,
-                meter: _Meter(
-                  active: state.microphone,
-                  select: (levels) => levels.microphone,
-                ),
-                hint: !microphoneSupported
-                    ? const Text('Needs macOS 15 or later for now.')
-                    : state.microphoneBlocked
-                    ? Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          const Text('Microphone access is off.'),
-                          TextButton(
-                            onPressed: cubit.openMicrophoneSettings,
-                            child: const Text('Open System Settings'),
-                          ),
-                        ],
-                      )
-                    : null,
-              ),
-            ],
+            ),
           ),
-        ),
+          PaneRow(
+            icon: Icons.mic_none_outlined,
+            label: 'Microphone',
+            enabled: !busy && microphoneSupported,
+            description: !microphoneSupported
+                ? const Text('Needs macOS 15 or later for now.')
+                : null,
+            control: _Control(
+              value: state.microphone,
+              onChanged: busy || !microphoneSupported
+                  ? null
+                  : cubit.setMicrophone,
+              meter: _Meter(
+                active: state.microphone,
+                select: (levels) => levels.microphone,
+              ),
+            ),
+            below: microphoneSupported && state.microphoneBlocked
+                ? Padding(
+                    padding: const EdgeInsets.only(
+                      left: AppSize.iconLg + AppSpacing.sm,
+                    ),
+                    child: Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: AppSpacing.xs,
+                      children: [
+                        Text(
+                          'Microphone access is off.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        TextButton(
+                          onPressed: cubit.openMicrophoneSettings,
+                          child: const Text('Open System Settings'),
+                        ),
+                      ],
+                    ),
+                  )
+                : null,
+          ),
+        ],
       ),
     );
   }
 }
 
-class _AudioRow extends StatelessWidget {
-  const _AudioRow({
-    required this.icon,
-    required this.label,
+class _Control extends StatelessWidget {
+  const _Control({
     required this.value,
     required this.onChanged,
     required this.meter,
-    this.hint,
   });
 
-  final IconData icon;
-  final String label;
   final bool value;
   final ValueChanged<bool>? onChanged;
   final Widget meter;
-  final Widget? hint;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                icon,
-                size: AppSize.iconMd,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              SizedBox(
-                width: AppLayout.labelColumnWidth,
-                child: Text(label, style: theme.textTheme.bodyMedium),
-              ),
-              Switch(value: value, onChanged: onChanged),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Align(alignment: Alignment.centerLeft, child: meter),
-              ),
-            ],
-          ),
-          if (hint != null)
-            Padding(
-              padding: const EdgeInsets.only(
-                left: AppSize.iconMd + AppSpacing.sm,
-                bottom: AppSpacing.xxs,
-              ),
-              child: DefaultTextStyle.merge(
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                child: hint!,
-              ),
-            ),
-        ],
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        meter,
+        const SizedBox(width: AppSpacing.md),
+        Switch(value: value, onChanged: onChanged),
+      ],
     );
   }
 }
@@ -148,26 +119,6 @@ class _Meter extends StatelessWidget {
     final level = context.select<AudioLevelsCubit, double>(
       (c) => active ? select(c.state) : 0,
     );
-    final scheme = Theme.of(context).colorScheme;
-    final color = level > 0.9
-        ? AppColors.recording
-        : level > 0.7
-        ? AppColors.warning
-        : AppColors.success;
-
-    return SizedBox(
-      width: AppSize.meterWidth,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        child: LinearProgressIndicator(
-          value: level,
-          minHeight: AppSize.meterHeight,
-          color: color,
-          backgroundColor: active
-              ? scheme.surfaceContainerHighest
-              : scheme.surfaceContainerHigh,
-        ),
-      ),
-    );
+    return LevelMeter(level: level, active: active);
   }
 }

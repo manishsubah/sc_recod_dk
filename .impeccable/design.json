@@ -1,0 +1,723 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-24T05:21:37+00:00",
+  "title": "Design System: RecLite",
+  "extensions": {
+    "colorMeta": {
+      "ground": {
+        "role": "neutral",
+        "displayName": "Window Ground",
+        "canonical": "#F3F3F3",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#949494",
+          "#B2B2B2",
+          "#D4D4D4",
+          "#F2F2F2"
+        ]
+      },
+      "pane": {
+        "role": "neutral",
+        "displayName": "Pane",
+        "canonical": "#F9F9F9",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#949494",
+          "#B2B2B2",
+          "#D4D4D4",
+          "#F2F2F2"
+        ]
+      },
+      "pane-raised": {
+        "role": "neutral",
+        "displayName": "Pane Raised",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#949494",
+          "#B2B2B2",
+          "#D4D4D4",
+          "#F2F2F2"
+        ]
+      },
+      "seam": {
+        "role": "neutral",
+        "displayName": "Seam",
+        "canonical": "#E5E5E5",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#949494",
+          "#B2B2B2",
+          "#D4D4D4",
+          "#F2F2F2"
+        ]
+      },
+      "seam-strong": {
+        "role": "neutral",
+        "displayName": "Seam Strong",
+        "canonical": "#CCCCCC",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#949494",
+          "#B2B2B2",
+          "#D4D4D4",
+          "#F2F2F2"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#1B1B1B",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#949494",
+          "#B2B2B2",
+          "#D4D4D4",
+          "#F2F2F2"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Ink Muted",
+        "canonical": "#5C5C5C",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#949494",
+          "#B2B2B2",
+          "#D4D4D4",
+          "#F2F2F2"
+        ]
+      },
+      "ink-faint": {
+        "role": "neutral",
+        "displayName": "Ink Faint",
+        "canonical": "#8A8A8A",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#949494",
+          "#B2B2B2",
+          "#D4D4D4",
+          "#F2F2F2"
+        ]
+      },
+      "film-amber": {
+        "role": "primary",
+        "displayName": "Film-Base Amber",
+        "canonical": "#A85400",
+        "tonalRamp": [
+          "#3C2610",
+          "#6C4013",
+          "#A25910",
+          "#DF7307",
+          "#F59433",
+          "#EDB278",
+          "#EED4B9",
+          "#F8F2EC"
+        ]
+      },
+      "on-accent": {
+        "role": "primary",
+        "displayName": "On Accent",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#949494",
+          "#B2B2B2",
+          "#D4D4D4",
+          "#F2F2F2"
+        ]
+      },
+      "tally": {
+        "role": "secondary",
+        "displayName": "Tally Red",
+        "canonical": "#D42F3F",
+        "tonalRamp": [
+          "#35181A",
+          "#5D2228",
+          "#892932",
+          "#BA2C3A",
+          "#D45461",
+          "#D98C94",
+          "#E5C2C6",
+          "#F6EEEF"
+        ]
+      },
+      "tally-ink": {
+        "role": "secondary",
+        "displayName": "Tally Ink",
+        "canonical": "#C2283A",
+        "tonalRamp": [
+          "#35181B",
+          "#5D2229",
+          "#892934",
+          "#BA2C3C",
+          "#D45463",
+          "#D98C95",
+          "#E5C2C6",
+          "#F6EEEF"
+        ]
+      },
+      "success": {
+        "role": "status",
+        "displayName": "Success",
+        "canonical": "#2E7D32",
+        "tonalRamp": [
+          "#1C301D",
+          "#2B542D",
+          "#377B3B",
+          "#41A546",
+          "#67C16C",
+          "#98CD9A",
+          "#C8E0C9",
+          "#F0F5F0"
+        ]
+      },
+      "warning": {
+        "role": "status",
+        "displayName": "Warning",
+        "canonical": "#9D5D00",
+        "tonalRamp": [
+          "#3C2A10",
+          "#6C4813",
+          "#A26710",
+          "#DF8707",
+          "#F5A633",
+          "#EDBD78",
+          "#EED8B9",
+          "#F8F3EC"
+        ]
+      },
+      "danger": {
+        "role": "status",
+        "displayName": "Danger",
+        "canonical": "#C42B1C",
+        "tonalRamp": [
+          "#371916",
+          "#61241E",
+          "#902C22",
+          "#C43022",
+          "#DD584B",
+          "#DE8F87",
+          "#E7C4C0",
+          "#F7EFEE"
+        ]
+      },
+      "ground-dark": {
+        "role": "neutral",
+        "displayName": "Window Ground (dark)",
+        "canonical": "#202020",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#949494",
+          "#B2B2B2",
+          "#D4D4D4",
+          "#F2F2F2"
+        ]
+      },
+      "pane-dark": {
+        "role": "neutral",
+        "displayName": "Pane (dark)",
+        "canonical": "#272727",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#949494",
+          "#B2B2B2",
+          "#D4D4D4",
+          "#F2F2F2"
+        ]
+      },
+      "pane-raised-dark": {
+        "role": "neutral",
+        "displayName": "Pane Raised (dark)",
+        "canonical": "#2D2D2D",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#949494",
+          "#B2B2B2",
+          "#D4D4D4",
+          "#F2F2F2"
+        ]
+      },
+      "seam-dark": {
+        "role": "neutral",
+        "displayName": "Seam (dark)",
+        "canonical": "#3A3A3A",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#949494",
+          "#B2B2B2",
+          "#D4D4D4",
+          "#F2F2F2"
+        ]
+      },
+      "seam-strong-dark": {
+        "role": "neutral",
+        "displayName": "Seam Strong (dark)",
+        "canonical": "#4D4D4D",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#949494",
+          "#B2B2B2",
+          "#D4D4D4",
+          "#F2F2F2"
+        ]
+      },
+      "ink-dark": {
+        "role": "neutral",
+        "displayName": "Ink (dark)",
+        "canonical": "#F3F3F3",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#949494",
+          "#B2B2B2",
+          "#D4D4D4",
+          "#F2F2F2"
+        ]
+      },
+      "ink-muted-dark": {
+        "role": "neutral",
+        "displayName": "Ink Muted (dark)",
+        "canonical": "#B0B0B0",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#949494",
+          "#B2B2B2",
+          "#D4D4D4",
+          "#F2F2F2"
+        ]
+      },
+      "ink-faint-dark": {
+        "role": "neutral",
+        "displayName": "Ink Faint (dark)",
+        "canonical": "#808080",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#949494",
+          "#B2B2B2",
+          "#D4D4D4",
+          "#F2F2F2"
+        ]
+      },
+      "film-amber-dark": {
+        "role": "primary",
+        "displayName": "Film-Base Amber (dark)",
+        "canonical": "#F0A24B",
+        "tonalRamp": [
+          "#392713",
+          "#66421A",
+          "#975D1B",
+          "#CE7817",
+          "#E69842",
+          "#E4B581",
+          "#EAD5BD",
+          "#F7F3ED"
+        ]
+      },
+      "on-accent-dark": {
+        "role": "primary",
+        "displayName": "On Accent (dark)",
+        "canonical": "#202020",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#949494",
+          "#B2B2B2",
+          "#D4D4D4",
+          "#F2F2F2"
+        ]
+      },
+      "tally-dark": {
+        "role": "secondary",
+        "displayName": "Tally Red (dark)",
+        "canonical": "#D93A47",
+        "tonalRamp": [
+          "#35171A",
+          "#5E2226",
+          "#8B2830",
+          "#BC2A36",
+          "#D5525D",
+          "#DA8B92",
+          "#E5C2C5",
+          "#F6EEEF"
+        ]
+      },
+      "tally-ink-dark": {
+        "role": "secondary",
+        "displayName": "Tally Ink (dark)",
+        "canonical": "#FF6B74",
+        "tonalRamp": [
+          "#3C1013",
+          "#6C1319",
+          "#A21019",
+          "#DF0714",
+          "#F5333F",
+          "#ED787F",
+          "#EEB9BD",
+          "#F8ECED"
+        ]
+      },
+      "success-dark": {
+        "role": "status",
+        "displayName": "Success (dark)",
+        "canonical": "#6CCB5F",
+        "tonalRamp": [
+          "#1E321B",
+          "#2E5629",
+          "#3D7F34",
+          "#49AA3C",
+          "#6EC563",
+          "#9CD095",
+          "#CAE1C6",
+          "#F0F5EF"
+        ]
+      },
+      "warning-dark": {
+        "role": "status",
+        "displayName": "Warning (dark)",
+        "canonical": "#F2C94C",
+        "tonalRamp": [
+          "#393013",
+          "#665319",
+          "#99791A",
+          "#D0A215",
+          "#E8BE40",
+          "#E5CC80",
+          "#EADFBD",
+          "#F7F5ED"
+        ]
+      },
+      "danger-dark": {
+        "role": "status",
+        "displayName": "Danger (dark)",
+        "canonical": "#FF99A4",
+        "tonalRamp": [
+          "#3C1015",
+          "#6C131D",
+          "#A21020",
+          "#DF071E",
+          "#F53348",
+          "#ED7885",
+          "#EEB9BF",
+          "#F8ECEE"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "timecode": {
+        "displayName": "Timecode",
+        "purpose": "Live elapsed time in the transport only. macOS: 34px.",
+        "macOS": {
+          "fontSize": "34px"
+        }
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles. macOS: 22px / 700.",
+        "macOS": {
+          "fontSize": "22px",
+          "fontWeight": 700
+        }
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Dialog titles, saved summary. macOS: 15px.",
+        "macOS": {
+          "fontSize": "15px"
+        }
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Row labels, messages, nav. macOS: 13px.",
+        "macOS": {
+          "fontSize": "13px"
+        }
+      },
+      "body-strong": {
+        "displayName": "Body Strong",
+        "purpose": "Pane titles, InfoBar titles, button labels (macOS buttons 500).",
+        "macOS": {
+          "fontSize": "13px"
+        }
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Descriptions, footers, Part N · size. ink-muted. macOS: 11px.",
+        "macOS": {
+          "fontSize": "11px"
+        }
+      },
+      "edge-label": {
+        "displayName": "Edge Label",
+        "purpose": "Uppercase tracked data labels and column heads; never an eyebrow. macOS: 10px.",
+        "macOS": {
+          "fontSize": "10px"
+        }
+      }
+    },
+    "perOsMetrics": {
+      "source": "RecLiteTokens getters in lib/app/theme/reclite_theme.dart",
+      "windows": {
+        "controlRadius": "4px",
+        "paneRadius": "8px",
+        "controlHeight": "32px",
+        "navItemHeight": "36px",
+        "rowMinHeight": "52px",
+        "bodySize": "14px",
+        "buttonPaddingX": "16px",
+        "pagePadding": "24px 32px 32px"
+      },
+      "mac": {
+        "controlRadius": "6px",
+        "paneRadius": "10px",
+        "controlHeight": "28px",
+        "navItemHeight": "30px",
+        "rowMinHeight": "44px",
+        "bodySize": "13px",
+        "buttonPaddingX": "12px",
+        "pagePadding": "20px 24px 32px"
+      }
+    },
+    "stateColors": {
+      "light": {
+        "accentTint": "#A854001F",
+        "tallyTint": "#D42F3F14",
+        "hover": "#1B1B1B0D",
+        "pressed": "#1B1B1B17"
+      },
+      "dark": {
+        "accentTint": "#F0A24B29",
+        "tallyTint": "#FF6B741F",
+        "hover": "#F3F3F30F",
+        "pressed": "#F3F3F31A"
+      }
+    },
+    "shadows": [
+      {
+        "name": "dialog",
+        "value": "Material elevation 8, shadow #00000040, plus 1px seam border",
+        "purpose": "Dialogs only."
+      },
+      {
+        "name": "menu",
+        "value": "Material elevation 6, plus 1px seam border",
+        "purpose": "Pop-up and drop-down menus only."
+      }
+    ],
+    "motion": [
+      {
+        "name": "fast",
+        "value": "120ms",
+        "purpose": "Page switch, readiness status and source picker swaps."
+      },
+      {
+        "name": "normal",
+        "value": "180ms",
+        "purpose": "Sidebar width, tally dot, transport appearance, recording pill."
+      },
+      {
+        "name": "slow",
+        "value": "260ms",
+        "purpose": "Upper bound for one-shot transitions."
+      },
+      {
+        "name": "ease",
+        "value": "Curves.easeOutCubic",
+        "purpose": "All transitions. No looping animations (tests use pumpAndSettle)."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "window-min",
+        "value": "760x560"
+      },
+      {
+        "name": "history-columns",
+        "value": "700px content width"
+      },
+      {
+        "name": "nav-compact",
+        "value": "940px window width"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Record Button",
+      "kind": "button",
+      "refersTo": "button-record",
+      "description": "Start Recording and Stop only; tally red with white label.",
+      "html": "<button class=\"ds-btn-record\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 12 12\"><circle cx=\"6\" cy=\"6\" r=\"6\" fill=\"currentColor\"/></svg>Start Recording</button>",
+      "css": ".ds-btn-record{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 16px;border:none;border-radius:4px;background:#D42F3F;color:#fff;font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI',-apple-system,system-ui,sans-serif;cursor:pointer}.ds-btn-record:hover{box-shadow:inset 0 0 0 999px rgba(255,255,255,.08)}.ds-btn-record:active{box-shadow:inset 0 0 0 999px rgba(255,255,255,.16)}.ds-btn-record:focus-visible{outline:2px solid #A85400;outline-offset:2px}"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Amber filled; at most one non-recording main action per view.",
+      "html": "<button class=\"ds-btn-primary\">Choose folder</button>",
+      "css": ".ds-btn-primary{height:32px;padding:0 16px;border:none;border-radius:4px;background:#A85400;color:#fff;font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI',-apple-system,system-ui,sans-serif;cursor:pointer}.ds-btn-primary:hover{box-shadow:inset 0 0 0 999px rgba(255,255,255,.08)}.ds-btn-primary:active{box-shadow:inset 0 0 0 999px rgba(255,255,255,.16)}.ds-btn-primary:focus-visible{outline:2px solid #A85400;outline-offset:2px}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Outlined on pane-raised; Pause/Resume, Open, Show in folder.",
+      "html": "<button class=\"ds-btn-secondary\">Pause</button>",
+      "css": ".ds-btn-secondary{height:32px;padding:0 16px;border:1px solid #CCCCCC;border-radius:4px;background:#FFFFFF;color:#1B1B1B;font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI',-apple-system,system-ui,sans-serif;cursor:pointer}.ds-btn-secondary:hover{background:#F4F4F4}.ds-btn-secondary:active{background:#EAEAEA}.ds-btn-secondary:focus-visible{outline:2px solid #A85400;outline-offset:2px}"
+    },
+    {
+      "name": "Select Box",
+      "kind": "input",
+      "refersTo": "select-box",
+      "description": "Drop-down field: Windows ComboBox / macOS pop-up button.",
+      "html": "<div class=\"ds-select\" tabindex=\"0\"><span>15 minutes</span><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\"><path d=\"M7 10l5 5 5-5\" fill=\"none\" stroke=\"#5C5C5C\" stroke-width=\"2\" stroke-linecap=\"round\"/></svg></div>",
+      "css": ".ds-select{display:inline-flex;align-items:center;justify-content:space-between;gap:8px;min-width:160px;height:32px;padding:0 8px 0 12px;box-sizing:border-box;border:1px solid #CCCCCC;border-radius:4px;background:#FFFFFF;color:#1B1B1B;font:400 14px/1.45 'Segoe UI Variable Text','Segoe UI',-apple-system,system-ui,sans-serif}.ds-select:hover{background:#F4F4F4}.ds-select:focus-visible{outline:2px solid #A85400;outline-offset:1px}"
+    },
+    {
+      "name": "Pane with rows",
+      "kind": "card",
+      "refersTo": "pane",
+      "description": "Titled group of seamed rows; the default container, never a card stack.",
+      "html": "<div class=\"ds-pane-wrap\"><div class=\"ds-pane-title\">Audio</div><div class=\"ds-pane\"><div class=\"ds-row\"><div><div class=\"ds-row-label\">System sound</div><div class=\"ds-row-desc\">What your PC plays</div></div><span class=\"ds-switch on\"></span></div><div class=\"ds-row\"><div><div class=\"ds-row-label\">Microphone</div><div class=\"ds-row-desc\">Default input</div></div><span class=\"ds-switch\"></span></div></div></div>",
+      "css": ".ds-pane-wrap{font-family:'Segoe UI Variable Text','Segoe UI',-apple-system,system-ui,sans-serif;width:420px}.ds-pane-title{font:600 14px/1.35 'Segoe UI Variable Text','Segoe UI',-apple-system,system-ui,sans-serif;color:#1B1B1B;margin:0 0 8px 4px}.ds-pane{background:#FFFFFF;border:1px solid #E5E5E5;border-radius:8px;overflow:hidden}.ds-row{display:flex;align-items:center;justify-content:space-between;min-height:52px;padding:12px 16px;box-sizing:border-box}.ds-row+.ds-row{border-top:1px solid #E5E5E5}.ds-row:hover{background:rgba(27,27,27,.05)}.ds-row-label{font:400 14px/1.45 'Segoe UI Variable Text','Segoe UI',-apple-system,system-ui,sans-serif;color:#1B1B1B}.ds-row-desc{font:400 12px/1.35 'Segoe UI Variable Text','Segoe UI',-apple-system,system-ui,sans-serif;color:#5C5C5C}.ds-switch{position:relative;width:40px;height:20px;border:1px solid #5C5C5C;border-radius:10px;box-sizing:border-box}.ds-switch::after{content:'';position:absolute;top:4px;left:4px;width:10px;height:10px;border-radius:50%;background:#5C5C5C}.ds-switch.on{background:#A85400;border-color:#A85400}.ds-switch.on::after{left:auto;right:3px;top:3px;width:12px;height:12px;background:#fff}"
+    },
+    {
+      "name": "Sidebar navigation",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Native sidebar on ground; selected item grey fill (Windows) or amber tint (Mac), amber icon.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-item sel\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"7\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/><circle cx=\"12\" cy=\"12\" r=\"3\" fill=\"currentColor\"/></svg><span>Record</span></a><a class=\"ds-nav-item\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\"><path d=\"M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/></svg><span>History</span></a></nav>",
+      "css": ".ds-nav{width:220px;padding:8px;background:#F3F3F3;font-family:'Segoe UI Variable Text','Segoe UI',-apple-system,system-ui,sans-serif}.ds-nav-item{display:flex;align-items:center;gap:12px;height:36px;padding:0 12px;border-radius:4px;color:#5C5C5C;cursor:pointer}.ds-nav-item span{font:400 14px/1.45 'Segoe UI Variable Text','Segoe UI',-apple-system,system-ui,sans-serif;color:#1B1B1B}.ds-nav-item:hover{background:rgba(27,27,27,.05)}.ds-nav-item.sel{background:rgba(27,27,27,.09);color:#A85400}.ds-nav-item.sel span{font-weight:600}.ds-nav-item:focus-visible{background:rgba(168,84,0,.12)}"
+    },
+    {
+      "name": "PartStrip",
+      "kind": "custom",
+      "refersTo": "part-strip",
+      "description": "Signature: one segment per MP4 part, last filled to its real length, minute ticks below.",
+      "html": "<div class=\"ds-strip\"><i class=\"full\"></i><i class=\"full\"></i><i style=\"--f:40%\"></i></div>",
+      "css": ".ds-strip{display:flex;gap:3px;width:360px;height:10px}.ds-strip i{position:relative;flex:1;height:6px;border-radius:2px;background:#E5E5E5;background-image:linear-gradient(#A85400,#A85400);background-repeat:no-repeat;background-size:var(--f,0%) 100%}.ds-strip i.full{--f:100%}.ds-strip i::after{content:'';position:absolute;left:0;right:0;top:7px;height:2px;background:repeating-linear-gradient(90deg,transparent 0 calc(6.6667% - 1px),#CCCCCC calc(6.6667% - 1px) 6.6667%)}"
+    },
+    {
+      "name": "Transport",
+      "kind": "custom",
+      "refersTo": "pane",
+      "description": "Live recording pane: tally dot, REC, Pause/Stop, timecode, live PartStrip, part/size caption.",
+      "html": "<div class=\"ds-transport\"><div class=\"ds-tr-top\"><span class=\"ds-dot\"></span><b>REC</b></div><div class=\"ds-time\">00:12:47</div><div class=\"ds-tr-cap\"><span>Part 1 · 412 MB</span><span>Next part in 02:13</span></div></div>",
+      "css": ".ds-transport{width:420px;padding:16px 20px 20px;background:#FFFFFF;border:1px solid #CCCCCC;border-radius:8px;font-family:'Segoe UI Variable Text','Segoe UI',-apple-system,system-ui,sans-serif}.ds-tr-top{display:flex;align-items:center;gap:8px}.ds-dot{width:12px;height:12px;border-radius:50%;background:#D42F3F}.ds-tr-top b{font:700 14px/1.2 'Segoe UI Variable Text','Segoe UI',-apple-system,system-ui,sans-serif;letter-spacing:1.2px;color:#C2283A}.ds-time{margin-top:12px;font:300 40px/1.1 'Segoe UI Variable Text','Segoe UI',-apple-system,system-ui,sans-serif;letter-spacing:-.5px;font-variant-numeric:tabular-nums;color:#1B1B1B}.ds-tr-cap{display:flex;justify-content:space-between;margin-top:8px;font:400 12px/1.35 'Segoe UI Variable Text','Segoe UI',-apple-system,system-ui,sans-serif;color:#5C5C5C;font-variant-numeric:tabular-nums}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Film Edge Print",
+    "overview": "The numbers carry the page: elapsed time, part number and file size read like the edge print along a strip of film, set inside a native shell of hairline-seamed panes. On Windows it is a Windows 11 app (Fluent metrics, Segoe UI Variable); on a Mac it is a Mac app (SF, smaller controls, rounder panels). Same tokens, two metric sets, chosen by `UiLook.current`.\n\nIt is a quiet tool. Neutral grey grounds, one amber accent for selection and progress, and tally red that appears only when the app is actually recording. Depth is one step: a raised pane on a ground, divided by 1 px seams. It refuses the Material card stack and the dark neon \"studio\" look.",
+    "keyCharacteristics": [
+      "Native per OS: every metric that differs between Windows 11 and macOS is a getter on `RecLiteTokens`, never an `if` in a screen.",
+      "Hairline-seamed panes, not cards.",
+      "Tabular figures for every number that changes or lines up.",
+      "One signature: the PartStrip (duration drawn as segmented parts with minute ticks) on Record and History.",
+      "Light and dark follow the system; both palettes are first-class."
+    ],
+    "rules": [
+      {
+        "name": "The Tally Rule",
+        "body": "Red means \"this records or is recording\". Start, Stop, REC, the tally dot and the sidebar pill; nothing else is tally red. Errors use `danger`, never `tally`. The one shared use is the LevelMeter's top two segments (clipping), a metering convention.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Accent Rule",
+        "body": "Amber marks what is selected, focused, on or progressing. It is never decoration, never a heading colour, never a background panel.",
+        "section": "colors"
+      },
+      {
+        "name": "The Faint Ink Rule",
+        "body": "`ink-faint` fails body-text contrast on purpose; it is for disabled or inactive marks only, never for text a user must read.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Every number that ticks or aligns (timecode, part, size, History columns) uses `FontFeature.tabularFigures()`.",
+        "section": "typography"
+      },
+      {
+        "name": "The Edge Print Rule",
+        "body": "Tracked capitals are for measurements and column heads (`LENGTH`, `PARTS`, `RECOVERED`), the way numbers are printed on film edge. Never as an eyebrow or kicker above a heading.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Step Rule",
+        "body": "Ground, then pane. Nothing in the page floats above a pane; if something needs more emphasis, it gets a stronger seam (`seam-strong`, as on the live transport) or the accent, not a shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** read colours and per-OS metrics from `context.tokens` and spacing/sizes/motion from `AppSpacing` / `AppSize` / `AppMotion`; add a new per-OS difference as a getter on `RecLiteTokens`.",
+      "**Do** group related settings into one Pane with seamed PaneRows.",
+      "**Do** use tabular figures for every changing or aligned number.",
+      "**Do** keep motion to one-shot transitions: 120 ms (page and status switches), 180 ms (sidebar width, tally dot, transport), 260 ms max, `easeOutCubic`.",
+      "**Do** check both looks in both themes with `flutter test --update-goldens tool/screenshots/screens_test.dart` (PNGs in `build/screenshots` or `$SHOTS_DIR`).",
+      "**Do** keep visible state stamped on records (Recovered, Interrupted)."
+    ],
+    "donts": [
+      "**Don't** use looping or repeating animations (no pulsing REC dot, no shimmer); tests rely on `pumpAndSettle`.",
+      "**Don't** use tally red for anything that is not the record action or live recording state; errors are `danger`.",
+      "**Don't** stack cards, add shadows to in-page surfaces, or nest panes.",
+      "**Don't** use glows, gradients, or gradient text.",
+      "**Don't** put an eyebrow or kicker above a heading; EdgeLabel is for data.",
+      "**Don't** use `ink-faint` for readable text.",
+      "**Don't** bundle display fonts or replace the system faces.",
+      "**Don't** hard-code Windows or Mac metrics in a screen; use the token getters."
+    ]
+  }
+}

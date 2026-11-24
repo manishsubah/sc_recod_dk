@@ -10,7 +10,12 @@ namespace {
 constexpr wchar_t kWindowClass[] = L"RecLiteTrayIcon";
 constexpr UINT kTrayMessage = WM_APP + 1;
 constexpr UINT kIconId = 1;
-constexpr int kRunnerAppIcon = 101;  // IDI_APP_ICON in windows/runner/resource.h
+// Icons built into the runner (windows/runner/resource.h, Runner.rc), drawn by
+// tool/icon/make_icon.py.
+constexpr int kRunnerAppIcon = 101;        // IDI_APP_ICON
+constexpr int kRunnerTrayIdle = 102;       // IDI_TRAY_IDLE
+constexpr int kRunnerTrayRecording = 103;  // IDI_TRAY_RECORDING
+constexpr int kRunnerTrayPaused = 104;     // IDI_TRAY_PAUSED
 
 enum MenuItem : UINT { kStartStop = 1, kPauseResume, kShowWindow };
 
@@ -87,10 +92,23 @@ TrayIcon::TrayIcon(std::function<void(EngineTrayCommand)> on_command)
   taskbar_created_ = ::RegisterWindowMessageW(L"TaskbarCreated");
 
   const int size = ::GetSystemMetrics(SM_CXSMICON);
-  app_icon_ = static_cast<HICON>(::LoadImageW(instance, MAKEINTRESOURCEW(kRunnerAppIcon),
-                                              IMAGE_ICON, size, size, 0));
-  recording_icon_ = DotIcon(RGB(0xE5, 0x38, 0x3B));  // AppColors.recording
-  paused_icon_ = DotIcon(RGB(0xFF, 0x98, 0x00));     // AppColors.warning
+  const auto load = [instance, size](int id) {
+    return static_cast<HICON>(
+        ::LoadImageW(instance, MAKEINTRESOURCEW(id), IMAGE_ICON, size, size, 0));
+  };
+  app_icon_ = load(kRunnerTrayIdle);
+  if (app_icon_ == nullptr) {
+    app_icon_ = load(kRunnerAppIcon);
+  }
+  // A plain dot if the runner was built without the tray icons.
+  recording_icon_ = load(kRunnerTrayRecording);
+  if (recording_icon_ == nullptr) {
+    recording_icon_ = DotIcon(RGB(0xE2, 0x2E, 0x3E));  // tally red
+  }
+  paused_icon_ = load(kRunnerTrayPaused);
+  if (paused_icon_ == nullptr) {
+    paused_icon_ = DotIcon(RGB(0xDE, 0x88, 0x20));  // amber
+  }
 }
 
 TrayIcon::~TrayIcon() {

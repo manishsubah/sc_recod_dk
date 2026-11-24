@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reclite/app/theme/app_theme.dart';
+import 'package:reclite/app/theme/reclite_theme.dart';
 import 'package:reclite/features/recording/domain/entities/recording_status.dart';
 import 'package:reclite/features/recording/presentation/bloc/recording_bloc.dart';
 import 'package:reclite/features/recording/presentation/widgets/mini_recording_bar.dart';

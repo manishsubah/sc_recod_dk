@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reclite/app/theme/app_tokens.dart';
+import 'package:reclite/app/theme/reclite_theme.dart';
 import 'package:reclite/features/recording/presentation/bloc/readiness_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/recording_bloc.dart';
 import 'package:reclite/features/recording/presentation/bloc/sources_cubit.dart';
@@ -26,7 +27,16 @@ class StartRecordingButton extends StatelessWidget {
       (b) => (b.state.isBusy, b.state is RecordingStarting),
     );
 
+    final t = context.tokens;
     return FilledButton.icon(
+      // While a recording runs the slot keeps its place but goes quiet: the
+      // transport below is where the live controls are.
+      style: FilledButton.styleFrom(
+        backgroundColor: t.tally,
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: busy && !starting ? Colors.transparent : null,
+        disabledForegroundColor: busy && !starting ? t.inkFaint : null,
+      ),
       onPressed: canRecord && hasSource && !busy
           ? () {
               final config = currentRecordingConfig(context);
@@ -44,7 +54,9 @@ class StartRecordingButton extends StatelessWidget {
                 strokeWidth: AppSize.progressStroke,
               ),
             )
-          : const Icon(Icons.fiber_manual_record, color: AppColors.recording),
+          : busy
+          ? const SizedBox.shrink()
+          : const Icon(Icons.circle, size: AppSize.recordDot + 2),
       label: Text(
         starting
             ? 'Starting…'

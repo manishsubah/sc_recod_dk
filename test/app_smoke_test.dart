@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reclite/app/app.dart';
 import 'package:reclite/app/di.dart';
+import 'package:reclite/app/router/app_sidebar.dart';
+import 'package:reclite/core/widgets/level_meter.dart';
 import 'package:reclite/core/widgets/page_scaffold.dart';
 import 'package:reclite/features/desktop/domain/entities/tray.dart';
 import 'package:reclite/features/desktop/domain/repositories/desktop_repository.dart';
@@ -302,7 +304,7 @@ void main() {
     expect(desktop.miniCalls, [true]);
     expect(desktop.trayStatuses.last, TrayStatus.recording);
     expect(find.byTooltip('Open RecLite'), findsOneWidget);
-    expect(find.byType(NavigationRail), findsNothing);
+    expect(find.byType(AppSidebar), findsNothing);
 
     desktop.choose(TrayCommand.pauseResume);
     await tester.pumpAndSettle();
@@ -327,12 +329,12 @@ void main() {
 
     await tester.tap(find.text('Start Recording'));
     await tester.pumpAndSettle();
-    expect(find.byType(NavigationRail), findsNothing);
+    expect(find.byType(AppSidebar), findsNothing);
 
     desktop.choose(TrayCommand.showWindow);
     await tester.pumpAndSettle();
     expect(desktop.miniCalls, [true, false]);
-    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byType(AppSidebar), findsOneWidget);
     expect(find.text('REC'), findsOneWidget, reason: 'still recording');
   });
 
@@ -462,10 +464,8 @@ void main() {
     recorder.emitLevels(const AudioLevels(system: 0.5, microphone: 0.95));
     await tester.pumpAndSettle();
     final meters = tester
-        .widgetList<LinearProgressIndicator>(
-          find.byType(LinearProgressIndicator),
-        )
-        .map((m) => m.value)
+        .widgetList<LevelMeter>(find.byType(LevelMeter))
+        .map((m) => m.level)
         .toList();
     expect(meters, containsAll(<double>[0.5, 0.95]));
 

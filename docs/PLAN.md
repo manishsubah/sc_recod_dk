@@ -322,7 +322,7 @@ screen_recorder/
 
 | Setting | Default | Options |
 |---|---|---|
-| Resolution | Native, capped at 1440p | 720p / 1080p / 1440p / Native |
+| Resolution | Capped at 720p by default (Settings → Quality) | 720p / 1080p / 1440p / Native |
 | Frame rate | 30 fps | 15 / 24 / 30 / 60 |
 | Video codec | H.264 (most compatible) | H.264 / HEVC (smaller files) |
 | Frame timing | Variable (no new frame when the screen is still) | — |
@@ -933,7 +933,7 @@ Same features as macOS Phase 1, written in C++ in `packages/reclite_engine/windo
 - [ ] Long recording tests (4–8 h).
 - [ ] Crash/kill tests, disk-full tests, device-swap tests.
 - [ ] Cross-platform QA on different hardware (Intel/Apple Silicon Mac; NVIDIA/Intel/AMD PCs).
-- [x] App icon: RecLite icon (from `assets/reelyte_icon.svg`) on Windows (`app_icon.ico`, 16-256 px, cropped to the card) and macOS (`AppIcon.appiconset`, Apple margins).
+- [x] App icon: a desktop monitor with a red recording light, drawn by `tool/icon/make_icon.py` (source `assets/reclite_icon.svg`) for the app (`assets/reclite_icon.png`), Windows (`app_icon.ico`, 16-256 px, simpler drawing below 40 px) and macOS (`AppIcon.appiconset`, Apple 824/1024 grid). Rerun the script after changing it.
 - [x] Installers (`installers/`, see its README): Windows `RecLite-<version>-windows-x64-setup.exe` (Inno Setup, per-user, upgrades in place, bundles the VC++ runtime; tested install → run → uninstall on Windows 11) and macOS `RecLite-<version>-macos.dmg` script (not yet run on a Mac). Built files go to `installers/output/` (not in git).
 - [ ] Code signing (Windows certificate) and Apple Developer ID signing + notarisation.
 - Release build on Windows (2026-11-21): 28 MB folder (21 MB is Flutter's engine); idle 177 MB private memory, 0.1% CPU, 32 threads.
@@ -1011,7 +1011,7 @@ These need an answer before or during Phase 0:
 | 1 | Mac App Store or direct download? | Store (sandbox) / Direct (notarised) / Both | **Decided (default):** Direct first, sandbox off |
 | 2 | Final product name | RecLite / backup name | **RecLite** (trademark search still to do, §2) |
 | 3 | Default codec | H.264 / HEVC | **Decided:** H.264 default, HEVC optional (see §8.5) |
-| 4 | Default resolution cap | 1080p / 1440p / Native | **1440p cap** (good balance) |
+| 4 | Default resolution cap | 1080p / 1440p / Native | **720p cap** by default (2026-11-24; was 1440p) |
 | 5 | Separate audio tracks in v1? | Yes / No | **No** — one mixed track in v1 |
 | 6 | Windows dev machine | PC / Parallels VM / cloud VM | Real PC or x64 VM for encoder testing |
 | 7 | Open source or closed? | — | Affects licence choices; decide early |

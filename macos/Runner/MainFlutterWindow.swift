@@ -7,11 +7,11 @@ class MainFlutterWindow: NSWindow {
 
     // Paint the app's own background until Flutter draws its first frame, so
     // launch shows a calm empty window instead of a black flash. Must match
-    // scaffoldBackgroundColor in lib/app/theme/app_theme.dart.
+    // AppPalette.launchLight / launchDark in lib/app/theme/app_tokens.dart.
     let launchBackground = NSColor(name: "RecLiteLaunchBackground") { appearance in
       appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        ? NSColor(srgbRed: 0x12 / 255, green: 0x13 / 255, blue: 0x18 / 255, alpha: 1)
-        : NSColor(srgbRed: 0xFA / 255, green: 0xF8 / 255, blue: 0xFF / 255, alpha: 1)
+        ? NSColor(srgbRed: 0x20 / 255, green: 0x20 / 255, blue: 0x20 / 255, alpha: 1)
+        : NSColor(srgbRed: 0xF3 / 255, green: 0xF3 / 255, blue: 0xF3 / 255, alpha: 1)
     }
     flutterViewController.backgroundColor = launchBackground
     self.backgroundColor = launchBackground

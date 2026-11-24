@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reclite/app/di.dart';
+import 'package:reclite/app/router/app_sidebar.dart';
 import 'package:reclite/app/theme/app_tokens.dart';
+import 'package:reclite/app/theme/reclite_theme.dart';
 import 'package:reclite/features/desktop/domain/entities/tray.dart';
 import 'package:reclite/features/desktop/presentation/bloc/window_mode_cubit.dart';
 import 'package:reclite/features/help/presentation/bloc/help_cubit.dart';
@@ -25,23 +27,6 @@ import 'package:reclite/features/settings/presentation/pages/settings_page.dart'
 import 'package:reclite/features/shortcuts/domain/entities/key_combo.dart';
 import 'package:reclite/features/shortcuts/presentation/bloc/shortcuts_cubit.dart';
 import 'package:reclite/features/shortcuts/presentation/widgets/shortcuts_card.dart';
-
-enum AppSection {
-  record(
-    'Record',
-    Icons.radio_button_checked_outlined,
-    Icons.radio_button_checked,
-  ),
-  history('History', Icons.video_library_outlined, Icons.video_library),
-  settings('Settings', Icons.settings_outlined, Icons.settings),
-  help('Help', Icons.help_outline, Icons.help);
-
-  const AppSection(this.label, this.icon, this.selectedIcon);
-
-  final String label;
-  final IconData icon;
-  final IconData selectedIcon;
-}
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -102,44 +87,78 @@ class _AppShellState extends State<AppShell> {
     );
   }
 
+  void _select(BuildContext context, AppSection section) {
+    if (section == AppSection.history) {
+      context.read<HistoryCubit>().refresh();
+    }
+    setState(() => _section = section);
+  }
+
   Widget _buildScaffold(BuildContext context) {
-    return Scaffold(
-      body: Row(
-        children: [
-          NavigationRail(
-            selectedIndex: _section.index,
-            onDestinationSelected: (i) {
-              final section = AppSection.values[i];
-              if (section == AppSection.history) {
-                context.read<HistoryCubit>().refresh();
-              }
-              setState(() => _section = section);
-            },
-            leading: const Padding(
-              padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-              child: _Logo(),
-            ),
-            destinations: [
-              for (final s in AppSection.values)
-                NavigationRailDestination(
-                  icon: s == AppSection.record
-                      ? _RecordingBadge(child: Icon(s.icon))
-                      : Icon(s.icon),
-                  selectedIcon: Icon(s.selectedIcon),
-                  label: Text(s.label),
-                ),
-            ],
+    final t = context.tokens;
+    final compact =
+        MediaQuery.sizeOf(context).width < AppLayout.navCompactBreakpoint;
+    final page = AnimatedSwitcher(
+      duration: AppMotion.fast,
+      switchInCurve: AppMotion.ease,
+      switchOutCurve: AppMotion.ease,
+      layoutBuilder: (current, previous) =>
+          Stack(fit: StackFit.expand, children: [...previous, ?current]),
+      child: KeyedSubtree(
+        key: ValueKey(_section),
+        child: switch (_section) {
+          AppSection.record => const HomePage(),
+          AppSection.history => const HistoryPage(),
+          AppSection.settings => const SettingsPage(
+            extraSections: [ShortcutsCard()],
           ),
-          const VerticalDivider(width: AppSize.hairline),
+          AppSection.help => const HelpPage(),
+        },
+      ),
+    );
+
+    return Scaffold(
+      backgroundColor: t.ground,
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppSidebar(
+            selected: _section,
+            compact: compact,
+            onSelect: (s) => _select(context, s),
+          ),
           Expanded(
-            child: switch (_section) {
-              AppSection.record => const HomePage(),
-              AppSection.history => const HistoryPage(),
-              AppSection.settings => const SettingsPage(
-                extraSections: [ShortcutsCard()],
-              ),
-              AppSection.help => const HelpPage(),
-            },
+            // Windows 11: content sits on a layer with a rounded top-left corner;
+            // macOS: a plain content area beside the sidebar.
+            child: t.isMac
+                ? DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: t.pane,
+                      border: Border(left: BorderSide(color: t.seam)),
+                    ),
+                    child: page,
+                  )
+                : Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.xs),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: t.pane,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(AppRadius.lg),
+                        ),
+                        border: Border(
+                          top: BorderSide(color: t.seam),
+                          left: BorderSide(color: t.seam),
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(AppRadius.lg),
+                        ),
+                        child: page,
+                      ),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -250,45 +269,6 @@ class _FeatureLinksState extends State<_FeatureLinks> {
         ),
       ],
       child: widget.child,
-    );
-  }
-}
-
-class _Logo extends StatelessWidget {
-  const _Logo();
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Semantics(
-      label: 'RecLite',
-      child: Container(
-        width: AppSize.logo,
-        height: AppSize.logo,
-        decoration: BoxDecoration(
-          color: scheme.primary,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        child: Icon(Icons.videocam_rounded, color: scheme.onPrimary),
-      ),
-    );
-  }
-}
-
-/// Red dot on the Record section while a recording runs in the background.
-class _RecordingBadge extends StatelessWidget {
-  const _RecordingBadge({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final busy = context.select<RecordingBloc, bool>((b) => b.state.isBusy);
-    return Badge(
-      isLabelVisible: busy,
-      backgroundColor: AppColors.recording,
-      smallSize: AppSize.recordDot,
-      child: child,
     );
   }
 }

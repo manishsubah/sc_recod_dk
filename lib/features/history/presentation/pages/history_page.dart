@@ -4,11 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reclite/app/theme/app_tokens.dart';
+import 'package:reclite/app/theme/reclite_theme.dart';
 import 'package:reclite/core/utils/formatters.dart';
-import 'package:reclite/core/widgets/coming_soon.dart';
+import 'package:reclite/core/widgets/edge_label.dart';
+import 'package:reclite/core/widgets/empty_state.dart';
 import 'package:reclite/core/widgets/page_scaffold.dart';
+import 'package:reclite/core/widgets/part_strip.dart';
 import 'package:reclite/features/history/domain/entities/saved_recording.dart';
 import 'package:reclite/features/history/presentation/bloc/history_cubit.dart';
+import 'package:reclite/features/settings/presentation/bloc/settings_cubit.dart';
 
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});
@@ -20,106 +24,184 @@ class HistoryPage extends StatelessWidget {
       listener: (context, state) => ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text((state as HistoryLoaded).error!))),
-      child: PageScaffold(
-        title: 'History',
-        child: BlocBuilder<HistoryCubit, HistoryState>(
-          builder: (context, state) => switch (state) {
+      child: BlocBuilder<HistoryCubit, HistoryState>(
+        builder: (context, state) => PageScaffold(
+          title: 'History',
+          subtitle: switch (state) {
+            HistoryLoaded(:final recordings) when recordings.isNotEmpty => Text(
+              _summary(recordings),
+              style: TextStyle(
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+            _ => null,
+          },
+          action: OutlinedButton.icon(
+            onPressed: context.read<HistoryCubit>().refresh,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('Refresh'),
+          ),
+          child: switch (state) {
             HistoryLoading() => const Padding(
               padding: EdgeInsets.all(AppSpacing.xxl),
               child: Center(child: CircularProgressIndicator()),
             ),
-            HistoryFailed(:final message) => _FailedView(message: message),
-            final HistoryLoaded loaded => _LoadedView(state: loaded),
+            HistoryFailed(:final message) => EmptyState(
+              icon: Icons.error_outline_rounded,
+              title: 'History could not be read',
+              description: message,
+              action: OutlinedButton(
+                onPressed: () => context.read<HistoryCubit>().load(),
+                child: const Text('Try again'),
+              ),
+            ),
+            HistoryLoaded(:final recordings) when recordings.isEmpty =>
+              const EmptyState(
+                icon: Icons.video_library_outlined,
+                title: 'No recordings yet',
+                description:
+                    'Your recordings will appear here with date, duration, '
+                    'size and location.',
+              ),
+            final HistoryLoaded loaded => _RecordingList(
+              recordings: loaded.recordings,
+            ),
           },
+        ),
+      ),
+    );
+  }
+
+  static String _summary(List<SavedRecording> recordings) {
+    final n = recordings.length;
+    final total = recordings.fold(Duration.zero, (sum, r) => sum + r.duration);
+    final bytes = recordings.fold(0, (sum, r) => sum + r.bytes);
+    return '${n == 1 ? '1 recording' : '$n recordings'} · '
+        '${formatElapsed(total)} · ${formatBytes(bytes)}';
+  }
+}
+
+/// One table-like list: rows divided by seams, columns that drop away on a
+/// narrow window.
+class _RecordingList extends StatelessWidget {
+  const _RecordingList({required this.recordings});
+
+  final List<SavedRecording> recordings;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= AppLayout.historyColumnsBreakpoint;
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: t.paneRaised,
+            borderRadius: BorderRadius.circular(t.paneRadius),
+            border: Border.all(color: t.seam),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(t.paneRadius),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (wide) ...[
+                  const _HeaderRow(),
+                  Divider(height: AppSize.hairline, color: t.seam),
+                ],
+                for (var i = 0; i < recordings.length; i++) ...[
+                  if (i > 0) Divider(height: AppSize.hairline, color: t.seam),
+                  _RecordingRow(recording: recordings[i], wide: wide),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _HeaderRow extends StatelessWidget {
+  const _HeaderRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return ExcludeSemantics(
+      child: Container(
+        color: t.pane,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.xs,
+        ),
+        child: const Row(
+          children: [
+            Expanded(child: EdgeLabel('Recorded')),
+            SizedBox(
+              width: AppLayout.historyDurationColumn,
+              child: EdgeLabel('Length'),
+            ),
+            SizedBox(
+              width: AppLayout.historySizeColumn,
+              child: EdgeLabel('Size'),
+            ),
+            SizedBox(
+              width: AppLayout.historyPartsColumn,
+              child: EdgeLabel('Parts'),
+            ),
+            SizedBox(width: _RecordingRow.actionsWidth),
+          ],
         ),
       ),
     );
   }
 }
 
-class _LoadedView extends StatelessWidget {
-  const _LoadedView({required this.state});
-
-  final HistoryLoaded state;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                switch (state.recordings.length) {
-                  0 => '',
-                  1 => '1 recording',
-                  final n => '$n recordings',
-                },
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            IconButton(
-              tooltip: 'Refresh',
-              onPressed: context.read<HistoryCubit>().refresh,
-              icon: const Icon(Icons.refresh),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        if (state.recordings.isEmpty)
-          const ComingSoon(
-            icon: Icons.video_library_outlined,
-            title: 'No recordings yet',
-            description:
-                'Your recordings will appear here with date, duration, size '
-                'and location.',
-          )
-        else
-          for (final recording in state.recordings) ...[
-            _RecordingTile(recording: recording),
-            const SizedBox(height: AppSpacing.xs),
-          ],
-      ],
-    );
-  }
-}
-
-class _RecordingTile extends StatelessWidget {
-  const _RecordingTile({required this.recording});
+class _RecordingRow extends StatelessWidget {
+  const _RecordingRow({required this.recording, required this.wide});
 
   final SavedRecording recording;
+  final bool wide;
+
+  /// Play, Show, the gap and Trash.
+  static const double actionsWidth =
+      AppSize.iconButton * 3 + AppSpacing.md + AppSpacing.xs;
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final theme = Theme.of(context);
     final cubit = context.read<HistoryCubit>();
     final parts = recording.files.length;
-    final details = [
-      formatElapsed(recording.duration),
-      formatBytes(recording.bytes),
-      if (parts > 1) '$parts parts',
+    final partLength = context.select<SettingsCubit, Duration>(
+      (c) => c.state.options.segmentDuration,
+    );
+    final numbers = theme.textTheme.bodyMedium?.copyWith(
+      color: t.ink,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    final secondary = [
+      if (!wide) ...[
+        formatElapsed(recording.duration),
+        formatBytes(recording.bytes),
+        if (parts > 1) '$parts parts',
+      ],
       if (recording.sourceName.isNotEmpty) recording.sourceName,
     ].join(' · ');
 
-    return Card(
+    return InkWell(
+      onDoubleTap: () => cubit.play(recording),
+      hoverColor: t.hover,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
+        padding: const EdgeInsets.only(
+          left: AppSpacing.md,
+          right: AppSpacing.xs,
+          top: AppSpacing.sm,
+          bottom: AppSpacing.sm,
         ),
         child: Row(
           children: [
-            Icon(
-              Icons.movie_outlined,
-              size: AppSize.iconXl,
-              color: theme.colorScheme.primary,
-            ),
-            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,30 +211,58 @@ class _RecordingTile extends StatelessWidget {
                       Flexible(
                         child: Text(
                           formatDateTime(recording.startedAt),
-                          style: theme.textTheme.titleSmall,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: t.ink,
+                            fontWeight: FontWeight.w500,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (recording.outcome != RecordingOutcome.completed) ...[
                         const SizedBox(width: AppSpacing.xs),
-                        _OutcomeChip(outcome: recording.outcome),
+                        _OutcomeStamp(outcome: recording.outcome),
                       ],
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.xxs),
-                  Text(
-                    details,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                  if (secondary.isNotEmpty)
+                    Text(
+                      secondary,
+                      style: theme.textTheme.bodySmall,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
                 ],
               ),
             ),
+            if (wide) ...[
+              SizedBox(
+                width: AppLayout.historyDurationColumn,
+                child: Text(formatElapsed(recording.duration), style: numbers),
+              ),
+              SizedBox(
+                width: AppLayout.historySizeColumn,
+                child: Text(formatBytes(recording.bytes), style: numbers),
+              ),
+              SizedBox(
+                width: AppLayout.historyPartsColumn,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: AppSpacing.md),
+                  child: Tooltip(
+                    message: parts == 1 ? '1 part' : '$parts parts',
+                    child: PartStrip.recorded(
+                      parts: parts,
+                      duration: recording.duration,
+                      partLength: partLength,
+                      color: t.inkMuted,
+                      semanticsLabel: parts == 1 ? '1 part' : '$parts parts',
+                    ),
+                  ),
+                ),
+              ),
+            ],
             IconButton(
               tooltip: parts > 1 ? 'Play part 1' : 'Play',
-              onPressed: () => cubit.play(recording),
+              onPressed: parts == 0 ? null : () => cubit.play(recording),
               icon: const Icon(Icons.play_arrow_rounded),
             ),
             IconButton(
@@ -160,10 +270,15 @@ class _RecordingTile extends StatelessWidget {
               onPressed: () => cubit.reveal(recording),
               icon: const Icon(Icons.folder_open_outlined),
             ),
+            const SizedBox(width: AppSpacing.xs),
+            SizedBox(
+              height: AppSize.iconLg,
+              child: VerticalDivider(width: AppSpacing.md, color: t.seam),
+            ),
             IconButton(
               tooltip: _trashLabel,
               onPressed: () => _confirmTrash(context, cubit),
-              icon: const Icon(Icons.delete_outline),
+              icon: const Icon(Icons.delete_outline_rounded),
             ),
           ],
         ),
@@ -202,61 +317,32 @@ class _RecordingTile extends StatelessWidget {
   }
 }
 
-class _OutcomeChip extends StatelessWidget {
-  const _OutcomeChip({required this.outcome});
+/// A stamped state, like a lab's mark on a can of film.
+class _OutcomeStamp extends StatelessWidget {
+  const _OutcomeStamp({required this.outcome});
 
   final RecordingOutcome outcome;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final (label, color) = switch (outcome) {
-      RecordingOutcome.recovered => ('Recovered', AppColors.warning),
-      _ => ('Interrupted', theme.colorScheme.error),
+    final t = context.tokens;
+    final (label, color, hint) = switch (outcome) {
+      RecordingOutcome.recovered => (
+        'Recovered',
+        t.warning,
+        'Repaired after RecLite closed unexpectedly',
+      ),
+      _ => ('Interrupted', t.danger, 'Stopped early and not repaired'),
     };
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xs,
-        vertical: AppSpacing.none,
-      ),
-      decoration: BoxDecoration(
-        border: Border.all(color: color),
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-      ),
-      child: Text(
-        label,
-        style: theme.textTheme.labelSmall?.copyWith(color: color),
-      ),
-    );
-  }
-}
-
-class _FailedView extends StatelessWidget {
-  const _FailedView({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: AppSize.iconXxl,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: AppSpacing.md),
-            OutlinedButton(
-              onPressed: () => context.read<HistoryCubit>().load(),
-              child: const Text('Try again'),
-            ),
-          ],
+    return Tooltip(
+      message: hint,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs + 2),
+        decoration: BoxDecoration(
+          border: Border.all(color: color),
+          borderRadius: BorderRadius.circular(AppRadius.xs),
         ),
+        child: EdgeLabel(label, color: color),
       ),
     );
   }

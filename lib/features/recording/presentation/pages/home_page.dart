@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reclite/app/theme/app_tokens.dart';
+import 'package:reclite/core/widgets/empty_state.dart';
 import 'package:reclite/core/widgets/page_scaffold.dart';
+import 'package:reclite/features/recording/domain/entities/engine_info.dart';
 import 'package:reclite/features/recording/presentation/bloc/readiness_cubit.dart';
 import 'package:reclite/features/recording/presentation/bloc/recording_bloc.dart';
 import 'package:reclite/features/recording/presentation/widgets/audio_card.dart';
@@ -17,16 +19,31 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PageScaffold(
-      title: 'Record',
-      action: const StartRecordingButton(),
-      child: BlocBuilder<ReadinessCubit, ReadinessState>(
-        builder: (context, state) => switch (state) {
+    return BlocBuilder<ReadinessCubit, ReadinessState>(
+      builder: (context, state) => PageScaffold(
+        title: 'Record',
+        subtitle: switch (state) {
+          final ReadinessLoaded loaded => ReadinessLine(
+            canRecord: loaded.canRecord,
+            storage: loaded.storage,
+          ),
+          _ => null,
+        },
+        action: const StartRecordingButton(),
+        child: switch (state) {
           ReadinessLoading() => const Padding(
             padding: EdgeInsets.all(AppSpacing.huge),
             child: Center(child: CircularProgressIndicator()),
           ),
-          ReadinessFailed(:final message) => _FailedView(message: message),
+          ReadinessFailed(:final message) => EmptyState(
+            icon: Icons.error_outline_rounded,
+            title: 'RecLite could not get ready',
+            description: message,
+            action: OutlinedButton(
+              onPressed: () => context.read<ReadinessCubit>().load(),
+              child: const Text('Try again'),
+            ),
+          ),
           final ReadinessLoaded loaded => _LoadedView(state: loaded),
         },
       ),
@@ -47,73 +64,39 @@ class _LoadedView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const RecoveryBanner(),
-        ReadinessHeader(canRecord: state.canRecord, issues: state.issues),
+        ReadinessIssues(issues: state.issues),
         BlocListener<RecordingBloc, RecordingState>(
           listenWhen: (_, s) => s is RecordingFinished || s is RecordingFailed,
           listener: (context, _) => context.read<ReadinessCubit>().refresh(),
-          child: const _Spaced(child: RecordingControls()),
+          child: RecordingControls(partLength: state.options.segmentDuration),
         ),
-        const SizedBox(height: AppSpacing.md),
-        if (engine.supportsRecording) ...[
-          const SourceCard(),
-          const SizedBox(height: AppSpacing.md),
-          AudioCard(
-            microphoneSupported: engine.supportsMicrophoneViaScreenCapture,
-          ),
-        ],
+        if (engine.supportsRecording) _Inputs(engine: engine),
       ],
     );
   }
 }
 
-class _FailedView extends StatelessWidget {
-  const _FailedView({required this.message});
+/// Source and audio panes. While recording, audio comes first so the live
+/// meters stay in view on a small window; the locked source drops below.
+class _Inputs extends StatelessWidget {
+  const _Inputs({required this.engine});
 
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: AppSize.iconXxl,
-              color: scheme.error,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: AppSpacing.md),
-            OutlinedButton(
-              onPressed: () => context.read<ReadinessCubit>().load(),
-              child: const Text('Try again'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Adds the gap above the recording status only when there is a status to show.
-class _Spaced extends StatelessWidget {
-  const _Spaced({required this.child});
-
-  final Widget child;
+  final EngineInfo engine;
 
   @override
   Widget build(BuildContext context) {
-    final idle = context.select<RecordingBloc, bool>(
-      (b) => b.state is RecordingIdle || b.state is RecordingStarting,
+    final busy = context.select<RecordingBloc, bool>((b) => b.state.isBusy);
+    final source = const SourceCard();
+    final audio = AudioCard(
+      microphoneSupported: engine.supportsMicrophoneViaScreenCapture,
     );
-    return idle
-        ? child
-        : Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.md),
-            child: child,
-          );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (busy) audio else source,
+        const SizedBox(height: AppSpacing.xl),
+        if (busy) source else audio,
+      ],
+    );
   }
 }

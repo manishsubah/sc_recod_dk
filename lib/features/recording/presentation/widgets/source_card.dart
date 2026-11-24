@@ -4,25 +4,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reclite/app/theme/app_tokens.dart';
+import 'package:reclite/app/theme/reclite_theme.dart';
+import 'package:reclite/core/widgets/pane.dart';
+import 'package:reclite/core/widgets/select_box.dart';
 import 'package:reclite/features/recording/domain/entities/capture_window.dart';
 import 'package:reclite/features/recording/presentation/bloc/recording_bloc.dart';
 import 'package:reclite/features/recording/presentation/bloc/sources_cubit.dart';
 
-/// What to record: screen permission prompt or the display picker.
+/// What to record: screen permission prompt or the display and capture picker.
 class SourceCard extends StatelessWidget {
   const SourceCard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.md,
-        ),
-        child: BlocBuilder<SourcesCubit, SourcesState>(
-          builder: (context, state) => switch (state) {
-            SourcesLoading() => const _InlineMessage(
+    final t = context.tokens;
+    return BlocBuilder<SourcesCubit, SourcesState>(
+      builder: (context, state) => switch (state) {
+        SourcesLoading() => const Pane(
+          title: 'Source',
+          children: [
+            _InlineMessage(
               leading: SizedBox.square(
                 dimension: AppSize.inlineProgress,
                 child: CircularProgressIndicator(
@@ -31,14 +32,21 @@ class SourceCard extends StatelessWidget {
               ),
               text: 'Looking for displays…',
             ),
-            SourcesPermissionRequired(:final requested) => _PermissionPrompt(
-              requested: requested,
-            ),
-            final SourcesLoaded loaded => _DisplayPicker(state: loaded),
-            SourcesFailed(:final message) => _InlineMessage(
+          ],
+        ),
+        SourcesPermissionRequired(:final requested) => Pane(
+          title: 'Source',
+          children: [_PermissionPrompt(requested: requested)],
+        ),
+        final SourcesLoaded loaded => _DisplayPicker(state: loaded),
+        SourcesFailed(:final message) => Pane(
+          title: 'Source',
+          children: [
+            _InlineMessage(
               leading: Icon(
-                Icons.error_outline,
-                color: Theme.of(context).colorScheme.error,
+                Icons.error_outline_rounded,
+                size: AppSize.iconLg,
+                color: t.danger,
               ),
               text: message,
               action: TextButton(
@@ -46,9 +54,9 @@ class SourceCard extends StatelessWidget {
                 child: const Text('Retry'),
               ),
             ),
-          },
+          ],
         ),
-      ),
+      },
     );
   }
 }
@@ -60,20 +68,51 @@ class _DisplayPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final theme = Theme.of(context);
     final busy = context.select<RecordingBloc, bool>((b) => b.state.isBusy);
     final cubit = context.read<SourcesCubit>();
+    final mode = state.window != null
+        ? _CaptureMode.window
+        : state.area != null
+        ? _CaptureMode.area
+        : _CaptureMode.fullScreen;
 
-    return Column(
+    final detailStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: t.ink,
+      fontWeight: FontWeight.w500,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    final Widget detail = switch (mode) {
+      _CaptureMode.window => _Detail(
+        text: state.window!.label,
+        style: detailStyle,
+        onChange: busy ? null : () => _pickWindow(context),
+      ),
+      _CaptureMode.area => _Detail(
+        text: state.area!.label,
+        style: detailStyle,
+        onChange: busy ? null : cubit.selectArea,
+      ),
+      _CaptureMode.fullScreen => Text(
+        'Choose Area to drag a rectangle, or Window to record one app.',
+        style: theme.textTheme.bodySmall,
+      ),
+    };
+
+    return Pane(
+      title: 'Source',
       children: [
-        Row(
-          children: [
-            _RowLabel(icon: Icons.monitor_outlined, label: 'Screen'),
-            Expanded(
-              child: DropdownButton<int>(
-                isExpanded: true,
+        PaneRow(
+          icon: Icons.monitor_outlined,
+          label: 'Screen',
+          enabled: !busy,
+          control: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SelectBox<int>(
+                width: AppLayout.displayPickerWidth,
                 value: state.selectedId,
-                underline: const SizedBox.shrink(),
                 items: [
                   for (final d in state.displays)
                     DropdownMenuItem(
@@ -90,112 +129,75 @@ class _DisplayPicker extends StatelessWidget {
                         if (id != null) cubit.select(id);
                       },
               ),
-            ),
-            IconButton(
-              tooltip: 'Refresh displays',
-              onPressed: busy ? null : cubit.load,
-              icon: const Icon(Icons.refresh),
-            ),
-          ],
-        ),
-        const Divider(),
-        const SizedBox(height: AppSpacing.xs),
-        Row(
-          children: [
-            const _RowLabel(icon: Icons.crop_free, label: 'Record'),
-            Expanded(
-              child: Wrap(
-                spacing: AppSpacing.md,
-                runSpacing: AppSpacing.xs,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  SegmentedButton<_CaptureMode>(
-                    showSelectedIcon: false,
-                    segments: const [
-                      ButtonSegment(
-                        value: _CaptureMode.fullScreen,
-                        icon: Icon(Icons.fullscreen),
-                        label: Text('Full screen'),
-                      ),
-                      ButtonSegment(
-                        value: _CaptureMode.area,
-                        icon: Icon(Icons.highlight_alt),
-                        label: Text('Area'),
-                      ),
-                      ButtonSegment(
-                        value: _CaptureMode.window,
-                        icon: Icon(Icons.web_asset),
-                        label: Text('Window'),
-                      ),
-                    ],
-                    selected: {
-                      state.window != null
-                          ? _CaptureMode.window
-                          : state.area != null
-                          ? _CaptureMode.area
-                          : _CaptureMode.fullScreen,
-                    },
-                    onSelectionChanged: busy
-                        ? null
-                        : (selection) => switch (selection.first) {
-                            _CaptureMode.fullScreen => cubit.useFullScreen(),
-                            _CaptureMode.area => cubit.selectArea(),
-                            _CaptureMode.window => _pickWindow(context),
-                          },
-                  ),
-                  if (state.window case final window?)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(
-                            maxWidth: AppLayout.windowLabelMaxWidth,
-                          ),
-                          child: Text(
-                            window.label,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        TextButton.icon(
-                          onPressed: busy ? null : () => _pickWindow(context),
-                          icon: const Icon(Icons.edit_outlined),
-                          label: const Text('Change'),
-                        ),
-                      ],
-                    )
-                  else if (state.area case final area?)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          area.label,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        TextButton.icon(
-                          onPressed: busy ? null : cubit.selectArea,
-                          icon: const Icon(Icons.edit_outlined),
-                          label: const Text('Change'),
-                        ),
-                      ],
-                    )
-                  else
-                    Text(
-                      'Choose Area to drag a rectangle, or Window to record '
-                      'one app.',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                ],
+              const SizedBox(width: AppSpacing.xxs),
+              IconButton(
+                tooltip: 'Refresh displays',
+                onPressed: busy ? null : cubit.load,
+                iconSize: AppSize.iconMd,
+                icon: const Icon(Icons.refresh_rounded),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+        PaneRow(
+          icon: Icons.crop_free_rounded,
+          label: 'Capture',
+          enabled: !busy,
+          control: SegmentedButton<_CaptureMode>(
+            showSelectedIcon: false,
+            segments: const [
+              ButtonSegment(
+                value: _CaptureMode.fullScreen,
+                label: Text('Full screen'),
+              ),
+              ButtonSegment(value: _CaptureMode.area, label: Text('Area')),
+              ButtonSegment(value: _CaptureMode.window, label: Text('Window')),
+            ],
+            selected: {mode},
+            onSelectionChanged: busy
+                ? null
+                : (selection) => switch (selection.first) {
+                    _CaptureMode.fullScreen => cubit.useFullScreen(),
+                    _CaptureMode.area => cubit.selectArea(),
+                    _CaptureMode.window => _pickWindow(context),
+                  },
+          ),
+          below: Padding(
+            padding: const EdgeInsets.only(
+              left: AppSize.iconLg + AppSpacing.sm,
+            ),
+            child: AnimatedSwitcher(
+              duration: AppMotion.fast,
+              layoutBuilder: (current, previous) => Stack(
+                alignment: Alignment.centerLeft,
+                children: [...previous, ?current],
+              ),
+              child: KeyedSubtree(key: ValueKey(mode), child: detail),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The chosen area or window, with a way to change it.
+class _Detail extends StatelessWidget {
+  const _Detail({required this.text, required this.style, this.onChange});
+
+  final String text;
+  final TextStyle? style;
+  final VoidCallback? onChange;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Flexible(
+          child: Text(text, overflow: TextOverflow.ellipsis, style: style),
+        ),
+        const SizedBox(width: AppSpacing.xs),
+        TextButton(onPressed: onChange, child: const Text('Change')),
       ],
     );
   }
@@ -260,33 +262,6 @@ class _WindowPickerDialog extends StatelessWidget {
   }
 }
 
-class _RowLabel extends StatelessWidget {
-  const _RowLabel({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          size: AppSize.iconMd,
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        SizedBox(
-          width: AppLayout.labelColumnWidth,
-          child: Text(label, style: theme.textTheme.bodyMedium),
-        ),
-      ],
-    );
-  }
-}
-
 class _PermissionPrompt extends StatelessWidget {
   const _PermissionPrompt({required this.requested});
 
@@ -294,50 +269,62 @@ class _PermissionPrompt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final theme = Theme.of(context);
     final cubit = context.read<SourcesCubit>();
     final settingsPath = Platform.isMacOS
         ? 'System Settings → Privacy & Security → Screen & System Audio Recording'
         : 'Settings → Privacy';
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.lock_outline, color: theme.colorScheme.primary),
-            const SizedBox(width: AppSpacing.sm),
-            Text('Allow screen recording', style: theme.textTheme.titleMedium),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          requested
-              ? 'Turn on RecLite in $settingsPath, then quit and reopen RecLite.'
-              : 'RecLite needs your permission to record the screen. '
-                    'You only have to do this once.',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Wrap(
-          spacing: AppSpacing.xs,
-          runSpacing: AppSpacing.xs,
-          children: [
-            if (!requested)
-              FilledButton.tonal(
-                onPressed: cubit.requestPermission,
-                child: const Text('Allow access'),
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.lock_outline_rounded,
+                size: AppSize.iconLg,
+                color: t.accent,
               ),
-            OutlinedButton(
-              onPressed: cubit.openPermissionSettings,
-              child: const Text('Open System Settings'),
-            ),
-            TextButton(onPressed: cubit.load, child: const Text('Check again')),
-          ],
-        ),
-      ],
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                'Allow screen recording',
+                style: theme.textTheme.titleMedium,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            requested
+                ? 'Turn on RecLite in $settingsPath, then quit and reopen RecLite.'
+                : 'RecLite needs your permission to record the screen. '
+                      'You only have to do this once.',
+            style: theme.textTheme.bodyMedium?.copyWith(color: t.inkMuted),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Wrap(
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xs,
+            children: [
+              if (!requested)
+                FilledButton(
+                  onPressed: cubit.requestPermission,
+                  child: const Text('Allow access'),
+                ),
+              OutlinedButton(
+                onPressed: cubit.openPermissionSettings,
+                child: const Text('Open System Settings'),
+              ),
+              TextButton(
+                onPressed: cubit.load,
+                child: const Text('Check again'),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -355,13 +342,19 @@ class _InlineMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        leading,
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(child: Text(text)),
-        ?action,
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          leading,
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(child: Text(text)),
+          ?action,
+        ],
+      ),
     );
   }
 }

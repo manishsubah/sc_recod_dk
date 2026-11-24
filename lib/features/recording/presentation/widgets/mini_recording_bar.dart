@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reclite/app/theme/app_tokens.dart';
+import 'package:reclite/app/theme/reclite_theme.dart';
 import 'package:reclite/core/utils/formatters.dart';
+import 'package:reclite/core/widgets/tally_dot.dart';
 import 'package:reclite/features/recording/domain/entities/recording_status.dart';
 import 'package:reclite/features/recording/presentation/bloc/recording_bloc.dart';
 
@@ -21,6 +23,7 @@ class MiniRecordingBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = context.tokens;
     final bloc = context.read<RecordingBloc>();
     final (paused, stopping) = context.select<RecordingBloc, (bool, bool)>(
       (b) => switch (b.state) {
@@ -29,13 +32,17 @@ class MiniRecordingBar extends StatelessWidget {
         _ => (false, false),
       },
     );
-    final accent = paused ? AppColors.warning : AppColors.recording;
+    final accent = paused || stopping ? t.inkMuted : t.tallyInk;
     const compact = VisualDensity.compact;
 
     return Material(
-      color: theme.colorScheme.surfaceContainerHigh,
+      color: t.paneRaised,
+      shape: Border(top: BorderSide(color: t.seam)),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+        padding: const EdgeInsets.only(
+          left: AppSpacing.md,
+          right: AppSpacing.xs,
+        ),
         child: Row(
           children: [
             Expanded(
@@ -44,14 +51,7 @@ class MiniRecordingBar extends StatelessWidget {
                 onPanDown: (_) => onDragStart(),
                 child: Row(
                   children: [
-                    Container(
-                      width: AppSize.recordDot,
-                      height: AppSize.recordDot,
-                      decoration: BoxDecoration(
-                        color: accent,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
+                    TallyDot(live: !paused && !stopping),
                     const SizedBox(width: AppSpacing.xs),
                     Text(
                       stopping
@@ -62,6 +62,7 @@ class MiniRecordingBar extends StatelessWidget {
                       style: theme.textTheme.labelLarge?.copyWith(
                         color: accent,
                         fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
                       ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
@@ -87,7 +88,7 @@ class MiniRecordingBar extends StatelessWidget {
             IconButton(
               visualDensity: compact,
               tooltip: 'Stop',
-              color: AppColors.recording,
+              color: t.tallyInk,
               onPressed: stopping
                   ? null
                   : () => bloc.add(const RecordingStopRequested()),
@@ -125,7 +126,8 @@ class _Elapsed extends StatelessWidget {
       status.segmentIndex > 1
           ? '${formatElapsed(status.elapsed)} · Part ${status.segmentIndex}'
           : formatElapsed(status.elapsed),
-      style: theme.textTheme.titleMedium?.copyWith(
+      style: theme.textTheme.titleLarge?.copyWith(
+        fontWeight: FontWeight.w400,
         fontFeatures: const [FontFeature.tabularFigures()],
       ),
     );

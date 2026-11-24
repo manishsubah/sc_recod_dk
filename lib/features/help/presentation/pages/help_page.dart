@@ -5,8 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reclite/app/theme/app_tokens.dart';
+import 'package:reclite/app/theme/reclite_theme.dart';
 import 'package:reclite/core/constants/app_info.dart';
 import 'package:reclite/core/widgets/page_scaffold.dart';
+import 'package:reclite/core/widgets/pane.dart';
 import 'package:reclite/features/help/presentation/bloc/help_cubit.dart';
 
 class HelpPage extends StatelessWidget {
@@ -21,13 +23,14 @@ class HelpPage extends StatelessWidget {
               .showSnackBar(SnackBar(content: Text(state.error!))),
       child: const PageScaffold(
         title: 'Help',
+        maxContentWidth: AppLayout.readingMaxWidth,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _AboutCard(),
-            SizedBox(height: AppSpacing.md),
+            SizedBox(height: AppSpacing.xxl),
             _ContactCard(),
-            SizedBox(height: AppSpacing.md),
+            SizedBox(height: AppSpacing.xl),
             _GuideCard(),
           ],
         ),
@@ -44,64 +47,67 @@ class _AboutCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final theme = Theme.of(context);
-    final muted = theme.textTheme.bodyMedium?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-    );
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Image.asset(
-              AppInfo.iconAsset,
-              width: AppSize.aboutIcon,
-              height: AppSize.aboutIcon,
-            ),
-            const SizedBox(width: AppSpacing.lg),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(AppInfo.name, style: theme.textTheme.headlineSmall),
-                  Text(_versionLine, style: muted),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(AppInfo.copyright, style: muted),
-                  const SizedBox(height: AppSpacing.md),
-                  Wrap(
-                    spacing: AppSpacing.sm,
-                    runSpacing: AppSpacing.xs,
-                    children: [
-                      OutlinedButton(
-                        onPressed: () => showLicensePage(
-                          context: context,
-                          applicationName: AppInfo.name,
-                          applicationVersion: _versionLine,
-                          applicationIcon: Padding(
-                            padding: const EdgeInsets.all(AppSpacing.sm),
-                            child: Image.asset(
-                              AppInfo.iconAsset,
-                              width: AppSize.aboutIcon,
-                              height: AppSize.aboutIcon,
-                            ),
-                          ),
-                          applicationLegalese: AppInfo.copyright,
-                        ),
-                        child: const Text('Open-source licenses'),
-                      ),
-                      TextButton.icon(
-                        onPressed: () => _copyDetails(context),
-                        icon: const Icon(Icons.copy_outlined),
-                        label: const Text('Copy version details'),
-                      ),
-                    ],
+    final muted = theme.textTheme.bodyMedium?.copyWith(color: t.inkMuted);
+    return Padding(
+      padding: const EdgeInsets.only(left: AppSpacing.xxs),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Image.asset(
+            AppInfo.iconAsset,
+            width: AppSize.aboutIcon,
+            height: AppSize.aboutIcon,
+          ),
+          const SizedBox(width: AppSpacing.lg),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(AppInfo.name, style: theme.textTheme.titleLarge),
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  _versionLine,
+                  style: muted?.copyWith(
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(AppInfo.copyright, style: muted),
+                const SizedBox(height: AppSpacing.md),
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.xs,
+                  children: [
+                    OutlinedButton(
+                      onPressed: () => showLicensePage(
+                        context: context,
+                        applicationName: AppInfo.name,
+                        applicationVersion: _versionLine,
+                        applicationIcon: Padding(
+                          padding: const EdgeInsets.all(AppSpacing.sm),
+                          child: Image.asset(
+                            AppInfo.iconAsset,
+                            width: AppSize.aboutIcon,
+                            height: AppSize.aboutIcon,
+                          ),
+                        ),
+                        applicationLegalese: AppInfo.copyright,
+                      ),
+                      child: const Text('Open-source licenses'),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => _copyDetails(context),
+                      icon: const Icon(Icons.copy_outlined),
+                      label: const Text('Copy version details'),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -125,43 +131,38 @@ class _ContactCard extends StatelessWidget {
     final hasEmail = AppInfo.supportEmail.isNotEmpty;
     final hasWebsite = AppInfo.website.isNotEmpty;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Get help', style: theme.textTheme.titleMedium),
-            const SizedBox(height: AppSpacing.xs),
-            if (!hasEmail && !hasWebsite)
-              Text(
-                'Support contact details will be added in a future update.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+    return Pane(
+      title: 'Get help',
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: !hasEmail && !hasWebsite
+              ? Text(
+                  'Support contact details will be added in a future update.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: context.tokens.inkMuted,
+                  ),
+                )
+              : Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.xs,
+                  children: [
+                    if (hasEmail)
+                      FilledButton.icon(
+                        onPressed: cubit.emailSupport,
+                        icon: const Icon(Icons.mail_outline_rounded),
+                        label: const Text('Email support'),
+                      ),
+                    if (hasWebsite)
+                      OutlinedButton.icon(
+                        onPressed: cubit.openWebsite,
+                        icon: const Icon(Icons.open_in_new_rounded),
+                        label: const Text('Visit website'),
+                      ),
+                  ],
                 ),
-              )
-            else
-              Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.xs,
-                children: [
-                  if (hasEmail)
-                    FilledButton.tonalIcon(
-                      onPressed: cubit.emailSupport,
-                      icon: const Icon(Icons.mail_outline),
-                      label: const Text('Email support'),
-                    ),
-                  if (hasWebsite)
-                    OutlinedButton.icon(
-                      onPressed: cubit.openWebsite,
-                      icon: const Icon(Icons.open_in_new),
-                      label: const Text('Visit website'),
-                    ),
-                ],
-              ),
-          ],
         ),
-      ),
+      ],
     );
   }
 }
@@ -202,32 +203,38 @@ class _GuideCard extends StatelessWidget {
       ),
     ];
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Quick guide', style: theme.textTheme.titleMedium),
-            for (final (question, answer) in entries) ...[
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                question,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
+    final t = context.tokens;
+    return Pane(
+      title: 'Quick guide',
+      children: [
+        for (final (question, answer) in entries)
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  question,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: t.ink,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.xxs),
-              Text(
-                answer,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  answer,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: t.inkMuted,
+                    height: 1.45,
+                  ),
                 ),
-              ),
-            ],
-          ],
-        ),
-      ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

@@ -91,7 +91,7 @@ ffmpeg -v error -i "path\to\Part01.mp4" -f null -   # no output = decodes cleanl
 |---|---|---|
 | 1 | Open the app | "Ready to Record"; System shows your Windows version; Hardware encoding lists H.264 |
 | 2 | Screen picker | Your monitors with real names, main one marked "Main" |
-| 3 | Full screen, 10 s, **System sound off** | `Part01.mp4`, H.264, ≤1440 p, decodes cleanly, length ≈ what the timer showed |
+| 3 | Full screen, 10 s, **System sound off** | `Part01.mp4`, H.264, ≤720 p by default, decodes cleanly, length ≈ what the timer showed |
 | 4 | Area: drag a rectangle | Screen dims, size label follows the mouse, Esc cancels; red outline while recording; file size = the rectangle (scaled down if taller than 1440) |
 | 5 | System sound on, play a YouTube video | Video + `aac` audio; audio length ≈ video length; the meter moves |
 | 6 | Microphone on, talk | Mic meter moves; your voice is in the file |
