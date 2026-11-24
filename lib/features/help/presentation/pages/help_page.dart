@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -170,8 +168,10 @@ class _ContactCard extends StatelessWidget {
 class _GuideCard extends StatelessWidget {
   const _GuideCard();
 
-  static String get _startStop => Platform.isMacOS ? '⌃⌥R' : 'Ctrl+Alt+R';
-  static String get _pause => Platform.isMacOS ? '⌃⌥P' : 'Ctrl+Alt+P';
+  static String get _startStop =>
+      UiLook.current == UiLook.mac ? '⌃⌥R' : 'Ctrl+Alt+R';
+  static String get _pause =>
+      UiLook.current == UiLook.mac ? '⌃⌥P' : 'Ctrl+Alt+P';
 
   @override
   Widget build(BuildContext context) {

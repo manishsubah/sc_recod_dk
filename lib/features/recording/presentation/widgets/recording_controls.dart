@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -247,7 +246,7 @@ class _SavedPane extends StatelessWidget {
     final bloc = context.read<RecordingBloc>();
     final parts = result.files.length;
     final file = result.files.isEmpty ? null : result.files.first;
-    final revealLabel = Platform.isMacOS
+    final revealLabel = (UiLook.current == UiLook.mac)
         ? 'Show in Finder'
         : 'Show in Explorer';
 

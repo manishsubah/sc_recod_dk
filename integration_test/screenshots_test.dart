@@ -2,10 +2,14 @@
 // to docs/screenshots/. Run on a desktop:
 //
 //   flutter test integration_test/screenshots_test.dart -d windows
+//
+// On a Mac, add --dart-define=LOOK=windows to get the Windows look (with the
+// Mac's system font standing in for Segoe UI).
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -44,6 +48,10 @@ import '../test/fixtures.dart';
 
 const _folder = r'C:\Users\Alex\Videos\RecLite';
 const _windowSize = Size(1100, 760);
+
+/// 125% scaling, the usual Windows laptop setting, whatever the screen.
+const _pixelRatio = 1.25;
+const _look = String.fromEnvironment('LOOK');
 
 class _DemoRecorder extends FakeRecorderRepository {
   @override
@@ -99,8 +107,7 @@ class _DemoSettings implements SettingsRepository {
   Future<String?> pickFolder({required String initialDirectory}) async => null;
 
   @override
-  RecordingOptions get recordingOptions =>
-      const RecordingOptions(maxHeight: 1080);
+  RecordingOptions get recordingOptions => const RecordingOptions();
 
   @override
   Future<void> setRecordingOptions(RecordingOptions options) async {}
@@ -236,9 +243,7 @@ void main() {
     final boundary =
         frame.currentContext!.findRenderObject()! as RenderRepaintBoundary;
     await tester.runAsync(() async {
-      final image = await boundary.toImage(
-        pixelRatio: tester.view.devicePixelRatio,
-      );
+      final image = await boundary.toImage(pixelRatio: _pixelRatio);
       final png = await image.toByteData(format: ui.ImageByteFormat.png);
       File('${shots.path}${Platform.pathSeparator}$name.png')
           .writeAsBytesSync(png!.buffer.asUint8List());
@@ -246,6 +251,9 @@ void main() {
   }
 
   testWidgets('README screenshots (light mode)', (tester) async {
+    if (_look == 'windows') {
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    }
     final dpr = tester.view.devicePixelRatio;
     tester.view.physicalSize = _windowSize * dpr;
     addTearDown(tester.view.resetPhysicalSize);
@@ -257,7 +265,7 @@ void main() {
         () => ReadinessCubit(
           _DemoEngine(),
           outputFolder: _folder,
-          options: const RecordingOptions(maxHeight: 1080),
+          options: const RecordingOptions(),
         ),
       )
       ..registerFactory<SourcesCubit>(() => SourcesCubit(recorder))
@@ -307,5 +315,6 @@ void main() {
 
     await getIt.reset();
     await recorder.dispose();
+    debugDefaultTargetPlatformOverride = null;
   });
 }

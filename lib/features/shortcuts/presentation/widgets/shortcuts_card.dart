@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -85,14 +83,14 @@ class ShortcutsCard extends StatelessWidget {
                     )
                   : null,
               control: Semantics(
-                label: formatKeyCombo(combo, mac: Platform.isMacOS),
+                label: formatKeyCombo(combo, mac: UiLook.current == UiLook.mac),
                 child: ExcludeSemantics(
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       for (final key in keyComboParts(
                         combo,
-                        mac: Platform.isMacOS,
+                        mac: UiLook.current == UiLook.mac,
                       ))
                         _KeyCap(label: key, enabled: state.enabled),
                     ],

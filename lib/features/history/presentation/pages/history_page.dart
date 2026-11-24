@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -266,7 +264,9 @@ class _RecordingRow extends StatelessWidget {
               icon: const Icon(Icons.play_arrow_rounded),
             ),
             IconButton(
-              tooltip: Platform.isMacOS ? 'Show in Finder' : 'Show in folder',
+              tooltip: UiLook.current == UiLook.mac
+                  ? 'Show in Finder'
+                  : 'Show in folder',
               onPressed: () => cubit.reveal(recording),
               icon: const Icon(Icons.folder_open_outlined),
             ),
@@ -287,7 +287,7 @@ class _RecordingRow extends StatelessWidget {
   }
 
   static String get _trashLabel =>
-      Platform.isMacOS ? 'Move to Trash' : 'Move to Recycle Bin';
+      UiLook.current == UiLook.mac ? 'Move to Trash' : 'Move to Recycle Bin';
 
   Future<void> _confirmTrash(BuildContext context, HistoryCubit cubit) async {
     final parts = recording.files.length;
@@ -298,7 +298,7 @@ class _RecordingRow extends StatelessWidget {
         content: Text(
           'The recording from ${formatDateTime(recording.startedAt)}'
           '${parts > 1 ? ' ($parts parts)' : ''} will be moved to the '
-          '${Platform.isMacOS ? 'Trash' : 'Recycle Bin'}. You can restore it '
+          '${UiLook.current == UiLook.mac ? 'Trash' : 'Recycle Bin'}. You can restore it '
           'from there.',
         ),
         actions: [

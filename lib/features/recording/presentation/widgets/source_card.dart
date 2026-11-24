@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -272,7 +270,7 @@ class _PermissionPrompt extends StatelessWidget {
     final t = context.tokens;
     final theme = Theme.of(context);
     final cubit = context.read<SourcesCubit>();
-    final settingsPath = Platform.isMacOS
+    final settingsPath = (UiLook.current == UiLook.mac)
         ? 'System Settings → Privacy & Security → Screen & System Audio Recording'
         : 'Settings → Privacy';
 

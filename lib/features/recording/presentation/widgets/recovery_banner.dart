@@ -1,9 +1,8 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reclite/app/theme/app_tokens.dart';
+import 'package:reclite/app/theme/reclite_theme.dart';
 import 'package:reclite/core/utils/formatters.dart';
 import 'package:reclite/core/widgets/info_bar.dart';
 import 'package:reclite/features/recording/presentation/bloc/recovery_cubit.dart';
@@ -57,7 +56,9 @@ class _Banner extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => cubit.reveal(folder),
-            child: Text(Platform.isMacOS ? 'Show in Finder' : 'Show'),
+            child: Text(
+              UiLook.current == UiLook.mac ? 'Show in Finder' : 'Show',
+            ),
           ),
         ],
         onDismiss: cubit.dismiss,
