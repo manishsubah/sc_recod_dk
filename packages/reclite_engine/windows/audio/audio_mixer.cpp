@@ -24,6 +24,10 @@ void AudioMixer::Push(int source, const std::vector<float>& samples,
   }
   int64_t first = 0;
   int64_t start = start_frame;
+  if (queue.next && std::llabs(start - *queue.next) <= kSnapFrames) {
+    start = *queue.next;
+  }
+  queue.next = start + frame_count;
 
   if (start < output_frame_) {
     const int64_t late = output_frame_ - start;

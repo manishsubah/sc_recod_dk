@@ -12,9 +12,16 @@ final class AudioMixer {
   /// Bounds the silence inserted for one gap, so a bad timestamp can't allocate minutes of zeros.
   static let maxGapFrames: Int64 = 48_000 * 5
 
+  /// A packet starting within 30 ms of where the source's previous one ended continues it
+  /// exactly: capture timestamps jitter, and trusting them per packet cuts clicks into the sound.
+  /// Larger differences are real breaks or drift and follow the timestamp.
+  static let snapFrames: Int64 = 48_000 * 30 / 1000
+
   private var queues: [[Float]]
   private var heads: [Int]
   private var starts: [Int64]
+  /// Where each source's last packet ended, kept after its queue drains.
+  private var nexts: [Int64?]
   private let gains: [Float]
 
   private(set) var outputFrame: Int64 = 0
@@ -23,6 +30,7 @@ final class AudioMixer {
     queues = Array(repeating: [], count: sourceCount)
     heads = Array(repeating: 0, count: sourceCount)
     starts = Array(repeating: 0, count: sourceCount)
+    nexts = Array(repeating: nil, count: sourceCount)
     self.gains = gains ?? Array(repeating: 1, count: sourceCount)
   }
 
@@ -38,6 +46,10 @@ final class AudioMixer {
     guard frameCount > 0 else { return }
     var first = 0
     var start = startFrame
+    if let expected = nexts[source], abs(start - expected) <= Self.snapFrames {
+      start = expected
+    }
+    nexts[source] = start + Int64(frameCount)
 
     if start < outputFrame {
       let late = Int(outputFrame - start)

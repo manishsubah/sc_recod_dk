@@ -2,8 +2,8 @@
 /// pubspec.yaml (a test checks this).
 abstract final class AppInfo {
   static const String name = 'RecLite';
-  static const String version = '0.1.0';
-  static const int build = 1;
+  static const String version = '2.0.1';
+  static const int build = 2;
 
   static const String copyrightHolder = 'RecLite';
   static const int copyrightYear = 2026;

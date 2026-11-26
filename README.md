@@ -35,7 +35,7 @@
 
 | Platform | Installer | Requires |
 |---|---|---|
-| Windows | `RecLite-0.1.0-windows-x64-setup.exe` from [Releases](https://github.com/manishsubah/sc_recod_dk/releases) | Windows 10 (version 2004) or later |
+| Windows | `RecLite-2.0.1-windows-x64-setup.exe` from [Releases](https://github.com/manishsubah/sc_recod_dk/releases) | Windows 10 (version 2004) or later |
 | macOS | Coming soon | macOS 13 or later |
 
 ## Built with

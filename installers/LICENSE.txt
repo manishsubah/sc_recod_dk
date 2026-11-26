@@ -1,60 +1,41 @@
 RecLite - End User License Agreement
 
-Please read this agreement carefully. By installing or using RecLite you agree
-to these terms. If you do not agree, do not install or use RecLite.
+Please read this agreement carefully. By installing or using RecLite you agree to these terms. If you do not agree, do not install or use RecLite.
 
 1. Licence
-RecLite is licensed, not sold. The owner of RecLite ("we") gives you a
-personal, non-exclusive, non-transferable licence to install and use RecLite on
-devices you own or control.
+RecLite is licensed, not sold. The owner of RecLite ("we") gives you a personal, non-exclusive, non-transferable licence to install and use RecLite on devices you own or control.
 
 2. Restrictions
 You may not:
   - sell, rent, lease or sub-license RecLite;
   - copy or distribute RecLite, except as allowed by law;
-  - reverse engineer, decompile or disassemble RecLite, except where the law
-    expressly allows it;
+  - reverse engineer, decompile or disassemble RecLite, except where the law expressly allows it;
   - remove or change any copyright or other notices in RecLite.
 
 3. Your recordings
-Everything you record with RecLite belongs to you. You are responsible for
-what you record and for following the laws that apply to it, including:
-  - getting consent from people whose voice, image or screen you record,
-    where the law requires it (for example in calls and meetings);
+Everything you record with RecLite belongs to you. You are responsible for what you record and for following the laws that apply to it, including:
+  - getting consent from people whose voice, image or screen you record, where the law requires it (for example in calls and meetings);
   - respecting copyright and the rights of others in the content you record.
 
 4. Privacy
-RecLite works on your device. It does not collect personal data and does not
-send your recordings, settings or usage information anywhere. Recordings are
-saved only in the folder you choose.
+RecLite works on your device. It does not collect personal data and does not send your recordings, settings or usage information anywhere. Recordings are saved only in the folder you choose.
 
 5. Third-party software
-RecLite includes open-source components that are licensed under their own
-terms. You can read them in RecLite under Help > About > Open-source licenses.
+RecLite includes open-source components that are licensed under their own terms. You can read them in RecLite under Help > About > Open-source licenses.
 
 6. Ownership
-RecLite, including its code, design and name, is owned by us and protected by
-copyright law. This agreement does not give you any rights to it other than
-the licence in section 1.
+RecLite, including its code, design and name, is owned by us and protected by copyright law. This agreement does not give you any rights to it other than the licence in section 1.
 
 7. No warranty
-RecLite is provided "as is", without warranty of any kind, express or implied,
-including fitness for a particular purpose and non-infringement. We do not
-promise that RecLite will be error-free or that a recording will never be
-lost. Keep copies of recordings that matter to you.
+RecLite is provided "as is", without warranty of any kind, express or implied, including fitness for a particular purpose and non-infringement. We do not promise that RecLite will be error-free or that a recording will never be lost. Keep copies of recordings that matter to you.
 
 8. Limitation of liability
-To the extent the law allows, we are not liable for any indirect, incidental,
-special or consequential damages, or for loss of data, profits or business,
-arising from the use of or inability to use RecLite.
+To the extent the law allows, we are not liable for any indirect, incidental, special or consequential damages, or for loss of data, profits or business, arising from the use of or inability to use RecLite.
 
 9. Updates and termination
-These terms apply to updates of RecLite unless an update comes with new terms.
-This licence ends automatically if you break these terms. When it ends, you
-must uninstall RecLite.
+These terms apply to updates of RecLite unless an update comes with new terms. This licence ends automatically if you break these terms. When it ends, you must uninstall RecLite.
 
 10. Entire agreement
-This is the whole agreement between you and us about RecLite. If any part of
-it cannot be enforced, the rest stays in effect.
+This is the whole agreement between you and us about RecLite. If any part of it cannot be enforced, the rest stays in effect.
 
 Copyright (c) 2026 RecLite. All rights reserved.

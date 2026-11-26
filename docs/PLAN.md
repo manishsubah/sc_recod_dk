@@ -934,7 +934,7 @@ Same features as macOS Phase 1, written in C++ in `packages/reclite_engine/windo
 - [ ] Crash/kill tests, disk-full tests, device-swap tests.
 - [ ] Cross-platform QA on different hardware (Intel/Apple Silicon Mac; NVIDIA/Intel/AMD PCs).
 - [x] App icon: a desktop monitor with a red recording light, drawn by `tool/icon/make_icon.py` (source `assets/reclite_icon.svg`) for the app (`assets/reclite_icon.png`), Windows (`app_icon.ico`, 16-256 px, simpler drawing below 40 px) and macOS (`AppIcon.appiconset`, Apple 824/1024 grid). Rerun the script after changing it.
-- [x] Installers (`installers/`, see its README): Windows `RecLite-<version>-windows-x64-setup.exe` (Inno Setup, per-user, upgrades in place, bundles the VC++ runtime; tested install → run → uninstall on Windows 11) and macOS `RecLite-<version>-macos.dmg` script (not yet run on a Mac). Built files go to `installers/output/` (not in git).
+- [x] Installers (`installers/`, see its README): Windows `RecLite-<version>-windows-x64-setup.exe` (Windows' built-in IExpress; license → Yes → installed per user, upgrades in place, Apps entry + uninstaller, bundles the VC++ runtime; tested install → run → uninstall on Windows 11) and macOS `RecLite-<version>-macos.dmg` script (not yet run on a Mac). Built files go to `installers/output/` (not in git).
 - [ ] Code signing (Windows certificate) and Apple Developer ID signing + notarisation.
 - Release build on Windows (2026-11-21): 28 MB folder (21 MB is Flutter's engine); idle 177 MB private memory, 0.1% CPU, 32 threads.
 

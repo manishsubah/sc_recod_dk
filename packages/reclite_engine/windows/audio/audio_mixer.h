@@ -10,12 +10,18 @@ namespace reclite_engine {
 // Mixes stereo float streams placed on one shared 48 kHz frame timeline.
 // Port of the macOS AudioMixer (same rules, same tests): gaps become silence,
 // overlaps are trimmed, audio older than what was already emitted is dropped.
+// Within a source, a packet that starts within kSnapFrames of where the previous
+// one ended continues it exactly: capture timestamps jitter by a few ms, and
+// trusting them per packet cuts audible clicks into the sound.
 // Not thread-safe.
 class AudioMixer {
  public:
   static constexpr int kChannels = 2;
   // Bounds the silence inserted for one gap, so a bad timestamp can't allocate minutes.
   static constexpr int64_t kMaxGapFrames = 48'000 * 5;
+  // 30 ms: larger differences are real breaks (no sound played, device switch) or
+  // clock drift worth correcting; smaller ones are timestamp jitter.
+  static constexpr int64_t kSnapFrames = 48'000 * 30 / 1000;
 
   explicit AudioMixer(int source_count);
 
@@ -35,6 +41,8 @@ class AudioMixer {
     std::vector<float> samples;
     size_t head = 0;  // Index of the first unconsumed sample.
     int64_t start = 0;  // Timeline frame of samples[head].
+    // Where the source's last packet ended, kept after the queue drains.
+    std::optional<int64_t> next;
     int64_t frames() const {
       return static_cast<int64_t>((samples.size() - head) / kChannels);
     }

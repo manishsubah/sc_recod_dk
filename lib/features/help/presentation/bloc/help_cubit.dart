@@ -12,7 +12,7 @@ class HelpCubit extends Cubit<HelpState> {
 
   final LinksRepository _links;
 
-  /// "RecLite 0.1.0 (build 1) · Windows 10.0.26200", for support requests.
+  /// "RecLite 2.0.1 (build 2) · Windows 10.0.26200", for support requests.
   String get versionDetails =>
       '${AppInfo.name} ${AppInfo.version} (build ${AppInfo.build}) · '
       '${_links.systemDescription}';

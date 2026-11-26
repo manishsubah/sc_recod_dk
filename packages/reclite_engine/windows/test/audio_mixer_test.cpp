@@ -28,10 +28,29 @@ int main() {
     Check(!m.EndFrame(0).has_value(), "fully consumed"); }
   { AudioMixer m(2); m.Push(0, Stereo(50, 0.25f), 0); m.Push(1, Stereo(50, 0.5f), 0);
     Check(All(m.Pull(50), 0, 100, 0.75f), "two sources are summed"); }
-  { AudioMixer m(1); m.Push(0, Stereo(10, 1), 0); m.Push(0, Stereo(10, 1), 20); auto o = m.Pull(30);
-    Check(o.size() == 60 && All(o, 0, 20, 1) && All(o, 20, 40, 0) && All(o, 40, 60, 1), "gap becomes silence"); }
-  { AudioMixer m(1); m.Push(0, Stereo(20, 1), 0); m.Push(0, Stereo(20, 0.5f), 10); auto o = m.Pull(30);
-    Check(All(o, 0, 40, 1) && All(o, 40, 60, 0.5f), "overlap is trimmed, first data wins"); }
+  // Real breaks (well beyond timestamp jitter) still become silence / are trimmed.
+  { AudioMixer m(1); m.Push(0, Stereo(10, 1), 0); m.Push(0, Stereo(10, 1), 4810); auto o = m.Pull(4820);
+    Check(o.size() == 9640 && All(o, 0, 20, 1) && All(o, 20, 9620, 0) && All(o, 9620, 9640, 1), "gap becomes silence"); }
+  { AudioMixer m(1); m.Push(0, Stereo(9600, 1), 0); m.Push(0, Stereo(9600, 0.5f), 4800); auto o = m.Pull(14400);
+    Check(All(o, 0, 19200, 1) && All(o, 19200, 28800, 0.5f), "overlap is trimmed, first data wins"); }
+  // Windows' packet timestamps jitter by a few ms; that must not cut holes in the sound.
+  { AudioMixer m(1); long pushed = 0; std::vector<float> out;
+    const int jitter[] = {0, 90, -70, 40, -96, 13, 75, -30};
+    for (int i = 0; i < 400; ++i) {
+      m.Push(0, Stereo(480, 0.5f), i * 480LL + jitter[i % 8]);
+      pushed += 480;
+      auto o = m.Pull(i * 480LL);
+      out.insert(out.end(), o.begin(), o.end());
+    }
+    auto rest = m.Pull(400 * 480LL + 200);
+    out.insert(out.end(), rest.begin(), rest.end());
+    size_t holes = 0;
+    for (size_t k = 0; k + 1 < out.size() - 400; ++k) if (out[k] == 0.0f) ++holes;
+    Check(holes == 0, "jittered timestamps stay continuous (no clicks)"); }
+  { AudioMixer m(1); m.Push(0, Stereo(480, 1), 0); m.Push(0, Stereo(480, 1), 480 + 1500);
+    Check(*m.EndFrame(0) == 480 + 1500 + 480, "drift beyond 30 ms re-syncs to the timestamp"); }
+  { AudioMixer m(1); m.Push(0, Stereo(480, 1), 0); m.Pull(480); m.Push(0, Stereo(480, 1), 480 + 60);
+    Check(*m.EndFrame(0) == 960, "continuity holds after the queue was emptied"); }
   { AudioMixer m(2); m.Push(0, Stereo(100, 0.5f), 0); auto a = m.Pull(60);
     m.Push(1, Stereo(100, 0.25f), 30); auto b = m.Pull(100);
     Check(All(a, 0, a.size(), 0.5f), "missing source is silence");

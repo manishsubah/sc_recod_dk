@@ -2,7 +2,7 @@ name: reclite
 description: "RecLite — lightweight desktop screen recorder."
 publish_to: 'none'
 
-version: 0.1.0+1
+version: 2.0.1+2
 
 environment:
   sdk: ^3.13.1

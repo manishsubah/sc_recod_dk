@@ -343,7 +343,7 @@ void main() {
 
     await tester.tap(find.text('Help'));
     await tester.pumpAndSettle();
-    expect(find.text('Version 0.1.0 (build 1)'), findsOneWidget);
+    expect(find.text('Version 2.0.1 (build 2)'), findsOneWidget);
     expect(find.textContaining('All rights reserved'), findsOneWidget);
     expect(find.text('Quick guide'), findsOneWidget);
     expect(find.text('Get help'), findsOneWidget);
